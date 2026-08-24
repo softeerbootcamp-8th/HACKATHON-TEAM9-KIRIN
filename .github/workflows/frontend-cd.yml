@@ -1,0 +1,84 @@
+name: Frontend CD
+
+on:
+  push:
+    branches: [develop]
+    paths:
+      - 'frontend/**'
+      - '.github/workflows/frontend-cd.yml'
+      - '.github/workflows/frontend-ci.yml'
+
+concurrency:
+  group: frontend-cd
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  ci:
+    name: Build & Test
+    uses: ./.github/workflows/frontend-ci.yml
+    with:
+      upload-dist: true
+    secrets: inherit
+
+  deploy:
+    name: Deploy to kirin-server
+    needs: ci
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            frontend/deploy
+          sparse-checkout-cone-mode: false
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: frontend-dist-${{ github.sha }}
+          path: ./dist
+
+      - name: Prepare deploy payload
+        run: |
+          mkdir -p payload
+          tar -czf payload/frontend-dist.tar.gz -C ./dist .
+          cp frontend/deploy/deploy.sh payload/deploy.sh
+
+      - name: Copy dist archive and deploy script to server
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ vars.SSH_HOST }}
+          username: ${{ vars.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: 22
+          source: "payload/frontend-dist.tar.gz,payload/deploy.sh"
+          target: "/home/ec2-user/kirin-frontend-incoming/${{ github.sha }}"
+          strip_components: 1
+          overwrite: true
+
+      - name: Run remote deploy
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ vars.SSH_HOST }}
+          username: ${{ vars.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: 22
+          command_timeout: 3m
+          script: |
+            set -uo pipefail
+            RELEASE_ID="${{ github.sha }}"
+            STAGE_DIR="/home/ec2-user/kirin-frontend-incoming/${RELEASE_ID}"
+            mkdir -p "${STAGE_DIR}/dist"
+            tar -xzf "${STAGE_DIR}/frontend-dist.tar.gz" -C "${STAGE_DIR}/dist"
+            chmod +x "${STAGE_DIR}/deploy.sh"
+            "${STAGE_DIR}/deploy.sh" "${STAGE_DIR}/dist" "${RELEASE_ID}" > /tmp/kirin-frontend-deploy.log 2>&1
+            DEPLOY_EXIT=$?
+            cat /tmp/kirin-frontend-deploy.log
+            RESULT_LINE=$(grep -E '^RESULT=' /tmp/kirin-frontend-deploy.log | tail -n 1)
+            rm -rf "${STAGE_DIR}"
+            if [ "$DEPLOY_EXIT" -ne 0 ] || [ "$RESULT_LINE" != "RESULT=success" ]; then
+              echo "::error::Frontend deploy failed: ${RESULT_LINE:-<no RESULT marker emitted>}"
+              exit 1
+            fi
+            echo "Frontend deploy succeeded: $RESULT_LINE"
