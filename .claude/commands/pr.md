@@ -54,7 +54,7 @@ allowed-tools: Bash(gh pr:*), Bash(gh label:*), Bash(gh auth:*), Bash(git log:*)
 
 커밋 메시지와 같은 형식: `[영역] 타입: 요약` (`backend/CLAUDE.md` 11장 기준)
 
-- 영역: `BE` / `FE` / `ALL`
+- 영역: `BE` / `FE` / `EMBEDDED`(esp32/ 등 임베디드 펌웨어) / `ALL`
 - 범위 내 커밋이 여러 영역에 걸치면 `ALL`
 - 예: `[BE] feat: 회원 가입 API 구현`
 

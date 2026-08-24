@@ -314,6 +314,8 @@ develop : 개발 통합
 
 ### PR 제목
 
+영역 = `BE` / `FE` / `EMBEDDED`(esp32/ 등 임베디드 펌웨어) / `ALL`(여러 영역 공통)
+
 ```
 [BE] {type}: {message}
 예: [BE] feat: 회원 가입 API 구현
