@@ -10,7 +10,7 @@
 #define SERVER_PORT 8081
 
 // 폴링 주기 (ms)
-#define POLL_INTERVAL_MS 1000
+#define POLL_INTERVAL_MS 300
 
 // 관리할 보관함 개수와 매핑
 #define LOCKER_COUNT 2
