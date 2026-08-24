@@ -1,0 +1,10 @@
+# OS
+.DS_Store
+
+# IDE
+.idea/
+*.iws
+*.iml
+
+# Claude Code (개인 설정, 팀 공용 .claude/settings.json은 유지)
+.claude/settings.local.json

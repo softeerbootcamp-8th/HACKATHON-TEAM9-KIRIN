@@ -287,14 +287,28 @@ void 존재하지_않는_회원을_조회하면_예외가_발생한다() {
 
 ---
 
-## 10. Git / PR
+## 10. 위험 명령어
+
+다음 명령은 `.claude/hooks/block-forbidden-commands.sh`(PreToolUse hook)가 Bash 실행 단계에서 차단한다.
+차단은 1차 방어선이며, 최종 방어는 사람의 확인이다.
+
+- `git clean`, `git push --force`(`--force-with-lease`는 허용), `git reset --hard`
+- `docker compose down -v`
+- `flyway clean`
+- `DROP`/`TRUNCATE` (mysql 등 DB 클라이언트 호출 시)
+
+위 작업이 꼭 필요하면 팀 확인 후 **사람이 직접** 실행한다.
+
+---
+
+## 11. Git / PR
 
 ### 브랜치
 
 ```
 main    : 운영 배포
 develop : 개발 통합
-{이슈번호}/{이슈타입}/{이슈이름}   예: KIRIN-123/feat/login-api
+{이슈번호}/{이슈타입}/{이슈이름}   예: 7/feat/login-api
 ```
 
 이슈타입 = 커밋 타입: `feat`, `fix`, `refactor`, `test`, `chore`, `docs`
@@ -325,3 +339,4 @@ develop : 개발 통합
 - [ ] 테스트 메서드명이 한글 `~다`이고 given/when/then 구조인가
 - [ ] 식별자 타입이 `Long`(bigint)인가
 - [ ] 아직 도입하지 않은 도구(Flyway, Swagger 등)를 임의로 가정하지 않았는가
+- [ ] 위험 명령어(`git clean`, `git push --force`, `git reset --hard`, `docker compose down -v`, `flyway clean`, `DROP`/`TRUNCATE`)를 실행하려 하지 않았는가
