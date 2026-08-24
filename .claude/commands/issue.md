@@ -20,7 +20,7 @@ allowed-tools: Bash(gh issue:*), Bash(gh label:*), Bash(gh api:*), Bash(gh auth:
 
 형식: `[영역] 타입 : 이슈 이름`  (콜론 양쪽에 공백, 템플릿 형식 그대로)
 
-- 영역: `BE` / `FE` / `ALL`(양쪽 공통)
+- 영역: `BE` / `FE` / `EMBEDDED`(esp32/ 등 임베디드 펌웨어) / `ALL`(여러 영역 공통)
 - 타입: `feat` / `fix` / `refactor` / `test` / `chore` / `docs` (`backend/CLAUDE.md` 11장 기준.
   버그 수정은 `fix`를 쓴다 — 템플릿 예시의 `bug`는 별도 타입이 아니라 `fix`의 동의어로 취급한다.)
 
