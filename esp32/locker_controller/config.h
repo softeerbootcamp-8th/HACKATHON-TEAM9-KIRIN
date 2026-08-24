@@ -12,6 +12,9 @@
 // 폴링 주기 (ms)
 #define POLL_INTERVAL_MS 300
 
+// HTTP 요청 타임아웃 (ms)
+#define HTTP_TIMEOUT_MS 500
+
 // 관리할 보관함 개수와 매핑
 #define LOCKER_COUNT 2
 

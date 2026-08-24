@@ -27,7 +27,7 @@ bool fetchLockStatus(int lockerId, String &outStatus) {
                "/api/lockers/" + lockerId + "/lock-status";
 
   http.begin(url);
-  http.setTimeout(2000);
+  http.setTimeout(HTTP_TIMEOUT_MS);
   int httpCode = http.GET();
 
   if (httpCode != HTTP_CODE_OK) {
