@@ -1,0 +1,27 @@
+# 백엔드 API 계약서 (OpenAPI 3.0).
+#
+# 백엔드가 스펙을 노출하면(예: /v3/api-docs.yaml) 그 내용으로 이 파일을 갱신하고
+# `pnpm gen:api` 로 src/api/generated 를 재생성한다. 지금은 orval 워크플로가
+# 동작함을 보장하는 최소 placeholder 만 담겨 있다.
+openapi: 3.0.3
+info:
+  title: KIRIN API
+  version: 0.1.0
+paths:
+  /health:
+    get:
+      operationId: getHealth
+      tags:
+        - health
+      summary: 헬스 체크
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok

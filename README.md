@@ -29,4 +29,14 @@ cd backend
 
 ## Frontend
 
-작업 예정
+- React 19 / TypeScript / Vite, TanStack Router · Query, Tailwind v4 + shadcn/ui
+- 자세한 규칙은 [`frontend/docs/RULESET.md`](frontend/docs/RULESET.md), 디자인 토큰은
+  [`frontend/DESIGN.md`](frontend/DESIGN.md) 참조
+
+### 실행
+
+```bash
+cd frontend
+pnpm install
+pnpm dev
+```
