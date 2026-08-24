@@ -79,7 +79,10 @@ match 'flyway[:_-]?clean([^[:alnum:]]|$)' &&
 # --- DB 파괴 ---
 # DB 클라이언트를 실제로 호출할 때만 검사한다. 이 조건이 없으면
 # 문서 작성, grep, SQL 파일 편집이 전부 막힌다.
-DBCLIENT='(^|[;&|([:space:]])(mysql|mysqlsh|mysqladmin|mysqldump|mariadb|psql|sqlite3)([[:space:]]|$)'
+# 명령어 위치를 CMDPOS와 동일하게 앵커링한다. 단순히 앞에 공백만 있으면
+# 매칭되는 조건이었다면, 커밋 메시지나 echo에 `mysql -e "DROP TABLE ..."`가
+# 텍스트로만 들어가도 실제 실행으로 오인해 차단된다.
+DBCLIENT="${CMDPOS}(mysql|mysqlsh|mysqladmin|mysqldump|mariadb|psql|sqlite3)([[:space:]]|\$)"
 
 # 나아가 따옴표로 감싼 인자 안에 있을 때만 잡는다. SQL을 넘기는 방식이
 # 여러 가지라 플래그를 기준으로 삼으면 우회된다. 아래가 모두 잡혀야 한다.
