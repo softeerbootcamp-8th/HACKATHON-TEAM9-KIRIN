@@ -1,0 +1,95 @@
+name: Backend CD
+
+on:
+  push:
+    branches: [develop]
+    paths:
+      - 'backend/**'
+      - '.github/workflows/backend-cd.yml'
+      - '.github/workflows/backend-ci.yml'
+
+concurrency:
+  group: backend-cd
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  ci:
+    name: Build & Test
+    uses: ./.github/workflows/backend-ci.yml
+    with:
+      upload-jar: true
+    secrets: inherit
+
+  deploy:
+    name: Deploy to kirin-server
+    needs: ci
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            backend/deploy
+          sparse-checkout-cone-mode: false
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: backend-jar-${{ github.sha }}
+          path: ./artifact
+
+      - name: Prepare deploy payload
+        run: |
+          JAR_FILE=$(find ./artifact -maxdepth 1 -name '*.jar' | head -n 1)
+          if [ -z "$JAR_FILE" ]; then
+            echo "::error::Downloaded artifact does not contain a jar file"
+            exit 1
+          fi
+          mkdir -p payload
+          cp "$JAR_FILE" payload/app.jar
+          cp backend/deploy/deploy.sh payload/deploy.sh
+
+      - name: Copy jar and deploy script to server
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ vars.SSH_HOST }}
+          username: ${{ vars.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: 22
+          source: "payload/app.jar,payload/deploy.sh"
+          target: "/home/ec2-user/kirin-backend/incoming"
+          strip_components: 1
+          overwrite: true
+
+      - name: Run remote deploy
+        uses: appleboy/ssh-action@v1.2.0
+        env:
+          SPRING_DATASOURCE_URL: jdbc:mysql://${{ vars.DB_HOST }}:${{ vars.DB_PORT }}/${{ vars.DB_NAME }}
+          SPRING_DATASOURCE_USERNAME: ${{ secrets.DB_USERNAME }}
+          SPRING_DATASOURCE_PASSWORD: ${{ secrets.DB_PASSWORD }}
+        with:
+          host: ${{ vars.SSH_HOST }}
+          username: ${{ vars.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: 22
+          envs: SPRING_DATASOURCE_URL,SPRING_DATASOURCE_USERNAME,SPRING_DATASOURCE_PASSWORD
+          command_timeout: 3m
+          script: |
+            set -uo pipefail
+            INCOMING_DIR="/home/ec2-user/kirin-backend/incoming"
+            chmod +x "${INCOMING_DIR}/deploy.sh"
+            JAR_PATH="${INCOMING_DIR}/app.jar"
+            if [ ! -f "$JAR_PATH" ]; then
+              echo "::error::No jar found at ${JAR_PATH}"
+              exit 1
+            fi
+            "${INCOMING_DIR}/deploy.sh" "$JAR_PATH" > /tmp/kirin-backend-deploy.log 2>&1
+            DEPLOY_EXIT=$?
+            cat /tmp/kirin-backend-deploy.log
+            RESULT_LINE=$(grep -E '^RESULT=' /tmp/kirin-backend-deploy.log | tail -n 1)
+            if [ "$DEPLOY_EXIT" -ne 0 ] || [ "$RESULT_LINE" != "RESULT=success" ]; then
+              echo "::error::Backend deploy failed: ${RESULT_LINE:-<no RESULT marker emitted>}"
+              exit 1
+            fi
+            echo "Backend deploy succeeded: $RESULT_LINE"

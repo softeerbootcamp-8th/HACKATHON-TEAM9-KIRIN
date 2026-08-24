@@ -1,0 +1,23 @@
+# Reference copy only — this file is installed manually at
+# /etc/systemd/system/kirin-backend.service on kirin-server.
+# It is NOT read or deployed by the CI/CD pipeline itself.
+
+[Unit]
+Description=Kirin Backend (Spring Boot)
+After=network.target
+
+[Service]
+Type=simple
+User=ec2-user
+WorkingDirectory=/home/ec2-user/kirin-backend
+EnvironmentFile=/home/ec2-user/kirin-backend/backend.env
+ExecStart=/usr/bin/java -jar /home/ec2-user/kirin-backend/app.jar
+SuccessExitStatus=143
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=20
+NoNewPrivileges=true
+ProtectSystem=full
+
+[Install]
+WantedBy=multi-user.target

@@ -1,6 +1,11 @@
 spring:
   application:
     name: superservice
+  datasource:
+    url: jdbc:mysql://localhost:${DB_PORT:3306}/${DB_NAME:kirin}
+    username: root
+    password: ${DB_PASSWORD:1234}
+    driver-class-name: com.mysql.cj.jdbc.Driver
 
 async:
   slack-notification:

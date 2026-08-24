@@ -45,11 +45,15 @@ Gradle Wrapper를 쓴다. 전역 `gradle`을 쓰지 않는다.
 
     test -f "$R/frontend/package.json" && echo exists || echo none
 
-**아직 `frontend/`는 `.gitkeep`만 있는 빈 디렉터리다 (2026-08 기준).** `package.json`이
-없으면 "프론트엔드 미착수 — 검증 대상 없음"이라고 보고하고 끝낸다.
-`package.json`이 생기면 그 안의 `packageManager` 필드나 lockfile(`pnpm-lock.yaml`,
-`package-lock.json`, `yarn.lock`)로 패키지 매니저를 확인하고, `scripts`에 정의된
-lint/build/test 명령을 그대로 사용한다. 정의되지 않은 명령을 임의로 추측해 실행하지 않는다.
+`package.json`이 없으면 "프론트엔드 미착수 — 검증 대상 없음"이라고 보고하고 끝낸다.
+있으면 패키지 매니저는 **pnpm 고정**이다 (`pnpm-lock.yaml` 존재, npm/yarn 혼용 금지).
+`package.json`의 `scripts`에 정의된 명령을 그대로 사용한다. 정의되지 않은 명령을
+임의로 추측해 실행하지 않는다.
+
+    pnpm --dir "$R/frontend" lint
+    pnpm --dir "$R/frontend" typecheck
+    pnpm --dir "$R/frontend" build
+    pnpm --dir "$R/frontend" test
 
 ## 5. 실패 처리
 
@@ -70,7 +74,10 @@ lint/build/test 명령을 그대로 사용한다. 정의되지 않은 명령을 
 | 항목 | 결과 |
 |---|---|
 | backend test | ✅ 통과 (N개) / ❌ 실패 (N개) |
-| frontend | ... (미착수면 "검증 대상 없음") |
+| frontend lint | ✅ / ❌ (미착수면 "검증 대상 없음") |
+| frontend typecheck | ✅ / ❌ |
+| frontend build | ✅ / ❌ |
+| frontend test | ✅ 통과 (N개) / ❌ 실패 (N개) |
 
 ## 변경 영역
 - {건드린 영역과 파일}
