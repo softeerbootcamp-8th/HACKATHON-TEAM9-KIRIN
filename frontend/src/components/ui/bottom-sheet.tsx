@@ -1,22 +1,25 @@
 import * as React from "react";
-import * as DialogPrimitive from "@radix-ui/react-dialog";
+import { Drawer } from "vaul";
 import { cn } from "@/lib/utils";
 
 /**
  * 하단 고정 시트 (Figma `BottomSheet`, DESIGN.md §4.3 · §5.1).
- * Radix Dialog 위에 모바일 뷰포트 하단 앵커 스타일을 얹었다 — 접근성(포커스 트랩,
- * ESC/scrim 닫기)은 Dialog 프리미티브를 그대로 물려받는다.
+ * vaul(Drawer) 기반 — 핸들바뿐 아니라 시트 어디를 잡고 아래로 슬라이딩해도
+ * 닫히는 네이티브 바텀시트 제스처를 지원한다(스크롤 가능한 본문과는 vaul이
+ * 자체적으로 구분해서 처리한다). 열림/닫힘 이동 애니메이션도 vaul이 드래그
+ * 상태에 맞춰 직접 관리하므로 Content 쪽에 별도 slide 애니메이션 클래스를
+ * 주지 않는다.
  */
-const BottomSheet = DialogPrimitive.Root;
-const BottomSheetTrigger = DialogPrimitive.Trigger;
-const BottomSheetClose = DialogPrimitive.Close;
+const BottomSheet = Drawer.Root;
+const BottomSheetTrigger = Drawer.Trigger;
+const BottomSheetClose = Drawer.Close;
 
 function BottomSheetOverlay({
   className,
   ...props
-}: React.ComponentProps<typeof DialogPrimitive.Overlay>) {
+}: React.ComponentProps<typeof Drawer.Overlay>) {
   return (
-    <DialogPrimitive.Overlay
+    <Drawer.Overlay
       className={cn(
         "fixed inset-0 z-50 bg-black/40",
         "data-[state=open]:animate-in data-[state=open]:fade-in-0",
@@ -32,21 +35,19 @@ function BottomSheetContent({
   className,
   children,
   ...props
-}: React.ComponentProps<typeof DialogPrimitive.Content>) {
+}: React.ComponentProps<typeof Drawer.Content>) {
   return (
-    <DialogPrimitive.Portal>
+    <Drawer.Portal>
       <BottomSheetOverlay />
-      <DialogPrimitive.Content
+      <Drawer.Content
         className={cn(
           "fixed inset-x-0 bottom-0 z-50 mx-auto flex max-h-[85dvh] w-full max-w-[var(--viewport-max)] flex-col",
           "rounded-t-[var(--radius-lg)] bg-[var(--color-bg)] pt-3 shadow-[var(--shadow-sheet)] outline-none",
-          "data-[state=open]:animate-in data-[state=open]:slide-in-from-bottom data-[state=open]:duration-300",
-          "data-[state=closed]:animate-out data-[state=closed]:slide-out-to-bottom data-[state=closed]:duration-200",
           className,
         )}
         {...props}
       >
-        {/* Sheet/HandleRow */}
+        {/* Sheet/HandleRow — 시각적 표시용. 드래그는 시트 전체에서 동작한다 */}
         <div
           className="flex h-1 w-full shrink-0 items-center justify-center"
           aria-hidden
@@ -54,8 +55,8 @@ function BottomSheetContent({
           <div className="h-1 w-9 rounded-full bg-[var(--color-border)]" />
         </div>
         {children}
-      </DialogPrimitive.Content>
-    </DialogPrimitive.Portal>
+      </Drawer.Content>
+    </Drawer.Portal>
   );
 }
 
@@ -77,9 +78,9 @@ function BottomSheetHeader({
 function BottomSheetTitle({
   className,
   ...props
-}: React.ComponentProps<typeof DialogPrimitive.Title>) {
+}: React.ComponentProps<typeof Drawer.Title>) {
   return (
-    <DialogPrimitive.Title
+    <Drawer.Title
       className={cn(
         "text-base font-semibold text-[var(--color-text)]",
         className,
