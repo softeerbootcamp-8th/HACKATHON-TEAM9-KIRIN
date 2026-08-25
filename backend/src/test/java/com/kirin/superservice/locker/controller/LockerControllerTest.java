@@ -8,8 +8,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.kirin.superservice.locker.domain.Locker;
 import com.kirin.superservice.locker.domain.LockStatus;
+import com.kirin.superservice.locker.domain.UsageStatus;
 import com.kirin.superservice.locker.exception.LockerNotFoundException;
 import com.kirin.superservice.locker.service.LockerService;
+import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
@@ -27,9 +29,25 @@ class LockerControllerTest {
     LockerService lockerService;
 
     @Test
+    void 보관함_목록을_조회하면_200과_잠금상태와_사용상태를_반환한다() throws Exception {
+        // given
+        given(lockerService.findAllLockers()).willReturn(List.of(
+                new Locker(1L, LockStatus.LOCKED, UsageStatus.AVAILABLE),
+                new Locker(2L, LockStatus.UNLOCKED, UsageStatus.OCCUPIED)));
+
+        // when & then
+        mockMvc.perform(get("/api/lockers"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.lockers[0].lockerId").value(1))
+                .andExpect(jsonPath("$.lockers[0].usageStatus").value("AVAILABLE"))
+                .andExpect(jsonPath("$.lockers[1].lockStatus").value("UNLOCKED"))
+                .andExpect(jsonPath("$.lockers[1].usageStatus").value("OCCUPIED"));
+    }
+
+    @Test
     void 존재하는_보관함의_잠금상태를_조회하면_200과_잠금상태를_반환한다() throws Exception {
         // given
-        Locker locker = new Locker(1L, LockStatus.LOCKED);
+        Locker locker = new Locker(1L, LockStatus.LOCKED, UsageStatus.AVAILABLE);
         given(lockerService.getLocker(1L)).willReturn(locker);
 
         // when & then
@@ -53,7 +71,7 @@ class LockerControllerTest {
     @Test
     void 보관함의_잠금상태를_변경하면_200과_변경된_상태를_반환한다() throws Exception {
         // given
-        Locker locker = new Locker(1L, LockStatus.UNLOCKED);
+        Locker locker = new Locker(1L, LockStatus.UNLOCKED, UsageStatus.OCCUPIED);
         given(lockerService.changeLockStatus(1L, LockStatus.UNLOCKED)).willReturn(locker);
 
         // when & then

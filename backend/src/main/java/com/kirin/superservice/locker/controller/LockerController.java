@@ -2,6 +2,7 @@ package com.kirin.superservice.locker.controller;
 
 import com.kirin.superservice.locker.domain.Locker;
 import com.kirin.superservice.locker.dto.request.ChangeLockStatusRequest;
+import com.kirin.superservice.locker.dto.response.LockerListResponse;
 import com.kirin.superservice.locker.dto.response.LockerLockStatusResponse;
 import com.kirin.superservice.locker.service.LockerService;
 import jakarta.validation.Valid;
@@ -19,6 +20,11 @@ import org.springframework.web.bind.annotation.RestController;
 public class LockerController {
 
     private final LockerService lockerService;
+
+    @GetMapping
+    public LockerListResponse getLockers() {
+        return LockerListResponse.fromEntities(lockerService.findAllLockers());
+    }
 
     @GetMapping("/{lockerId}/lock-status")
     public LockerLockStatusResponse getLockStatus(@PathVariable Long lockerId) {
