@@ -15,3 +15,8 @@ spring:
   sql:
     init:
       mode: always
+
+toss:
+  payment:
+    base-url: ${TOSS_BASE_URL:https://api.tosspayments.com}
+    secret-key: ${TOSS_SECRET_KEY:test_dummy_secret_key_please_set_TOSS_SECRET_KEY}

@@ -5,7 +5,8 @@ import lombok.Getter;
 @Getter
 public enum ErrorCode {
     LOCKER_NOT_FOUND(404, "LOCKER_NOT_FOUND", "물품보관함을 찾을 수 없습니다."),
-    INVALID_REQUEST(400, "INVALID_REQUEST", "요청 값이 올바르지 않습니다.");
+    INVALID_REQUEST(400, "INVALID_REQUEST", "요청 값이 올바르지 않습니다."),
+    PAYMENT_CONFIRM_FAILED(400, "PAYMENT_CONFIRM_FAILED", "결제 승인에 실패했습니다.");
 
     private final int statusCode;
     private final String code;
