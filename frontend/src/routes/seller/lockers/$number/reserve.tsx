@@ -1,32 +1,23 @@
 import { useState } from "react";
 import { createFileRoute, useRouter } from "@tanstack/react-router";
+import { useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import { PageContainer } from "@/components/layout/page";
 import { Header } from "@/components/layout/header";
 import { ItemRow } from "@/components/domain/item-row";
 import { RegisterProductChip } from "@/components/domain/register-product-chip";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { formatPrice } from "@/lib/format";
+import {
+  useGetMyProducts,
+  useReserveLocker,
+} from "@/api/generated/products/products";
+import { useChangeLockStatus } from "@/api/generated/lockers/lockers";
 
 export const Route = createFileRoute("/seller/lockers/$number/reserve")({
   component: ReservePage,
 });
-
-// 아직 사물함에 배치되지 않은 내 등록 상품 — 실제 데이터는 API 연동 시 교체한다.
-const MY_UNPLACED_PRODUCTS = [
-  {
-    id: "golf-club",
-    title: "골프채",
-    place: "600,000원",
-    address: "등록 8/24",
-  },
-  { id: "wallet", title: "지갑", place: "170,000원", address: "등록 8/20" },
-  {
-    id: "earphone",
-    title: "무선 이어폰",
-    place: "45,000원",
-    address: "등록 8/18",
-  },
-];
 
 /**
  * 사물함 예약 · 상품 선택 (Figma "05 사물함 예약 · 상품 선택").
@@ -34,12 +25,46 @@ const MY_UNPLACED_PRODUCTS = [
  */
 function ReservePage() {
   const { number } = Route.useParams();
+  const lockerId = Number(number);
   const router = useRouter();
+  const queryClient = useQueryClient();
+
   // 사물함 한 칸에는 상품을 하나만 넣을 수 있어 단일 선택으로 동작한다.
-  const [selectedId, setSelectedId] = useState<string | null>(
-    MY_UNPLACED_PRODUCTS[0].id,
-  );
+  const [selectedId, setSelectedId] = useState<number | null>(null);
   const [unlocked, setUnlocked] = useState(false);
+
+  const { data: myProductsData, isLoading } = useGetMyProducts({
+    status: "PREPARING",
+  });
+  const products = myProductsData?.products ?? [];
+
+  const reserveLocker = useReserveLocker();
+  const changeLockStatus = useChangeLockStatus();
+
+  const isSubmitting = reserveLocker.isPending || changeLockStatus.isPending;
+
+  const handleConfirm = () => {
+    if (!selectedId) return;
+    reserveLocker.mutate(
+      { productId: selectedId, data: { lockerId } },
+      {
+        onSuccess: () => {
+          changeLockStatus.mutate(
+            { lockerId, data: { lockStatus: "UNLOCKED" } },
+            {
+              onSuccess: () => {
+                queryClient.invalidateQueries({ queryKey: ["/lockers"] });
+                queryClient.invalidateQueries({ queryKey: ["/products/me"] });
+                setUnlocked(true);
+              },
+              onError: () => toast.error("사물함을 여는 데 실패했어요."),
+            },
+          );
+        },
+        onError: () => toast.error("사물함 예약에 실패했어요."),
+      },
+    );
+  };
 
   return (
     <PageContainer>
@@ -60,21 +85,32 @@ function ReservePage() {
 
         <RegisterProductChip />
 
-        <div className="flex flex-col gap-2.5">
-          {MY_UNPLACED_PRODUCTS.map((product) => (
-            <ItemRow
-              key={product.id}
-              title={product.title}
-              place={product.place}
-              address={product.address}
-              selectable
-              checked={selectedId === product.id}
-              onCheckedChange={(checked) =>
-                setSelectedId(checked ? product.id : null)
-              }
-            />
-          ))}
-        </div>
+        {isLoading ? (
+          <p className="py-6 text-center text-sm text-[var(--color-text-muted)]">
+            불러오는 중...
+          </p>
+        ) : products.length === 0 ? (
+          <p className="py-6 text-center text-sm text-[var(--color-text-muted)]">
+            아직 배치되지 않은 등록 상품이 없어요.
+          </p>
+        ) : (
+          <div className="flex flex-col gap-2.5">
+            {products.map((product) => (
+              <ItemRow
+                key={product.productId}
+                title={product.name}
+                place={formatPrice(product.price)}
+                address="판매 준비중"
+                thumbnailUrl={product.imageUrl ?? undefined}
+                selectable
+                checked={selectedId === product.productId}
+                onCheckedChange={(checked) =>
+                  setSelectedId(checked ? product.productId : null)
+                }
+              />
+            ))}
+          </div>
+        )}
 
         <p className="text-xs text-[var(--color-text-muted)]">
           선택한 상품은 예약 확정 후 {number}번 사물함에 등록돼요.
@@ -85,8 +121,8 @@ function ReservePage() {
         <Button
           fullWidth
           size="lg"
-          disabled={!selectedId}
-          onClick={() => setUnlocked(true)}
+          disabled={!selectedId || isSubmitting}
+          onClick={handleConfirm}
         >
           예약 확정하기
         </Button>

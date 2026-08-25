@@ -5,73 +5,31 @@ import { PageContainer } from "@/components/layout/page";
 import { Header } from "@/components/layout/header";
 import { ProductCard } from "@/components/domain/product-card";
 import { RegisterProductChip } from "@/components/domain/register-product-chip";
+import { useGetMyProducts } from "@/api/generated/products/products";
+import type { ProductStatus } from "@/api/generated/model";
 
 export const Route = createFileRoute("/seller/my-list")({
   component: MyListPage,
 });
 
-type ProductStatus = "예약중" | "판매중" | "판매대기" | "판매완료";
-
-type Product = {
-  id: string;
-  name: string;
-  price: number;
-  status: ProductStatus;
-  meta: string;
-  highlight?: { text: string; tone: "info" | "danger" };
-};
-
-// 실제 데이터는 API 연동 시 사물함/거래 도메인 쿼리로 교체한다.
-const PRODUCTS: Product[] = [
-  {
-    id: "wallet",
-    name: "지갑",
-    price: 170_000,
-    status: "예약중",
-    meta: "13번 사물함",
-    highlight: { text: "2시간 50분 내 등록", tone: "info" },
-  },
-  {
-    id: "golf-club",
-    name: "골프채",
-    price: 600_000,
-    status: "판매중",
-    meta: "16번 사물함 (8/25 15:10 - 8/31 15:10)",
-    highlight: { text: "6일 남음", tone: "danger" },
-  },
-  {
-    id: "earphone",
-    name: "무선 이어폰",
-    price: 45_000,
-    status: "판매대기",
-    meta: "사물함 미지정",
-  },
-  {
-    id: "camping-chair",
-    name: "캠핑 의자",
-    price: 30_000,
-    status: "판매완료",
-    meta: "8/20 거래 완료",
-  },
-];
-
 const STATUS_BADGE: Record<
   ProductStatus,
   { label: string; variant: "info" | "danger" | "muted" | "success" }
 > = {
-  예약중: { label: "예약중", variant: "info" },
-  판매중: { label: "판매중", variant: "danger" },
-  판매대기: { label: "판매대기", variant: "muted" },
-  판매완료: { label: "판매완료", variant: "success" },
+  RESERVED: { label: "예약중", variant: "info" },
+  SELLING: { label: "판매중", variant: "danger" },
+  PREPARING: { label: "판매대기", variant: "muted" },
+  SOLD: { label: "판매완료", variant: "success" },
+  EXPIRED: { label: "판매만료", variant: "muted" },
 };
 
 const TABS = [
   {
     key: "selling",
     label: "판매 중",
-    statuses: ["예약중", "판매중", "판매대기"],
+    statuses: ["RESERVED", "SELLING", "PREPARING"],
   },
-  { key: "done", label: "거래 완료", statuses: ["판매완료"] },
+  { key: "done", label: "거래 완료", statuses: ["SOLD", "EXPIRED"] },
 ] as const satisfies {
   key: string;
   label: string;
@@ -87,8 +45,11 @@ function MyListPage() {
   const [activeTab, setActiveTab] =
     useState<(typeof TABS)[number]["key"]>("selling");
 
+  const { data, isLoading } = useGetMyProducts({});
+  const allProducts = data?.products ?? [];
+
   const tab = TABS.find((item) => item.key === activeTab) ?? TABS[0];
-  const items = PRODUCTS.filter((product) =>
+  const items = allProducts.filter((product) =>
     (tab.statuses as readonly ProductStatus[]).includes(product.status),
   );
 
@@ -127,18 +88,25 @@ function MyListPage() {
         <RegisterProductChip />
 
         <div className="flex flex-col gap-2.5">
-          {items.length === 0 ? (
+          {isLoading ? (
+            <p className="py-10 text-center text-sm text-[var(--color-text-muted)]">
+              불러오는 중...
+            </p>
+          ) : items.length === 0 ? (
             <p className="py-10 text-center text-sm text-[var(--color-text-muted)]">
               등록된 상품이 없습니다.
             </p>
           ) : (
             items.map((product) => (
               <ProductCard
-                key={product.id}
+                key={product.productId}
                 name={product.name}
                 price={product.price}
-                meta={product.meta}
-                highlight={product.highlight}
+                meta={
+                  product.lockerId != null
+                    ? `${product.lockerId}번 사물함`
+                    : "사물함 미지정"
+                }
                 badge={STATUS_BADGE[product.status]}
               />
             ))

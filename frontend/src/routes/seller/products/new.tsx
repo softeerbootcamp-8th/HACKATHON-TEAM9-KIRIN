@@ -8,6 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import { useUploadImage } from "@/api/generated/images/images";
+import { useRegisterProduct } from "@/api/generated/products/products";
 
 export const Route = createFileRoute("/seller/products/new")({
   component: NewProductPage,
@@ -17,12 +19,13 @@ const MAX_PHOTOS = 10;
 const NAME_MAX_LENGTH = 32;
 const DESCRIPTION_MAX_LENGTH = 500;
 
-type Photo = { id: string; url: string };
+type Photo = { id: string; url: string; file: File };
 
 /**
- * 상품 등록 (Figma "06 상품 등록").
- * 사진은 아직 백엔드 연동 전이라 브라우저 안에서만 미리보기(objectURL)로 보여준다
- * — 실제 업로드는 이미지 스토리지 API가 정해지면 붙인다.
+ * 상품 등록 (Figma "06 상품 등록"). 사진은 여러 장 미리보기로 보여주지만
+ * 첫 번째 사진만 업로드해 `POST /images`로 URL을 받은 뒤, 그 URL을
+ * `POST /products`의 `imageUrl`로 그대로 넣는다 (여러 장 첨부는 아직
+ * 백엔드가 1장만 지원).
  */
 function NewProductPage() {
   const router = useRouter();
@@ -32,6 +35,10 @@ function NewProductPage() {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [price, setPrice] = useState("");
+
+  const uploadImage = useUploadImage();
+  const registerProduct = useRegisterProduct();
+  const isSubmitting = uploadImage.isPending || registerProduct.isPending;
 
   const canSubmit = name.trim().length > 0 && price.trim().length > 0;
 
@@ -54,6 +61,7 @@ function NewProductPage() {
       .map((file) => ({
         id: `${file.name}-${file.lastModified}-${Math.random().toString(36).slice(2)}`,
         url: URL.createObjectURL(file),
+        file,
       }));
     setPhotos((prev) => [...prev, ...newPhotos]);
   };
@@ -66,9 +74,32 @@ function NewProductPage() {
     });
   };
 
-  const handleSubmit = () => {
-    toast.success("상품이 등록됐어요.");
-    router.history.back();
+  const handleSubmit = async () => {
+    if (!canSubmit || isSubmitting) return;
+
+    try {
+      let imageUrl: string | undefined;
+      if (photos[0]) {
+        const uploaded = await uploadImage.mutateAsync({
+          data: { file: photos[0].file },
+        });
+        imageUrl = uploaded.imageUrl;
+      }
+
+      await registerProduct.mutateAsync({
+        data: {
+          name: name.trim(),
+          price: Number(price),
+          description: description.trim() || undefined,
+          imageUrl,
+        },
+      });
+
+      toast.success("상품이 등록됐어요.");
+      router.history.back();
+    } catch {
+      toast.error("상품 등록에 실패했어요.");
+    }
   };
 
   return (
@@ -119,6 +150,11 @@ function NewProductPage() {
               </label>
             )}
           </div>
+          {photos.length > 1 && (
+            <p className="text-xs text-[var(--color-text-muted)]">
+              지금은 첫 번째 사진만 등록에 사용돼요.
+            </p>
+          )}
         </div>
 
         <div className="flex flex-col gap-2">
@@ -180,7 +216,7 @@ function NewProductPage() {
         <Button
           fullWidth
           size="lg"
-          disabled={!canSubmit}
+          disabled={!canSubmit || isSubmitting}
           onClick={handleSubmit}
         >
           작성 완료

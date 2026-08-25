@@ -1,19 +1,22 @@
 import { createFileRoute, useRouter } from "@tanstack/react-router";
 import { PageContainer } from "@/components/layout/page";
 import { Button } from "@/components/ui/button";
+import { formatDateTime, formatPrice } from "@/lib/format";
+import {
+  useCompletePickup,
+  useGetTransaction,
+} from "@/api/generated/transactions/transactions";
+
+type CheckoutCompleteSearch = { transactionId: number };
 
 export const Route = createFileRoute("/buyer/checkout-complete")({
+  validateSearch: (
+    search: Record<string, unknown>,
+  ): CheckoutCompleteSearch => ({
+    transactionId: Number(search.transactionId),
+  }),
   component: CheckoutCompletePage,
 });
-
-// 실제로는 방금 결제한 주문 정보를 그대로 받아와 채운다.
-const ORDER = {
-  orderNumber: "20260825-004821",
-  productName: "골프채",
-  paymentMethod: "카카오페이",
-  amount: 603_000,
-  lockerNumber: 16,
-};
 
 /**
  * 결제 완료 · 사물함 열림 (Figma "11 결제 완료 · 사물함 열림").
@@ -21,6 +24,26 @@ const ORDER = {
  */
 function CheckoutCompletePage() {
   const router = useRouter();
+  const { transactionId } = Route.useSearch();
+  const { data: transaction, isLoading } = useGetTransaction(transactionId);
+  const completePickup = useCompletePickup();
+
+  const handlePickupComplete = () => {
+    completePickup.mutate(
+      { transactionId },
+      { onSettled: () => router.navigate({ to: "/buyer/scan" }) },
+    );
+  };
+
+  if (isLoading || !transaction) {
+    return (
+      <PageContainer>
+        <p className="px-4 pt-16 text-center text-sm text-[var(--color-text-muted)]">
+          불러오는 중...
+        </p>
+      </PageContainer>
+    );
+  }
 
   return (
     <PageContainer>
@@ -34,7 +57,9 @@ function CheckoutCompletePage() {
             결제가 완료됐어요
           </h1>
           <p className="text-sm text-[var(--color-text-muted)]">
-            {ORDER.lockerNumber}번 사물함이 열렸어요.
+            {transaction.lockerId != null
+              ? `${transaction.lockerId}번 사물함이 열렸어요.`
+              : "사물함이 열렸어요."}
             <br />
             상품을 꺼내고 문을 닫으면 자동으로 잠겨요.
           </p>
@@ -44,27 +69,23 @@ function CheckoutCompletePage() {
           <div className="flex items-center justify-between">
             <span className="text-[var(--color-text-muted)]">주문번호</span>
             <span className="font-medium text-[var(--color-text-sub)]">
-              {ORDER.orderNumber}
-            </span>
-          </div>
-          <div className="flex items-center justify-between">
-            <span className="text-[var(--color-text-muted)]">상품</span>
-            <span className="font-medium text-[var(--color-text-sub)]">
-              {ORDER.productName}
-            </span>
-          </div>
-          <div className="flex items-center justify-between">
-            <span className="text-[var(--color-text-muted)]">결제 수단</span>
-            <span className="font-medium text-[var(--color-text-sub)]">
-              {ORDER.paymentMethod}
+              {transaction.orderId}
             </span>
           </div>
           <div className="flex items-center justify-between">
             <span className="text-[var(--color-text-muted)]">결제 금액</span>
             <span className="font-medium text-[var(--color-text-sub)]">
-              {ORDER.amount.toLocaleString()}원
+              {formatPrice(transaction.price)}
             </span>
           </div>
+          {transaction.approvedAt && (
+            <div className="flex items-center justify-between">
+              <span className="text-[var(--color-text-muted)]">결제 시각</span>
+              <span className="font-medium text-[var(--color-text-sub)]">
+                {formatDateTime(transaction.approvedAt)}
+              </span>
+            </div>
+          )}
         </div>
       </div>
 
@@ -72,7 +93,8 @@ function CheckoutCompletePage() {
         <Button
           fullWidth
           size="lg"
-          onClick={() => router.navigate({ to: "/buyer/scan" })}
+          disabled={completePickup.isPending}
+          onClick={handlePickupComplete}
         >
           수령 완료
         </Button>

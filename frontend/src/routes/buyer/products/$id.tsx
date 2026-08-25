@@ -4,26 +4,23 @@ import { PageContainer } from "@/components/layout/page";
 import { Header } from "@/components/layout/header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { formatDateTime, formatPrice } from "@/lib/format";
+import { useGetProduct } from "@/api/generated/products/products";
+import type { ProductStatus } from "@/api/generated/model";
 
 export const Route = createFileRoute("/buyer/products/$id")({
   component: ProductDetailPage,
 });
 
-// QR 스캔으로 진입한 상품 상세 — 실제 데이터는 API 연동 시 상품 조회 쿼리로 교체한다.
-const PRODUCT = {
-  lockerNumber: 16,
-  name: "골프채",
-  price: 600_000,
-  seller: {
-    nickname: "판매자 4821",
-    registeredAt: "8/25 15:10",
-    dealCount: 12,
-  },
-  description:
-    "작년에 구입한 캘러웨이 드라이버입니다. 라운딩 5회 사용했고 헤드 스크래치 없습니다.\n헤드커버 포함이며 직접 확인 후 가져가시면 됩니다.",
-  storageLocation: "에테르노 청담 1층 로비",
-  lockerSize: "16번 · 40 × 100 × 50 cm",
-  dealDeadline: "8/31(일) 15:10까지",
+const STATUS_BADGE: Record<
+  ProductStatus,
+  { label: string; variant: "info" | "danger" | "muted" | "success" }
+> = {
+  PREPARING: { label: "준비중", variant: "muted" },
+  RESERVED: { label: "예약중", variant: "info" },
+  SELLING: { label: "판매중", variant: "danger" },
+  SOLD: { label: "판매완료", variant: "success" },
+  EXPIRED: { label: "판매만료", variant: "muted" },
 };
 
 /**
@@ -33,28 +30,56 @@ const PRODUCT = {
  */
 function ProductDetailPage() {
   const router = useRouter();
+  const { id } = Route.useParams();
+  const productId = Number(id);
+
+  const { data: product, isLoading } = useGetProduct(productId);
+
+  if (isLoading || !product) {
+    return (
+      <PageContainer>
+        <Header title="상품 상세" onBack={() => router.history.back()} />
+        <p className="px-4 pt-10 text-center text-sm text-[var(--color-text-muted)]">
+          불러오는 중...
+        </p>
+      </PageContainer>
+    );
+  }
+
+  const badge = STATUS_BADGE[product.status];
 
   return (
     <PageContainer>
       <Header
-        title={`${PRODUCT.lockerNumber}번 사물함`}
+        title={
+          product.lockerId != null
+            ? `${product.lockerId}번 사물함`
+            : "상품 상세"
+        }
         onBack={() => router.history.back()}
       />
 
-      {/* Figma 원본 상품 이미지 에셋이 없어 자리표시자로 대체한다 */}
-      <div className="flex h-[220px] w-full items-center justify-center bg-[var(--color-surface-2)] text-sm text-[var(--color-text-muted)]">
-        상품 이미지
-      </div>
+      {product.imageUrl ? (
+        <img
+          src={product.imageUrl}
+          alt={product.name}
+          className="h-[220px] w-full object-cover"
+        />
+      ) : (
+        <div className="flex h-[220px] w-full items-center justify-center bg-[var(--color-surface-2)] text-sm text-[var(--color-text-muted)]">
+          상품 이미지
+        </div>
+      )}
 
       <div className="flex flex-col gap-3.5 px-4 pt-3.5">
         <div className="flex items-center gap-2">
           <h1 className="text-xl font-bold text-[var(--color-text)]">
-            {PRODUCT.name}
+            {product.name}
           </h1>
-          <Badge variant="danger">판매중</Badge>
+          <Badge variant={badge.variant}>{badge.label}</Badge>
         </div>
         <p className="text-2xl font-bold text-[var(--color-text)]">
-          {PRODUCT.price.toLocaleString()}원
+          {formatPrice(product.price)}
         </p>
 
         <div className="h-px w-full bg-[var(--color-border)]" />
@@ -65,40 +90,37 @@ function ProductDetailPage() {
           </div>
           <div className="flex flex-col gap-0.5">
             <p className="text-sm font-medium text-[var(--color-text-sub)]">
-              {PRODUCT.seller.nickname}
+              {product.sellerName}
             </p>
             <p className="text-xs text-[var(--color-text-muted)]">
-              {PRODUCT.seller.registeredAt} 등록 · 거래{" "}
-              {PRODUCT.seller.dealCount}회
+              {formatDateTime(product.createdAt)} 등록
             </p>
           </div>
         </div>
 
         <div className="h-px w-full bg-[var(--color-border)]" />
 
-        <p className="text-[13px] whitespace-pre-line text-[var(--color-text-sub)]">
-          {PRODUCT.description}
-        </p>
+        {product.description && (
+          <p className="text-[13px] whitespace-pre-line text-[var(--color-text-sub)]">
+            {product.description}
+          </p>
+        )}
 
         <div className="flex w-full flex-col gap-2.5 rounded-[var(--radius-sm)] border border-[var(--color-border)] bg-[var(--color-surface-2)] p-3.5 text-[13px]">
           <div className="flex items-center justify-between">
-            <span className="text-[var(--color-text-muted)]">보관 위치</span>
-            <span className="font-medium text-[var(--color-text-sub)]">
-              {PRODUCT.storageLocation}
-            </span>
-          </div>
-          <div className="flex items-center justify-between">
             <span className="text-[var(--color-text-muted)]">사물함</span>
             <span className="font-medium text-[var(--color-text-sub)]">
-              {PRODUCT.lockerSize}
+              {product.lockerId != null ? `${product.lockerId}번` : "미배치"}
             </span>
           </div>
-          <div className="flex items-center justify-between">
-            <span className="text-[var(--color-text-muted)]">거래 기한</span>
-            <span className="font-medium text-[var(--color-text-sub)]">
-              {PRODUCT.dealDeadline}
-            </span>
-          </div>
+          {product.sellingExpiresAt && (
+            <div className="flex items-center justify-between">
+              <span className="text-[var(--color-text-muted)]">거래 기한</span>
+              <span className="font-medium text-[var(--color-text-sub)]">
+                {formatDateTime(product.sellingExpiresAt)}까지
+              </span>
+            </div>
+          )}
         </div>
       </div>
 
@@ -108,11 +130,13 @@ function ProductDetailPage() {
             결제 금액
           </p>
           <p className="text-[17px] font-bold text-[var(--color-text-sub)]">
-            {PRODUCT.price.toLocaleString()}원
+            {formatPrice(product.price)}
           </p>
         </div>
         <Button asChild size="lg" className="flex-1">
-          <Link to="/buyer/checkout">구매하기</Link>
+          <Link to="/buyer/checkout" search={{ productId: product.productId }}>
+            구매하기
+          </Link>
         </Button>
       </div>
     </PageContainer>

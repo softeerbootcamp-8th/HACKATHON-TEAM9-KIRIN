@@ -6,6 +6,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { routeTree } from "./routeTree.gen";
 import { queryClient } from "./lib/query-client";
 import { NotFoundPage } from "./components/layout/not-found-page";
+import { SessionProvider } from "./lib/auth/session-provider";
 import "./styles/globals.css";
 
 // 라우터 인스턴스 생성 (queryClient 를 라우트 컨텍스트로 주입)
@@ -29,7 +30,9 @@ const rootElement = document.getElementById("root")!;
 createRoot(rootElement).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
-      <RouterProvider router={router} />
+      <SessionProvider>
+        <RouterProvider router={router} />
+      </SessionProvider>
     </QueryClientProvider>
   </StrictMode>,
 );
