@@ -37,8 +37,10 @@ class PurchaseServiceTest {
     @InjectMocks
     PurchaseService purchaseService;
 
+    private static final Long 구매자_ID = 1L;
+
     private PurchaseProductRequest 구매요청() {
-        return new PurchaseProductRequest(1L, "지훈", "payment_key_1", "order_1", 300000L);
+        return new PurchaseProductRequest(1L, "payment_key_1", "order_1", 300000L);
     }
 
     private PaymentConfirmResponse 결제응답() {
@@ -47,7 +49,7 @@ class PurchaseServiceTest {
     }
 
     private Transaction 거래() {
-        return new Transaction(1L, 1L, 1L, "지훈", 300000L, "payment_key_1", "order_1",
+        return new Transaction(1L, 1L, 1L, 구매자_ID, "지훈", 300000L, "payment_key_1", "order_1",
                 "2026-08-25T12:00:00+09:00", TransactionStatus.PAID, LocalDateTime.now());
     }
 
@@ -56,10 +58,10 @@ class PurchaseServiceTest {
         // given
         given(paymentService.confirmPayment(any(PaymentConfirmRequest.class))).willReturn(결제응답());
         given(transactionService.completePurchase(any(PurchaseProductRequest.class),
-                any(PaymentConfirmResponse.class))).willReturn(거래());
+                any(PaymentConfirmResponse.class), any(Long.class))).willReturn(거래());
 
         // when
-        Transaction result = purchaseService.purchaseProduct(구매요청());
+        Transaction result = purchaseService.purchaseProduct(구매요청(), 구매자_ID);
 
         // then
         assertThat(result.getStatus()).isEqualTo(TransactionStatus.PAID);
@@ -73,10 +75,10 @@ class PurchaseServiceTest {
                 .willThrow(new PaymentConfirmFailedException("order_1", "카드 한도 초과"));
 
         // when & then
-        assertThatThrownBy(() -> purchaseService.purchaseProduct(구매요청()))
+        assertThatThrownBy(() -> purchaseService.purchaseProduct(구매요청(), 구매자_ID))
                 .isInstanceOf(PaymentConfirmFailedException.class);
         then(transactionService).should(never())
-                .completePurchase(any(PurchaseProductRequest.class), any(PaymentConfirmResponse.class));
+                .completePurchase(any(PurchaseProductRequest.class), any(PaymentConfirmResponse.class), any(Long.class));
     }
 
     @Test
@@ -86,7 +88,7 @@ class PurchaseServiceTest {
                 .given(transactionService).validatePurchasable(1L, 300000L);
 
         // when & then
-        assertThatThrownBy(() -> purchaseService.purchaseProduct(구매요청()))
+        assertThatThrownBy(() -> purchaseService.purchaseProduct(구매요청(), 구매자_ID))
                 .isInstanceOf(ProductNotSellingException.class);
         then(paymentService).should(never()).confirmPayment(any(PaymentConfirmRequest.class));
     }
@@ -96,10 +98,10 @@ class PurchaseServiceTest {
         // given
         given(paymentService.confirmPayment(any(PaymentConfirmRequest.class))).willReturn(결제응답());
         given(transactionService.completePurchase(any(PurchaseProductRequest.class),
-                any(PaymentConfirmResponse.class))).willThrow(new IllegalStateException("DB 오류"));
+                any(PaymentConfirmResponse.class), any(Long.class))).willThrow(new IllegalStateException("DB 오류"));
 
         // when & then
-        assertThatThrownBy(() -> purchaseService.purchaseProduct(구매요청()))
+        assertThatThrownBy(() -> purchaseService.purchaseProduct(구매요청(), 구매자_ID))
                 .isInstanceOf(PurchaseCompletionFailedException.class);
     }
 }

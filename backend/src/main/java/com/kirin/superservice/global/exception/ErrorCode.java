@@ -19,6 +19,7 @@ public enum ErrorCode {
     LOCKER_NOT_FOUND(404, "LOCKER_NOT_FOUND", "물품보관함을 찾을 수 없습니다."),
     LOCKER_ALREADY_OCCUPIED(409, "LOCKER_ALREADY_OCCUPIED", "이미 사용 중인 물품보관함입니다."),
     LOCKER_NOT_AVAILABLE(409, "LOCKER_NOT_AVAILABLE", "예약하거나 사용할 수 없는 물품보관함입니다."),
+    LOCKER_ACCESS_DENIED(403, "LOCKER_ACCESS_DENIED", "본인이 예약하거나 판매 중인 물품보관함만 조작할 수 있습니다."),
     PAYMENT_CONFIRM_FAILED(400, "PAYMENT_CONFIRM_FAILED", "결제 승인에 실패했습니다."),
     PRODUCT_NOT_FOUND(404, "PRODUCT_NOT_FOUND", "물품을 찾을 수 없습니다."),
     SELLER_MISMATCH(403, "SELLER_MISMATCH", "물품을 등록한 판매자가 아닙니다."),
@@ -27,6 +28,7 @@ public enum ErrorCode {
     PRODUCT_NOT_SELLING(409, "PRODUCT_NOT_SELLING", "판매 중인 물품이 아닙니다."),
     INVALID_PRODUCT_STATUS(409, "INVALID_PRODUCT_STATUS", "현재 물품 상태에서는 처리할 수 없는 요청입니다."),
     TRANSACTION_NOT_FOUND(404, "TRANSACTION_NOT_FOUND", "거래를 찾을 수 없습니다."),
+    TRANSACTION_ACCESS_DENIED(403, "TRANSACTION_ACCESS_DENIED", "본인의 거래만 조회하거나 처리할 수 있습니다."),
     PRICE_MISMATCH(400, "PRICE_MISMATCH", "결제 금액이 물품 가격과 일치하지 않습니다."),
     PURCHASE_COMPLETION_FAILED(500, "PURCHASE_COMPLETION_FAILED", "결제는 완료되었으나 거래 처리에 실패했습니다.");
 

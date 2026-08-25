@@ -37,9 +37,9 @@ class ProductExpirationSchedulerTest {
     @Test
     void 예약과_판매_만료후보를_조회해_각각의_만료처리를_요청한다() {
         // given
-        Product reservedProduct = new Product(1L, 1L, "아이패드", 300000L, "상태 좋음", null, "원기",
+        Product reservedProduct = new Product(1L, 1L, "아이패드", 300000L, "상태 좋음", null, 1L, "원기",
                 ProductStatus.RESERVED, LocalDateTime.of(2026, 8, 25, 8, 0));
-        Product sellingProduct = new Product(2L, 2L, "맥북", 500000L, "상태 좋음", null, "원기",
+        Product sellingProduct = new Product(2L, 2L, "맥북", 500000L, "상태 좋음", null, 1L, "원기",
                 ProductStatus.SELLING, LocalDateTime.of(2026, 8, 18, 12, 0));
         LocalDateTime now = LocalDateTime.of(2026, 8, 25, 12, 0);
         given(productRepository.findAllByStatusAndReservationExpiresAtLessThanEqual(

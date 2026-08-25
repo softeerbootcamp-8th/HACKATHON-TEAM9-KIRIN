@@ -2,17 +2,15 @@ package com.kirin.superservice.product.service;
 
 import com.kirin.superservice.locker.domain.Locker;
 import com.kirin.superservice.locker.domain.LockStatus;
+import com.kirin.superservice.locker.exception.LockerAccessDeniedException;
 import com.kirin.superservice.locker.exception.LockerNotAvailableException;
 import com.kirin.superservice.locker.service.LockerService;
+import com.kirin.superservice.member.domain.Member;
+import com.kirin.superservice.member.service.MemberService;
 import com.kirin.superservice.product.domain.Product;
 import com.kirin.superservice.product.domain.ProductStatus;
-import com.kirin.superservice.product.dto.request.CancelLockerReservationRequest;
-import com.kirin.superservice.product.dto.request.CompleteDepositRequest;
-import com.kirin.superservice.product.dto.request.CompleteRecoveryRequest;
 import com.kirin.superservice.product.dto.request.RegisterProductRequest;
 import com.kirin.superservice.product.dto.request.ReserveLockerRequest;
-import com.kirin.superservice.product.dto.request.StartDepositRequest;
-import com.kirin.superservice.product.dto.request.StartRecoveryRequest;
 import com.kirin.superservice.product.exception.InvalidProductStatusException;
 import com.kirin.superservice.product.exception.ProductNotFoundException;
 import com.kirin.superservice.product.exception.ReservationExpiredException;
@@ -37,6 +35,7 @@ public class ProductService {
 
     private final ProductRepository productRepository;
     private final LockerService lockerService;
+    private final MemberService memberService;
     private final Clock clock;
 
     public Product getProduct(Long productId) {
@@ -48,12 +47,12 @@ public class ProductService {
         return productRepository.findAllByStatusOrderByCreatedAtDescIdDesc(status);
     }
 
-    /** 판매자명이 등록한 물품을 최신 등록순으로 조회한다. 상태를 지정하지 않으면 전체를 반환한다. */
-    public List<Product> findAllProductsBySellerName(String sellerName, ProductStatus status) {
+    /** 세션 회원이 등록한 물품을 최신 등록순으로 조회한다. 상태를 지정하지 않으면 전체를 반환한다. */
+    public List<Product> findAllProductsBySellerMemberId(Long sellerMemberId, ProductStatus status) {
         if (status == null) {
-            return productRepository.findAllBySellerNameOrderByCreatedAtDescIdDesc(sellerName);
+            return productRepository.findAllBySellerMemberIdOrderByCreatedAtDescIdDesc(sellerMemberId);
         }
-        return productRepository.findAllBySellerNameAndStatusOrderByCreatedAtDescIdDesc(sellerName, status);
+        return productRepository.findAllBySellerMemberIdAndStatusOrderByCreatedAtDescIdDesc(sellerMemberId, status);
     }
 
     /**
@@ -68,23 +67,25 @@ public class ProductService {
 
     /** 물품 목록에만 등록한다. 사물함 예약과 물품 투입은 별도 흐름에서 처리한다. */
     @Transactional
-    public Product registerProduct(RegisterProductRequest request) {
+    public Product registerProduct(RegisterProductRequest request, Long sellerMemberId) {
+        Member seller = memberService.getById(sellerMemberId);
         Product product = productRepository.save(new Product(
                 request.name(),
                 request.price(),
                 request.description(),
                 request.imageUrl(),
-                request.sellerName()));
-        log.info("물품 목록 등록 완료 - productId={}, sellerName={}",
-                product.getId(), product.getSellerName());
+                sellerMemberId,
+                seller.getNickname()));
+        log.info("물품 목록 등록 완료 - productId={}, sellerMemberId={}",
+                product.getId(), product.getSellerMemberId());
         return product;
     }
 
     /** 물품 1건을 지정해 사용 가능한 물품보관함을 4시간 동안 예약한다. */
     @Transactional
-    public Product reserveLocker(Long productId, ReserveLockerRequest request) {
+    public Product reserveLocker(Long productId, ReserveLockerRequest request, Long sellerMemberId) {
         Product product = getProductForUpdate(productId);
-        validateSeller(product, request.sellerName());
+        validateSeller(product, sellerMemberId);
         if (!product.isPreparing()) {
             throw new InvalidProductStatusException(productId, product.getStatus());
         }
@@ -105,9 +106,9 @@ public class ProductService {
 
     /** 투입 시작 전의 예약을 취소하고 물품보관함을 다시 사용 가능 상태로 돌린다. */
     @Transactional
-    public Product cancelLockerReservation(Long productId, CancelLockerReservationRequest request) {
+    public Product cancelLockerReservation(Long productId, Long sellerMemberId) {
         Product product = getProductForUpdate(productId);
-        validateSeller(product, request.sellerName());
+        validateSeller(product, sellerMemberId);
         if (!product.isReserved() || product.hasStartedDeposit()) {
             throw new InvalidProductStatusException(productId, product.getStatus());
         }
@@ -123,9 +124,9 @@ public class ProductService {
 
     /** 예약한 물품보관함을 열어 물품 투입을 시작한다. */
     @Transactional
-    public Product startDeposit(Long productId, StartDepositRequest request) {
+    public Product startDeposit(Long productId, Long sellerMemberId) {
         Product product = getProductForUpdate(productId);
-        validateSeller(product, request.sellerName());
+        validateSeller(product, sellerMemberId);
         LocalDateTime now = LocalDateTime.now(clock);
         validateReservable(product, now);
         if (product.hasStartedDeposit()) {
@@ -142,9 +143,9 @@ public class ProductService {
 
     /** 물품 투입을 완료하고 사물함을 잠근 뒤 7일 판매를 시작한다. */
     @Transactional
-    public Product completeDeposit(Long productId, CompleteDepositRequest request) {
+    public Product completeDeposit(Long productId, Long sellerMemberId) {
         Product product = getProductForUpdate(productId);
-        validateSeller(product, request.sellerName());
+        validateSeller(product, sellerMemberId);
         LocalDateTime now = LocalDateTime.now(clock);
         validateReservable(product, now);
         if (!product.hasStartedDeposit()) {
@@ -162,9 +163,9 @@ public class ProductService {
 
     /** 만료된 판매 물품을 회수하기 위해 물품보관함 문을 연다. */
     @Transactional
-    public Product startRecovery(Long productId, StartRecoveryRequest request) {
+    public Product startRecovery(Long productId, Long sellerMemberId) {
         Product product = getProductForUpdate(productId);
-        validateSeller(product, request.sellerName());
+        validateSeller(product, sellerMemberId);
         if (!product.isExpired()) {
             throw new InvalidProductStatusException(productId, product.getStatus());
         }
@@ -182,9 +183,9 @@ public class ProductService {
 
     /** 판매자가 회수한 물품을 목록의 예약 가능 상태로 되돌린다. */
     @Transactional
-    public Product completeRecovery(Long productId, CompleteRecoveryRequest request) {
+    public Product completeRecovery(Long productId, Long sellerMemberId) {
         Product product = getProductForUpdate(productId);
-        validateSeller(product, request.sellerName());
+        validateSeller(product, sellerMemberId);
         if (!product.isExpired() || !product.hasStartedRecovery()) {
             throw new InvalidProductStatusException(productId, product.getStatus());
         }
@@ -226,8 +227,15 @@ public class ProductService {
         locker.changeLockStatus(LockStatus.LOCKED);
     }
 
-    private void validateSeller(Product product, String sellerName) {
-        if (!product.isSeller(sellerName)) {
+    /** 물품보관함을 지금 사용 중인 물품의 판매자인지 확인한다. 사물함 잠금 상태를 직접 조작할 때 사용한다. */
+    public void validateLockerSeller(Long lockerId, Long sellerMemberId) {
+        Product product = productRepository.findByLockerId(lockerId)
+                .orElseThrow(() -> new LockerAccessDeniedException(lockerId));
+        validateSeller(product, sellerMemberId);
+    }
+
+    private void validateSeller(Product product, Long sellerMemberId) {
+        if (!product.isOwnedBy(sellerMemberId)) {
             throw new SellerMismatchException(product.getId());
         }
     }

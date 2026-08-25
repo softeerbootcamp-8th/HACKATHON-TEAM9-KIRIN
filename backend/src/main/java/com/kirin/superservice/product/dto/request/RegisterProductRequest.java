@@ -9,7 +9,6 @@ public record RegisterProductRequest(
         @NotBlank @Size(max = 100) String name,
         @NotNull @Positive Long price,
         @Size(max = 1000) String description,
-        @Size(max = 500) String imageUrl,
-        @NotBlank @Size(max = 50) String sellerName
+        @Size(max = 500) String imageUrl
 ) {
 }

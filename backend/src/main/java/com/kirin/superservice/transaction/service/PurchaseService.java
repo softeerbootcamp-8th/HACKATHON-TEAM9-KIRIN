@@ -23,14 +23,14 @@ public class PurchaseService {
     private final PaymentService paymentService;
     private final TransactionService transactionService;
 
-    public Transaction purchaseProduct(PurchaseProductRequest request) {
+    public Transaction purchaseProduct(PurchaseProductRequest request, Long buyerMemberId) {
         transactionService.validatePurchasable(request.productId(), request.amount());
 
         PaymentConfirmResponse payment = paymentService.confirmPayment(new PaymentConfirmRequest(
                 request.paymentKey(), request.orderId(), request.amount()));
 
         try {
-            return transactionService.completePurchase(request, payment);
+            return transactionService.completePurchase(request, payment, buyerMemberId);
         } catch (Exception e) {
             // 돈은 빠져나갔는데 거래가 남지 않은 상태다. 환불에 필요한 값을 전부 남긴다.
             log.error("결제는 승인됐으나 거래 처리에 실패 - orderId={}, paymentKey={}, productId={}",

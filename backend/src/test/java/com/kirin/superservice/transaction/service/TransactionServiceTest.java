@@ -9,6 +9,9 @@ import com.kirin.superservice.locker.domain.Locker;
 import com.kirin.superservice.locker.domain.LockStatus;
 import com.kirin.superservice.locker.domain.UsageStatus;
 import com.kirin.superservice.locker.service.LockerService;
+import com.kirin.superservice.member.domain.Member;
+import com.kirin.superservice.member.domain.MemberType;
+import com.kirin.superservice.member.service.MemberService;
 import com.kirin.superservice.payment.dto.response.PaymentConfirmResponse;
 import com.kirin.superservice.product.domain.Product;
 import com.kirin.superservice.product.domain.ProductStatus;
@@ -19,6 +22,7 @@ import com.kirin.superservice.transaction.domain.Transaction;
 import com.kirin.superservice.transaction.domain.TransactionStatus;
 import com.kirin.superservice.transaction.dto.request.PurchaseProductRequest;
 import com.kirin.superservice.transaction.exception.PriceMismatchException;
+import com.kirin.superservice.transaction.exception.TransactionAccessDeniedException;
 import com.kirin.superservice.transaction.exception.TransactionNotFoundException;
 import com.kirin.superservice.transaction.repository.TransactionRepository;
 import java.time.Clock;
@@ -36,6 +40,9 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class TransactionServiceTest {
 
+    private static final Long 구매자_ID = 1L;
+    private static final Long 다른_회원_ID = 2L;
+
     @Mock
     TransactionRepository transactionRepository;
 
@@ -45,6 +52,9 @@ class TransactionServiceTest {
     @Mock
     LockerService lockerService;
 
+    @Mock
+    MemberService memberService;
+
     @Spy
     Clock clock = Clock.fixed(Instant.parse("2026-08-25T03:00:00Z"), ZoneId.of("Asia/Seoul"));
 
@@ -52,7 +62,7 @@ class TransactionServiceTest {
     TransactionService transactionService;
 
     private Product 물품(ProductStatus status) {
-        Product product = new Product(1L, 1L, "아이패드", 300000L, "상태 좋음", null, "원기",
+        Product product = new Product(1L, 1L, "아이패드", 300000L, "상태 좋음", null, 1L, "원기",
                 status, LocalDateTime.now());
         if (status == ProductStatus.SELLING) {
             product.completeDeposit(LocalDateTime.of(2026, 8, 25, 11, 0),
@@ -62,7 +72,7 @@ class TransactionServiceTest {
     }
 
     private PurchaseProductRequest 구매요청() {
-        return new PurchaseProductRequest(1L, "지훈", "payment_key_1", "order_1", 300000L);
+        return new PurchaseProductRequest(1L, "payment_key_1", "order_1", 300000L);
     }
 
     private PaymentConfirmResponse 결제응답() {
@@ -70,8 +80,17 @@ class TransactionServiceTest {
                 "2026-08-25T12:00:00+09:00");
     }
 
+    private Member 구매자() {
+        return Member.builder()
+                .loginId("buyer")
+                .password("password")
+                .nickname("지훈")
+                .memberType(MemberType.REGISTERED)
+                .build();
+    }
+
     private Transaction 거래(TransactionStatus status) {
-        return new Transaction(1L, 1L, 1L, "지훈", 300000L, "payment_key_1", "order_1",
+        return new Transaction(1L, 1L, 1L, 구매자_ID, "지훈", 300000L, "payment_key_1", "order_1",
                 "2026-08-25T12:00:00+09:00", status, LocalDateTime.now());
     }
 
@@ -123,11 +142,12 @@ class TransactionServiceTest {
         Locker locker = new Locker(1L, LockStatus.LOCKED, UsageStatus.OCCUPIED);
         given(productService.getProductForUpdate(1L)).willReturn(물품(ProductStatus.SELLING));
         given(lockerService.getLocker(1L)).willReturn(locker);
+        given(memberService.getById(구매자_ID)).willReturn(구매자());
         given(transactionRepository.save(any(Transaction.class)))
                 .willReturn(거래(TransactionStatus.PAID));
 
         // when
-        Transaction result = transactionService.completePurchase(구매요청(), 결제응답());
+        Transaction result = transactionService.completePurchase(구매요청(), 결제응답(), 구매자_ID);
 
         // then
         assertThat(result.getStatus()).isEqualTo(TransactionStatus.PAID);
@@ -141,11 +161,12 @@ class TransactionServiceTest {
         Locker locker = new Locker(1L, LockStatus.LOCKED, UsageStatus.OCCUPIED);
         given(productService.getProductForUpdate(1L)).willReturn(product);
         given(lockerService.getLocker(1L)).willReturn(locker);
+        given(memberService.getById(구매자_ID)).willReturn(구매자());
         given(transactionRepository.save(any(Transaction.class)))
                 .willReturn(거래(TransactionStatus.PAID));
 
         // when
-        transactionService.completePurchase(구매요청(), 결제응답());
+        transactionService.completePurchase(구매요청(), 결제응답(), 구매자_ID);
 
         // then
         assertThat(product.getStatus()).isEqualTo(ProductStatus.SOLD);
@@ -158,7 +179,7 @@ class TransactionServiceTest {
         given(productService.getProductForUpdate(1L)).willReturn(물품(ProductStatus.SOLD));
 
         // when & then
-        assertThatThrownBy(() -> transactionService.completePurchase(구매요청(), 결제응답()))
+        assertThatThrownBy(() -> transactionService.completePurchase(구매요청(), 결제응답(), 구매자_ID))
                 .isInstanceOf(ProductNotSellingException.class);
     }
 
@@ -170,7 +191,7 @@ class TransactionServiceTest {
         given(lockerService.getLocker(1L)).willReturn(locker);
 
         // when
-        Transaction result = transactionService.completePickup(1L);
+        Transaction result = transactionService.completePickup(1L, 구매자_ID);
 
         // then
         assertThat(result.getStatus()).isEqualTo(TransactionStatus.DONE);
@@ -184,10 +205,20 @@ class TransactionServiceTest {
         given(transactionRepository.findById(1L)).willReturn(Optional.of(거래(TransactionStatus.DONE)));
 
         // when
-        Transaction result = transactionService.completePickup(1L);
+        Transaction result = transactionService.completePickup(1L, 구매자_ID);
 
         // then
         assertThat(result.getStatus()).isEqualTo(TransactionStatus.DONE);
+    }
+
+    @Test
+    void 다른_회원이_수령완료를_요청하면_예외가_발생한다() {
+        // given
+        given(transactionRepository.findById(1L)).willReturn(Optional.of(거래(TransactionStatus.PAID)));
+
+        // when & then
+        assertThatThrownBy(() -> transactionService.completePickup(1L, 다른_회원_ID))
+                .isInstanceOf(TransactionAccessDeniedException.class);
     }
 
     @Test
@@ -198,5 +229,15 @@ class TransactionServiceTest {
         // when & then
         assertThatThrownBy(() -> transactionService.getTransaction(999L))
                 .isInstanceOf(TransactionNotFoundException.class);
+    }
+
+    @Test
+    void 다른_회원이_거래를_조회하면_예외가_발생한다() {
+        // given
+        given(transactionRepository.findById(1L)).willReturn(Optional.of(거래(TransactionStatus.PAID)));
+
+        // when & then
+        assertThatThrownBy(() -> transactionService.getTransaction(1L, 다른_회원_ID))
+                .isInstanceOf(TransactionAccessDeniedException.class);
     }
 }
