@@ -19,6 +19,7 @@
 | 스타일 | **Tailwind v4** | CSS-first (`@theme`) |
 | UI | **shadcn/ui** (new-york) | `src/components/ui` |
 | 아이콘 | lucide-react | |
+| 폰트 | **Pretendard** | Regular/Medium/SemiBold/Bold. 아직 저장소에 자산 없음 — 도입 시 `pretendard` 패키지 또는 자체 호스팅 `@font-face` 추가 (`DESIGN.md` §3.2) |
 
 ---
 
@@ -36,8 +37,9 @@ src/
 │  └─ mutator/           # axios 커스텀 인스턴스
 ├─ components/
 │  ├─ ui/                # shadcn/ui 프리미티브 (CLI 관리)
-│  ├─ domain/            # 도메인 컴포넌트 (화면이 정해지면 추가)
-│  └─ layout/            # gnb, page 컨테이너
+│  ├─ domain/            # 도메인 컴포넌트 (사물함 셀, 상태 배지, ItemList 등 — 화면이 정해지면 추가)
+│  └─ layout/            # 앱 셸(헤더, 바텀시트, 컨테이너). 현 gnb.tsx/page.tsx는 데스크톱 GNB
+│                         # 전제의 placeholder — 모바일 앱 셸 구조로 교체 필요 (`DESIGN.md` §4)
 ├─ hooks/                # 2곳 이상에서 재사용되는 커스텀 훅
 ├─ lib/
 │  ├─ utils.ts           # cn() 등 범용 유틸
@@ -89,7 +91,11 @@ src/
 
 - 색·간격·반경·타이포는 **`src/styles/globals.css` 의 CSS 변수** 를 단일 출처로 한다.
   하드코딩 hex/px 금지 — 토큰 없으면 `globals.css` 에 먼저 추가한다.
-- 값 매핑 근거는 `DESIGN.md §3`.
+- 값 매핑 근거는 `DESIGN.md §3`. **현재 `globals.css` 는 Figma 기준 값(§3 참고)으로
+  아직 갱신되지 않은 상태다** — 화면 구현을 시작하기 전에 먼저 동기화한다.
+- 이 프로젝트는 **모바일 전용 뷰포트**(`--viewport-max`, `DESIGN.md §3.3`)를 기준으로
+  한다. 데스크톱 반응형(`md:` 브레이크포인트 등)은 별도 요구가 확정되기 전까지 도입하지
+  않는다.
 - 금액·타이머 등 숫자는 `.tabular` (tabular-nums) 를 적용한다.
 - shadcn 컴포넌트는 CLI 로 추가: `pnpm dlx shadcn@latest add <name>`.
   variant 색은 시맨틱 토큰(`bg-primary`, `text-destructive` 등)을 따른다.
