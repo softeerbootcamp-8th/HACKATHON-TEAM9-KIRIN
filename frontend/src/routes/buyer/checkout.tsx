@@ -42,7 +42,7 @@ function CheckoutPage() {
   const clientKey = import.meta.env.VITE_TOSS_CLIENT_KEY;
 
   useEffect(() => {
-    if (!product || !clientKey) return;
+    if (!product || !clientKey || product.status !== "SELLING") return;
     let active = true;
 
     (async () => {
@@ -94,6 +94,17 @@ function CheckoutPage() {
         <Header title="결제" onBack={() => router.history.back()} />
         <p className="px-4 pt-10 text-center text-sm text-[var(--color-text-muted)]">
           불러오는 중...
+        </p>
+      </PageContainer>
+    );
+  }
+
+  if (product.status !== "SELLING") {
+    return (
+      <PageContainer>
+        <Header title="결제" onBack={() => router.history.back()} />
+        <p className="px-4 pt-10 text-center text-sm text-[var(--color-text-muted)]">
+          지금은 구매할 수 없는 상품이에요.
         </p>
       </PageContainer>
     );

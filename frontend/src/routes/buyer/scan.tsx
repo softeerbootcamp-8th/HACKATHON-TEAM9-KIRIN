@@ -26,14 +26,17 @@ const SCAN_FRAME_CORNERS = [
  * 카메라 프리뷰는 실제 연동 전이라 어두운 배경 + 스캔 프레임만 그린다. 이 화면은
  * 라이트 테마 토큰을 쓰지 않는 유일한 예외(카메라 뷰 특성상 항상 어둡다).
  *
- * Figma 프레임 자체가 "예약중 안내 모달이 스캔 화면 위에 뜬 상태"를 그대로
- * 담고 있어, 진입 시 모달이 기본으로 열려 있다. 모달을 닫으면 스캔 프레임을
- * 눌러 사물함 번호(QR에 담긴 값)로 상품 상세(`/buyer/lockers/$number`)로
- * 이동하는 흐름을 데모로 붙였다(실제 QR 디코딩은 아직 없어 16번으로 고정).
+ * 모달을 닫으면 스캔 프레임을 눌러 사물함 번호(QR에 담긴 값)로 상품 상세
+ * (`/buyer/lockers/$number`)로 이동하는 흐름을 데모로 붙였다(실제 QR 디코딩은
+ * 아직 없어 16번으로 고정).
+ *
+ * "예약중인 사물함을 스캔했을 때" 모달은 Figma 프레임을 그대로 옮기며 기본으로
+ * 열려 있었는데, 실제 예약 여부를 확인하는 로직이 없어 진입할 때마다 무조건
+ * 떠 있었다. 실제 예약 여부 조회는 아직 연동 전이라, 지금은 기본으로 닫아 둔다.
  */
 function ScanPage() {
   const router = useRouter();
-  const [showReservedModal, setShowReservedModal] = useState(true);
+  const [showReservedModal, setShowReservedModal] = useState(false);
 
   return (
     <PageContainer className="bg-[#1a1a1a]">

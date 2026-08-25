@@ -48,6 +48,7 @@ function ProductDetailPage() {
   }
 
   const badge = STATUS_BADGE[product.status];
+  const isPurchasable = product.status === "SELLING";
 
   return (
     <PageContainer>
@@ -127,11 +128,17 @@ function ProductDetailPage() {
             {formatPrice(product.price)}
           </p>
         </div>
-        <Button asChild size="lg" className="flex-1">
-          <Link to="/buyer/checkout" search={{ productId: product.productId }}>
-            구매하기
-          </Link>
-        </Button>
+        {isPurchasable ? (
+          <Button asChild size="lg" className="flex-1">
+            <Link to="/buyer/checkout" search={{ productId: product.productId }}>
+              구매하기
+            </Link>
+          </Button>
+        ) : (
+          <Button size="lg" className="flex-1" disabled>
+            {badge.label}
+          </Button>
+        )}
       </div>
     </PageContainer>
   );
