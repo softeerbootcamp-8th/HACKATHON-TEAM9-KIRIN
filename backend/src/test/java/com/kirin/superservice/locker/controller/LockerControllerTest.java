@@ -1,8 +1,8 @@
 package com.kirin.superservice.locker.controller;
 
 import static org.mockito.BDDMockito.given;
-import static org.mockito.BDDMockito.willDoNothing;
-import static org.mockito.BDDMockito.willThrow;
+import static org.mockito.BDDMockito.never;
+import static org.mockito.BDDMockito.then;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -13,11 +13,9 @@ import com.kirin.superservice.locker.domain.Locker;
 import com.kirin.superservice.locker.domain.LockStatus;
 import com.kirin.superservice.locker.domain.UsageStatus;
 import com.kirin.superservice.global.slack.SlackErrorNotifier;
-import com.kirin.superservice.locker.exception.LockerAccessDeniedException;
 import com.kirin.superservice.locker.exception.LockerNotFoundException;
 import com.kirin.superservice.locker.service.LockerService;
 import com.kirin.superservice.product.domain.Product;
-import com.kirin.superservice.product.exception.SellerMismatchException;
 import com.kirin.superservice.product.service.ProductService;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -166,59 +164,50 @@ class LockerControllerTest {
     }
 
     @Test
-    void 판매자가_잠금상태를_변경하면_200과_변경된_상태를_반환한다() throws Exception {
+    void 로그인_없이_잠금상태를_변경하면_200과_변경된_상태를_반환한다() throws Exception {
         // given
         Locker locker = new Locker(1L, LockStatus.UNLOCKED, UsageStatus.OCCUPIED);
-        willDoNothing().given(productService).validateLockerSeller(1L, 1L);
         given(lockerService.changeLockStatus(1L, LockStatus.UNLOCKED)).willReturn(locker);
 
         // when & then
         mockMvc.perform(patch("/api/lockers/1/lock-status")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .sessionAttr(SessionConst.LOGIN_MEMBER_ID, 1L)
                         .content("{\"lockStatus\":\"UNLOCKED\"}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.lockerId").value(1))
                 .andExpect(jsonPath("$.lockStatus").value("UNLOCKED"));
+
+        then(productService).should(never()).completeDepositForDemo(1L);
     }
 
     @Test
-    void 로그인하지_않고_잠금상태를_변경하면_401을_반환한다() throws Exception {
-        // when & then
-        mockMvc.perform(patch("/api/lockers/1/lock-status")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"lockStatus\":\"UNLOCKED\"}"))
-                .andExpect(status().isUnauthorized())
-                .andExpect(jsonPath("$.code").value("UNAUTHORIZED"));
-    }
-
-    @Test
-    void 판매자가_아닌_회원이_잠금상태를_변경하면_403을_반환한다() throws Exception {
+    void 로그인_없이_잠그면_예약된_물품을_데모용으로_바로_판매중_전환한다() throws Exception {
         // given
-        willThrow(new SellerMismatchException(1L))
-                .given(productService).validateLockerSeller(1L, 2L);
+        Locker locker = new Locker(1L, LockStatus.LOCKED, UsageStatus.RESERVED);
+        given(lockerService.changeLockStatus(1L, LockStatus.LOCKED)).willReturn(locker);
 
         // when & then
         mockMvc.perform(patch("/api/lockers/1/lock-status")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .sessionAttr(SessionConst.LOGIN_MEMBER_ID, 2L)
-                        .content("{\"lockStatus\":\"UNLOCKED\"}"))
-                .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.code").value("SELLER_MISMATCH"));
+                        .content("{\"lockStatus\":\"LOCKED\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.lockerId").value(1))
+                .andExpect(jsonPath("$.lockStatus").value("LOCKED"));
+
+        then(productService).should().completeDepositForDemo(1L);
     }
 
     @Test
-    void 판매중인_물품이_없는_보관함의_잠금상태를_변경하면_403을_반환한다() throws Exception {
+    void 존재하지_않는_보관함의_잠금상태를_변경하면_404를_반환한다() throws Exception {
         // given
-        willThrow(new LockerAccessDeniedException(1L))
-                .given(productService).validateLockerSeller(1L, 1L);
+        given(lockerService.changeLockStatus(999L, LockStatus.UNLOCKED))
+                .willThrow(new LockerNotFoundException(999L));
 
         // when & then
-        mockMvc.perform(patch("/api/lockers/1/lock-status")
+        mockMvc.perform(patch("/api/lockers/999/lock-status")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .sessionAttr(SessionConst.LOGIN_MEMBER_ID, 1L)
                         .content("{\"lockStatus\":\"UNLOCKED\"}"))
-                .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.code").value("LOCKER_ACCESS_DENIED"));
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("LOCKER_NOT_FOUND"));
     }
 }
