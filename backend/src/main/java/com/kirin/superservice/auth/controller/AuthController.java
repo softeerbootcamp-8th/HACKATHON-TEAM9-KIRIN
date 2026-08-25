@@ -1,4 +1,4 @@
-package com.kirin.superservice.member.controller;
+package com.kirin.superservice.auth.controller;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -6,9 +6,9 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.kirin.superservice.auth.dto.request.LoginRequest;
 import com.kirin.superservice.global.auth.SessionConst;
 import com.kirin.superservice.member.domain.Member;
-import com.kirin.superservice.member.dto.request.LoginRequest;
 import com.kirin.superservice.member.dto.response.MemberResponse;
 import com.kirin.superservice.member.service.MemberService;
 
