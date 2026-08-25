@@ -1,14 +1,18 @@
 package com.kirin.superservice.locker.controller;
 
+import com.kirin.superservice.global.auth.LoginMember;
 import com.kirin.superservice.locker.domain.Locker;
 import com.kirin.superservice.locker.domain.LockStatus;
 import com.kirin.superservice.locker.dto.request.ChangeLockStatusRequest;
 import com.kirin.superservice.locker.dto.response.LockerListResponse;
 import com.kirin.superservice.locker.dto.response.LockerLockStatusResponse;
 import com.kirin.superservice.locker.service.LockerService;
+import com.kirin.superservice.product.domain.Product;
 import com.kirin.superservice.product.service.ProductService;
 import com.kirin.superservice.transaction.service.TransactionService;
 import jakarta.validation.Valid;
+import java.util.List;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -37,8 +41,10 @@ public class LockerController {
     private final TransactionService transactionService;
 
     @GetMapping
-    public LockerListResponse getLockers() {
-        return LockerListResponse.fromEntities(lockerService.findAllLockers());
+    public LockerListResponse getLockers(@LoginMember(required = false) Long loginMemberId) {
+        List<Locker> lockers = lockerService.findAllLockers();
+        Map<Long, Product> productsByLockerId = productService.findAllProductsByLockerId();
+        return LockerListResponse.of(lockers, productsByLockerId, loginMemberId);
     }
 
     @GetMapping("/{lockerId}/lock-status")

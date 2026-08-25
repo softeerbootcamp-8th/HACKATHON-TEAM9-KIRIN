@@ -4,6 +4,8 @@ import { LockerCell, type LockerStatus } from "@/components/domain/locker-cell";
 export type LockerGridItem = {
   number: number;
   status: LockerStatus;
+  /** 본인 소유(reserved/selling)일 때만 쓰는 남은 시간/날짜 ("1:23", "D-3" 등) */
+  detail?: string;
 };
 
 type LockerGridProps = {
@@ -21,6 +23,7 @@ export function LockerGrid({ lockers, onSelect, className }: LockerGridProps) {
           key={locker.number}
           number={locker.number}
           status={locker.status}
+          detail={locker.detail}
           onClick={onSelect ? () => onSelect(locker.number) : undefined}
         />
       ))}
