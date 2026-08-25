@@ -430,7 +430,7 @@ class ProductServiceTest {
     void 물품보관함을_사용중인_판매자면_잠금상태_변경이_허용된다() {
         // given
         Product product = 만료된물품();
-        given(productRepository.findByLockerId(1L)).willReturn(Optional.of(product));
+        given(productRepository.findFirstByLockerIdOrderByCreatedAtDescIdDesc(1L)).willReturn(Optional.of(product));
 
         // when & then
         productService.validateLockerSeller(1L, 판매자_ID);
@@ -440,7 +440,7 @@ class ProductServiceTest {
     void 물품보관함을_사용중인_판매자가_아니면_잠금상태_변경이_거부된다() {
         // given
         Product product = 만료된물품();
-        given(productRepository.findByLockerId(1L)).willReturn(Optional.of(product));
+        given(productRepository.findFirstByLockerIdOrderByCreatedAtDescIdDesc(1L)).willReturn(Optional.of(product));
 
         // when & then
         assertThatThrownBy(() -> productService.validateLockerSeller(1L, 다른_회원_ID))
@@ -450,7 +450,7 @@ class ProductServiceTest {
     @Test
     void 판매중인_물품이_없는_물품보관함의_잠금상태_변경은_거부된다() {
         // given
-        given(productRepository.findByLockerId(1L)).willReturn(Optional.empty());
+        given(productRepository.findFirstByLockerIdOrderByCreatedAtDescIdDesc(1L)).willReturn(Optional.empty());
 
         // when & then
         assertThatThrownBy(() -> productService.validateLockerSeller(1L, 판매자_ID))
@@ -462,7 +462,7 @@ class ProductServiceTest {
         // given
         Product product = 예약된물품();
         Locker locker = new Locker(1L, LockStatus.LOCKED, UsageStatus.RESERVED);
-        given(productRepository.findByLockerId(1L)).willReturn(Optional.of(product));
+        given(productRepository.findFirstByLockerIdOrderByCreatedAtDescIdDesc(1L)).willReturn(Optional.of(product));
         given(productRepository.findByIdForUpdate(1L)).willReturn(Optional.of(product));
         given(lockerService.getLockerForUpdate(1L)).willReturn(locker);
 
@@ -478,7 +478,7 @@ class ProductServiceTest {
     @Test
     void 데모_잠금_대상_사물함에_예약된_물품이_없으면_아무일도_일어나지_않는다() {
         // given
-        given(productRepository.findByLockerId(1L)).willReturn(Optional.empty());
+        given(productRepository.findFirstByLockerIdOrderByCreatedAtDescIdDesc(1L)).willReturn(Optional.empty());
 
         // when & then
         productService.completeDepositForDemo(1L);
@@ -488,7 +488,7 @@ class ProductServiceTest {
     void 데모_잠금_대상_사물함의_물품이_이미_판매중이면_아무일도_일어나지_않는다() {
         // given
         Product product = 판매중물품();
-        given(productRepository.findByLockerId(1L)).willReturn(Optional.of(product));
+        given(productRepository.findFirstByLockerIdOrderByCreatedAtDescIdDesc(1L)).willReturn(Optional.of(product));
 
         // when
         productService.completeDepositForDemo(1L);
@@ -543,7 +543,7 @@ class ProductServiceTest {
         // given
         Product product = 판매중물품();
         Locker locker = new Locker(1L, LockStatus.UNLOCKED, UsageStatus.OCCUPIED);
-        given(productRepository.findByLockerId(1L)).willReturn(Optional.of(product));
+        given(productRepository.findFirstByLockerIdOrderByCreatedAtDescIdDesc(1L)).willReturn(Optional.of(product));
         given(productRepository.findByIdForUpdate(1L)).willReturn(Optional.of(product));
         given(lockerService.getLockerForUpdate(1L)).willReturn(locker);
 
@@ -561,7 +561,7 @@ class ProductServiceTest {
     void 관리자가_비어있는_사물함을_초기화해도_잠금_비어있음_상태가_유지된다() {
         // given
         Locker locker = new Locker(1L, LockStatus.LOCKED, UsageStatus.AVAILABLE);
-        given(productRepository.findByLockerId(1L)).willReturn(Optional.empty());
+        given(productRepository.findFirstByLockerIdOrderByCreatedAtDescIdDesc(1L)).willReturn(Optional.empty());
         given(lockerService.getLockerForUpdate(1L)).willReturn(locker);
 
         // when

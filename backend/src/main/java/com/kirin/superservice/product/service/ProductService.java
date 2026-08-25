@@ -263,7 +263,7 @@ public class ProductService {
 
     /** 물품보관함을 지금 사용 중인 물품의 판매자인지 확인한다. 사물함 잠금 상태를 직접 조작할 때 사용한다. */
     public void validateLockerSeller(Long lockerId, Long sellerMemberId) {
-        Product product = productRepository.findByLockerId(lockerId)
+        Product product = productRepository.findFirstByLockerIdOrderByCreatedAtDescIdDesc(lockerId)
                 .orElseThrow(() -> new LockerAccessDeniedException(lockerId));
         validateSeller(product, sellerMemberId);
     }
@@ -274,7 +274,7 @@ public class ProductService {
      */
     @Transactional
     public void completeDepositForDemo(Long lockerId) {
-        productRepository.findByLockerId(lockerId).ifPresent(found -> {
+        productRepository.findFirstByLockerIdOrderByCreatedAtDescIdDesc(lockerId).ifPresent(found -> {
             if (!found.isReserved()) {
                 return;
             }
@@ -311,7 +311,7 @@ public class ProductService {
      */
     @Transactional
     public void resetLockerForAdmin(Long lockerId) {
-        productRepository.findByLockerId(lockerId)
+        productRepository.findFirstByLockerIdOrderByCreatedAtDescIdDesc(lockerId)
                 .ifPresent(found -> getProductForUpdate(found.getId()).completeRecovery());
         Locker locker = lockerService.getLockerForUpdate(lockerId);
         locker.changeLockStatus(LockStatus.LOCKED);
