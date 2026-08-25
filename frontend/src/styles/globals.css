@@ -2,6 +2,16 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
+/* 홈 로고 워드마크("오다가다") 전용 (Figma "01 홈 · 사물함 현황" — Gmarket Sans Bold) */
+@font-face {
+  font-family: "GmarketSans";
+  src: url("https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2001@1.1/GmarketSansBold.woff")
+    format("woff");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
 /* =========================================================================
    디자인 토큰
    색·간격·반경의 단일 출처. Figma 와이어프레임(Components 섹션, DESIGN.md §3)
@@ -52,6 +62,8 @@
     "Pretendard", -apple-system, "Apple SD Gothic Neo", system-ui,
     "Noto Sans KR", "Segoe UI", sans-serif;
   --font-num: ui-monospace, var(--font-sans);
+  /* 홈 로고 워드마크("오다가다") 전용 (Figma "01 홈 · 사물함 현황") */
+  --font-brand: "GmarketSans", var(--font-sans);
 
   /* Spacing (4px 기준) */
   --space-1: 4px;
@@ -117,6 +129,7 @@
 @theme inline {
   --font-sans: var(--font-sans);
   --font-num: var(--font-num);
+  --font-brand: var(--font-brand);
 
   --color-background: var(--background);
   --color-foreground: var(--foreground);
