@@ -498,6 +498,47 @@ class ProductServiceTest {
     }
 
     @Test
+    void 데모_잠금으로_회수시작된_물품은_바로_회수완료되고_사물함이_비워진다() {
+        // given
+        Product product = 만료된물품();
+        product.startRecovery(LocalDateTime.of(2026, 8, 25, 11, 59));
+        Locker locker = new Locker(1L, LockStatus.LOCKED, UsageStatus.OCCUPIED);
+        given(productRepository.findFirstByLockerIdOrderByCreatedAtDescIdDesc(1L)).willReturn(Optional.of(product));
+        given(productRepository.findByIdForUpdate(1L)).willReturn(Optional.of(product));
+        given(lockerService.getLockerForUpdate(1L)).willReturn(locker);
+
+        // when
+        productService.completeRecoveryForDemo(1L);
+
+        // then
+        assertThat(product.getStatus()).isEqualTo(ProductStatus.PREPARING);
+        assertThat(product.getLockerId()).isNull();
+        assertThat(locker.getUsageStatus()).isEqualTo(UsageStatus.AVAILABLE);
+    }
+
+    @Test
+    void 데모_잠금_대상_사물함에_회수시작된_물품이_없으면_아무일도_일어나지_않는다() {
+        // given
+        given(productRepository.findFirstByLockerIdOrderByCreatedAtDescIdDesc(1L)).willReturn(Optional.empty());
+
+        // when & then
+        productService.completeRecoveryForDemo(1L);
+    }
+
+    @Test
+    void 데모_잠금_대상_사물함의_물품이_아직_회수시작_전이면_아무일도_일어나지_않는다() {
+        // given
+        Product product = 만료된물품();
+        given(productRepository.findFirstByLockerIdOrderByCreatedAtDescIdDesc(1L)).willReturn(Optional.of(product));
+
+        // when
+        productService.completeRecoveryForDemo(1L);
+
+        // then
+        assertThat(product.getStatus()).isEqualTo(ProductStatus.EXPIRED);
+    }
+
+    @Test
     void 관리자가_초기화하면_판매중이던_물품이_준비중으로_복구되고_사물함이_비워진다() {
         // given
         Product product = 판매중물품();

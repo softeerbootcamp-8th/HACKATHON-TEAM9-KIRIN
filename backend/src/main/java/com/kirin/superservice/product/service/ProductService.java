@@ -288,6 +288,24 @@ public class ProductService {
     }
 
     /**
+     * 데모용: 사물함 잠금 버튼만으로 회수 완료를 흉내 낸다. 판매자 본인 확인 없이,
+     * 회수가 시작된(판매만료) 물품이 있으면 바로 회수 완료로 전환해 사물함을 비운다.
+     */
+    @Transactional
+    public void completeRecoveryForDemo(Long lockerId) {
+        productRepository.findFirstByLockerIdOrderByCreatedAtDescIdDesc(lockerId).ifPresent(found -> {
+            if (!found.isExpired() || !found.hasStartedRecovery()) {
+                return;
+            }
+            Product product = getProductForUpdate(found.getId());
+            Locker locker = lockerService.getLockerForUpdate(lockerId);
+            product.completeRecovery();
+            locker.release();
+            log.info("데모용 사물함 잠금으로 회수 완료 - productId={}, lockerId={}", product.getId(), lockerId);
+        });
+    }
+
+    /**
      * 관리자용: 사물함을 초기 상태(잠김·비어있음)로 강제로 되돌린다. 사물함에 물려있는
      * 물품이 있으면 상태와 무관하게 회수 완료(PREPARING)로 되돌려 다시 등록·예약할 수 있게 한다.
      */

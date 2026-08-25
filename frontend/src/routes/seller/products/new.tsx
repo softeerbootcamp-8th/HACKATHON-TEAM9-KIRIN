@@ -47,7 +47,8 @@ function NewProductPage() {
   const registerProduct = useRegisterProduct();
   const isSubmitting = uploadImage.isPending || registerProduct.isPending;
 
-  const canSubmit = name.trim().length > 0 && price.trim().length > 0;
+  const canSubmit =
+    photos.length > 0 && name.trim().length > 0 && price.trim().length > 0;
 
   useEffect(() => {
     photosRef.current = photos;
@@ -167,10 +168,16 @@ function NewProductPage() {
               </label>
             )}
           </div>
-          {photos.length > 1 && (
-            <p className="text-xs text-[var(--color-text-muted)]">
-              지금은 첫 번째 사진만 등록에 사용돼요.
+          {photos.length === 0 ? (
+            <p className="text-xs text-[var(--color-danger)]">
+              사진을 1장 이상 등록해야 등록할 수 있어요.
             </p>
+          ) : (
+            photos.length > 1 && (
+              <p className="text-xs text-[var(--color-text-muted)]">
+                지금은 첫 번째 사진만 등록에 사용돼요.
+              </p>
+            )
           )}
         </div>
 
