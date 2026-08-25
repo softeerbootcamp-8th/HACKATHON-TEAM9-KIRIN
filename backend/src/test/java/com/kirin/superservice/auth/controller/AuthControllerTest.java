@@ -17,6 +17,7 @@ import com.kirin.superservice.global.exception.BusinessException;
 import com.kirin.superservice.global.exception.ErrorCode;
 import com.kirin.superservice.global.slack.SlackErrorNotifier;
 import com.kirin.superservice.member.domain.Member;
+import com.kirin.superservice.member.domain.MemberType;
 import com.kirin.superservice.member.service.MemberService;
 
 @WebMvcTest(AuthController.class)
@@ -92,6 +93,28 @@ class AuthControllerTest {
 
         // then
         assertThat(result).hasStatus(401);
+    }
+
+    @Test
+    void 게스트_로그인하면_201과_세션이_발급된다() {
+        // given
+        Member guest = Member.builder()
+                .loginId("guest_abc")
+                .password("encodedPassword")
+                .nickname("게스트-abc12345")
+                .memberType(MemberType.GUEST)
+                .build();
+        ReflectionTestUtils.setField(guest, "id", 42L);
+        given(memberService.registerGuest()).willReturn(guest);
+
+        // when
+        var result = mvc.post().uri("/api/auth/guest-login").exchange();
+
+        // then
+        assertThat(result).hasStatus(201);
+        assertThat(result.getRequest().getSession(false)).isNotNull();
+        assertThat(result.getRequest().getSession(false).getAttribute("loginMemberId")).isEqualTo(42L);
+        assertThat(result).bodyJson().extractingPath("$.memberType").isEqualTo("GUEST");
     }
 
     @Test

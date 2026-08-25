@@ -15,6 +15,7 @@ import com.kirin.superservice.global.exception.BusinessException;
 import com.kirin.superservice.global.exception.ErrorCode;
 import com.kirin.superservice.global.slack.SlackErrorNotifier;
 import com.kirin.superservice.member.domain.Member;
+import com.kirin.superservice.member.domain.MemberType;
 import com.kirin.superservice.member.service.MemberService;
 
 @WebMvcTest(MemberController.class)
@@ -111,6 +112,30 @@ class MemberControllerTest {
                 .bodyJson()
                 .extractingPath("$.nickname")
                 .isEqualTo("nickname");
+    }
+
+    @Test
+    void 게스트_세션으로_내_정보를_조회하면_200을_반환한다() {
+        // given
+        Member guest = Member.builder()
+                .loginId("guest_abc")
+                .password("encodedPassword")
+                .nickname("게스트-abc12345")
+                .memberType(MemberType.GUEST)
+                .build();
+        given(memberService.getById(1L)).willReturn(guest);
+
+        // when
+        var result = mvc.get().uri("/api/members/me")
+                .sessionAttr("loginMemberId", 1L)
+                .exchange();
+
+        // then
+        assertThat(result)
+                .hasStatusOk()
+                .bodyJson()
+                .extractingPath("$.memberType")
+                .isEqualTo("GUEST");
     }
 
     @Test

@@ -17,6 +17,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import com.kirin.superservice.global.exception.BusinessException;
 import com.kirin.superservice.global.exception.ErrorCode;
 import com.kirin.superservice.member.domain.Member;
+import com.kirin.superservice.member.domain.MemberType;
 import com.kirin.superservice.member.repository.MemberRepository;
 
 @ExtendWith(MockitoExtension.class)
@@ -110,6 +111,21 @@ class MemberServiceTest {
                 .isInstanceOf(BusinessException.class)
                 .extracting(e -> ((BusinessException) e).getErrorCode())
                 .isEqualTo(ErrorCode.MEMBER_NOT_FOUND);
+    }
+
+    @Test
+    void 게스트_로그인하면_GUEST_타입의_회원이_생성된다() {
+        // given
+        given(passwordEncoder.encode(any())).willReturn("encodedRandomPassword");
+        given(memberRepository.save(any(Member.class))).willAnswer(invocation -> invocation.getArgument(0));
+
+        // when
+        Member guest = memberService.registerGuest();
+
+        // then
+        assertThat(guest.getMemberType()).isEqualTo(MemberType.GUEST);
+        assertThat(guest.getLoginId()).startsWith("guest_");
+        assertThat(guest.getNickname()).startsWith("게스트-");
     }
 
     @Test

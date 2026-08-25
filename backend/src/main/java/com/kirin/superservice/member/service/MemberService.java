@@ -1,5 +1,7 @@
 package com.kirin.superservice.member.service;
 
+import java.util.UUID;
+
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -7,6 +9,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.kirin.superservice.global.exception.BusinessException;
 import com.kirin.superservice.global.exception.ErrorCode;
 import com.kirin.superservice.member.domain.Member;
+import com.kirin.superservice.member.domain.MemberType;
 import com.kirin.superservice.member.repository.MemberRepository;
 
 import lombok.RequiredArgsConstructor;
@@ -47,6 +50,21 @@ public class MemberService {
 
         log.info("로그인 성공 - memberId={}", member.getId());
         return member;
+    }
+
+    @Transactional
+    public Member registerGuest() {
+        String token = UUID.randomUUID().toString();
+        Member guest = Member.builder()
+                .loginId("guest_" + token)
+                .password(passwordEncoder.encode(UUID.randomUUID().toString()))
+                .nickname("게스트-" + token.substring(0, 8))
+                .memberType(MemberType.GUEST)
+                .build();
+
+        Member savedGuest = memberRepository.save(guest);
+        log.info("게스트 회원 생성 완료 - memberId={}", savedGuest.getId());
+        return savedGuest;
     }
 
     public Member getById(Long memberId) {
