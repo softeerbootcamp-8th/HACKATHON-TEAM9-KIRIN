@@ -26,7 +26,12 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     List<Product> findAllByStatusAndSellingExpiresAtLessThanEqual(
             ProductStatus status, LocalDateTime sellingExpiresAt);
 
-    Optional<Product> findByLockerId(Long lockerId);
+    /**
+     * lockerId는 물품이 회수·수령완료된 뒤에도 지워지지 않고 이력으로 남기 때문에, 같은
+     * lockerId를 가진 물품이 여러 건 존재할 수 있다. 가장 최근에 등록된 물품이 현재 그
+     * 사물함을 점유 중인 물품이다.
+     */
+    Optional<Product> findFirstByLockerIdOrderByCreatedAtDescIdDesc(Long lockerId);
 
     List<Product> findAllByLockerIdIsNotNull();
 
