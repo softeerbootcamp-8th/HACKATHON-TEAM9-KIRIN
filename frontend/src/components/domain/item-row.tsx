@@ -1,11 +1,4 @@
-import {
-  AlertCircle,
-  Check,
-  CheckCircle2,
-  Circle,
-  Image,
-  X,
-} from "lucide-react";
+import { AlertCircle, Check, Image, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type ItemRowStatus = "none" | "accept" | "cancel";
@@ -16,7 +9,7 @@ type ItemRowProps = {
   address: string;
   /** 썸네일 이미지 URL — 없으면 중립 placeholder 렌더 (Figma 원본 에셋 미확보) */
   thumbnailUrl?: string;
-  /** 체크박스 선택 UI 노출 (Figma "Checkbox"/"CheckboxCheck") */
+  /** 선택 가능 여부 — 체크박스 대신 상자 전체가 터치 영역이고, 선택되면 테두리로 표시한다 */
   selectable?: boolean;
   checked?: boolean;
   onCheckedChange?: (checked: boolean) => void;
@@ -45,13 +38,35 @@ export function ItemRow({
   onClick,
   className,
 }: ItemRowProps) {
+  const isSelected = selectable && status === "none" && checked;
+  const handleRowClick = selectable
+    ? () => onCheckedChange?.(!checked)
+    : onClick;
+
   return (
     <div
       className={cn(
-        "relative flex h-[72px] items-center gap-3 rounded-[var(--radius-sm)] border border-[var(--color-border)] bg-[var(--color-bg)] p-3",
+        "relative flex h-[72px] items-center gap-3 rounded-[var(--radius-sm)] border p-3 transition-colors",
+        isSelected
+          ? "border-2 border-[var(--color-primary)] bg-[var(--color-bg)]"
+          : "border-[var(--color-border)] bg-[var(--color-bg)]",
+        selectable && "cursor-pointer",
         className,
       )}
-      onClick={onClick}
+      onClick={handleRowClick}
+      role={selectable ? "checkbox" : undefined}
+      aria-checked={selectable ? checked : undefined}
+      tabIndex={selectable ? 0 : undefined}
+      onKeyDown={
+        selectable
+          ? (event) => {
+              if (event.key === "Enter" || event.key === " ") {
+                event.preventDefault();
+                onCheckedChange?.(!checked);
+              }
+            }
+          : undefined
+      }
     >
       {deleteWarning && (
         <span
@@ -98,25 +113,6 @@ export function ItemRow({
           className="size-6 shrink-0 text-[var(--color-danger)]"
           aria-label="거절됨"
         />
-      )}
-
-      {status === "none" && selectable && (
-        <button
-          type="button"
-          onClick={(event) => {
-            event.stopPropagation();
-            onCheckedChange?.(!checked);
-          }}
-          aria-pressed={checked}
-          aria-label="선택"
-          className="shrink-0 text-[var(--color-primary)]"
-        >
-          {checked ? (
-            <CheckCircle2 className="size-6" />
-          ) : (
-            <Circle className="size-6 text-[var(--color-border)]" />
-          )}
-        </button>
       )}
     </div>
   );
