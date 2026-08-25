@@ -13,6 +13,7 @@ import com.kirin.superservice.payment.dto.response.PaymentConfirmResponse;
 import com.kirin.superservice.product.domain.Product;
 import com.kirin.superservice.product.domain.ProductStatus;
 import com.kirin.superservice.product.exception.ProductNotSellingException;
+import com.kirin.superservice.product.exception.SellingPeriodExpiredException;
 import com.kirin.superservice.product.service.ProductService;
 import com.kirin.superservice.transaction.domain.Transaction;
 import com.kirin.superservice.transaction.domain.TransactionStatus;
@@ -20,12 +21,16 @@ import com.kirin.superservice.transaction.dto.request.PurchaseProductRequest;
 import com.kirin.superservice.transaction.exception.PriceMismatchException;
 import com.kirin.superservice.transaction.exception.TransactionNotFoundException;
 import com.kirin.superservice.transaction.repository.TransactionRepository;
+import java.time.Clock;
+import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
@@ -40,12 +45,20 @@ class TransactionServiceTest {
     @Mock
     LockerService lockerService;
 
+    @Spy
+    Clock clock = Clock.fixed(Instant.parse("2026-08-25T03:00:00Z"), ZoneId.of("Asia/Seoul"));
+
     @InjectMocks
     TransactionService transactionService;
 
     private Product 물품(ProductStatus status) {
-        return new Product(1L, 1L, "아이패드", 300000L, "상태 좋음", null, "원기",
+        Product product = new Product(1L, 1L, "아이패드", 300000L, "상태 좋음", null, "원기",
                 status, LocalDateTime.now());
+        if (status == ProductStatus.SELLING) {
+            product.completeDeposit(LocalDateTime.of(2026, 8, 25, 11, 0),
+                    LocalDateTime.of(2026, 9, 1, 11, 0));
+        }
+        return product;
     }
 
     private PurchaseProductRequest 구매요청() {
@@ -89,6 +102,19 @@ class TransactionServiceTest {
         // when & then
         assertThatThrownBy(() -> transactionService.validatePurchasable(1L, 1000L))
                 .isInstanceOf(PriceMismatchException.class);
+    }
+
+    @Test
+    void 판매기간이_만료된_물품을_구매하려_하면_예외가_발생한다() {
+        // given
+        Product product = 물품(ProductStatus.SELLING);
+        product.completeDeposit(LocalDateTime.of(2026, 8, 18, 12, 0),
+                LocalDateTime.of(2026, 8, 25, 12, 0));
+        given(productService.getProduct(1L)).willReturn(product);
+
+        // when & then
+        assertThatThrownBy(() -> transactionService.validatePurchasable(1L, 300000L))
+                .isInstanceOf(SellingPeriodExpiredException.class);
     }
 
     @Test

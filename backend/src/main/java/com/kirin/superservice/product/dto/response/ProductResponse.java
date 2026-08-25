@@ -13,7 +13,13 @@ public record ProductResponse(
         String imageUrl,
         String sellerName,
         ProductStatus status,
-        LocalDateTime createdAt
+        LocalDateTime createdAt,
+        LocalDateTime reservedAt,
+        LocalDateTime reservationExpiresAt,
+        LocalDateTime depositStartedAt,
+        LocalDateTime sellingStartedAt,
+        LocalDateTime sellingExpiresAt,
+        LocalDateTime recoveryStartedAt
 ) {
     public static ProductResponse fromEntity(Product product) {
         return new ProductResponse(
@@ -25,7 +31,13 @@ public record ProductResponse(
                 product.getImageUrl(),
                 product.getSellerName(),
                 product.getStatus(),
-                product.getCreatedAt()
+                product.getCreatedAt(),
+                product.getReservedAt(),
+                product.getReservationExpiresAt(),
+                product.getDepositStartedAt(),
+                product.getSellingStartedAt(),
+                product.getSellingExpiresAt(),
+                product.getRecoveryStartedAt()
         );
     }
 }

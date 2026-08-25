@@ -23,7 +23,7 @@ public class Product {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "locker_id", nullable = false)
+    @Column(name = "locker_id")
     private Long lockerId;
 
     @Column(name = "name", nullable = false, length = 100)
@@ -48,6 +48,24 @@ public class Product {
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
+    @Column(name = "reserved_at")
+    private LocalDateTime reservedAt;
+
+    @Column(name = "reservation_expires_at")
+    private LocalDateTime reservationExpiresAt;
+
+    @Column(name = "deposit_started_at")
+    private LocalDateTime depositStartedAt;
+
+    @Column(name = "selling_started_at")
+    private LocalDateTime sellingStartedAt;
+
+    @Column(name = "selling_expires_at")
+    private LocalDateTime sellingExpiresAt;
+
+    @Column(name = "recovery_started_at")
+    private LocalDateTime recoveryStartedAt;
+
     public Product(Long id, Long lockerId, String name, Long price, String description,
             String imageUrl, String sellerName, ProductStatus status, LocalDateTime createdAt) {
         this.id = id;
@@ -61,14 +79,75 @@ public class Product {
         this.createdAt = createdAt;
     }
 
-    public Product(Long lockerId, String name, Long price, String description,
-            String imageUrl, String sellerName) {
-        this(null, lockerId, name, price, description, imageUrl, sellerName,
+    public Product(String name, Long price, String description, String imageUrl, String sellerName) {
+        this(null, null, name, price, description, imageUrl, sellerName,
                 ProductStatus.PREPARING, LocalDateTime.now());
     }
 
-    public void startSelling() {
+    public void reserveLocker(Long lockerId, LocalDateTime reservedAt,
+            LocalDateTime reservationExpiresAt) {
+        this.lockerId = lockerId;
+        this.reservedAt = reservedAt;
+        this.reservationExpiresAt = reservationExpiresAt;
+        this.depositStartedAt = null;
+        this.status = ProductStatus.RESERVED;
+    }
+
+    public void cancelLockerReservation() {
+        this.lockerId = null;
+        this.reservedAt = null;
+        this.reservationExpiresAt = null;
+        this.depositStartedAt = null;
+        this.status = ProductStatus.PREPARING;
+    }
+
+    public boolean isSeller(String sellerName) {
+        return this.sellerName.equals(sellerName);
+    }
+
+    public boolean hasStartedDeposit() {
+        return this.depositStartedAt != null;
+    }
+
+    public void startDeposit(LocalDateTime depositStartedAt) {
+        this.depositStartedAt = depositStartedAt;
+    }
+
+    public void completeDeposit(LocalDateTime sellingStartedAt, LocalDateTime sellingExpiresAt) {
+        this.sellingStartedAt = sellingStartedAt;
+        this.sellingExpiresAt = sellingExpiresAt;
         this.status = ProductStatus.SELLING;
+    }
+
+    public boolean isReservationExpiredAt(LocalDateTime now) {
+        return this.reservationExpiresAt == null || !now.isBefore(this.reservationExpiresAt);
+    }
+
+    public void expireSelling() {
+        this.status = ProductStatus.EXPIRED;
+    }
+
+    public void startRecovery(LocalDateTime recoveryStartedAt) {
+        this.recoveryStartedAt = recoveryStartedAt;
+    }
+
+    public void completeRecovery() {
+        this.lockerId = null;
+        this.reservedAt = null;
+        this.reservationExpiresAt = null;
+        this.depositStartedAt = null;
+        this.sellingStartedAt = null;
+        this.sellingExpiresAt = null;
+        this.recoveryStartedAt = null;
+        this.status = ProductStatus.PREPARING;
+    }
+
+    public boolean isSellingExpiredAt(LocalDateTime now) {
+        return this.sellingExpiresAt == null || !now.isBefore(this.sellingExpiresAt);
+    }
+
+    public boolean hasStartedRecovery() {
+        return this.recoveryStartedAt != null;
     }
 
     public void markSold() {
@@ -83,7 +162,15 @@ public class Product {
         return this.status == ProductStatus.SELLING;
     }
 
+    public boolean isReserved() {
+        return this.status == ProductStatus.RESERVED;
+    }
+
     public boolean isSold() {
         return this.status == ProductStatus.SOLD;
+    }
+
+    public boolean isExpired() {
+        return this.status == ProductStatus.EXPIRED;
     }
 }

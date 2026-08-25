@@ -41,11 +41,19 @@ public class Locker {
         this.usageStatus = UsageStatus.OCCUPIED;
     }
 
+    public void reserve() {
+        this.usageStatus = UsageStatus.RESERVED;
+    }
+
     public void release() {
         this.usageStatus = UsageStatus.AVAILABLE;
     }
 
     public boolean isAvailable() {
         return this.usageStatus == UsageStatus.AVAILABLE;
+    }
+
+    public boolean isReserved() {
+        return this.usageStatus == UsageStatus.RESERVED;
     }
 }

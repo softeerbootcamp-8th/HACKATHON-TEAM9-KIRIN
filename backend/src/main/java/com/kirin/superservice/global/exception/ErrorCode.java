@@ -18,8 +18,12 @@ public enum ErrorCode {
 
     LOCKER_NOT_FOUND(404, "LOCKER_NOT_FOUND", "물품보관함을 찾을 수 없습니다."),
     LOCKER_ALREADY_OCCUPIED(409, "LOCKER_ALREADY_OCCUPIED", "이미 사용 중인 물품보관함입니다."),
+    LOCKER_NOT_AVAILABLE(409, "LOCKER_NOT_AVAILABLE", "예약하거나 사용할 수 없는 물품보관함입니다."),
     PAYMENT_CONFIRM_FAILED(400, "PAYMENT_CONFIRM_FAILED", "결제 승인에 실패했습니다."),
     PRODUCT_NOT_FOUND(404, "PRODUCT_NOT_FOUND", "물품을 찾을 수 없습니다."),
+    SELLER_MISMATCH(403, "SELLER_MISMATCH", "물품을 등록한 판매자가 아닙니다."),
+    RESERVATION_EXPIRED(409, "RESERVATION_EXPIRED", "사물함 예약 시간이 만료되었습니다."),
+    SELLING_PERIOD_EXPIRED(409, "SELLING_PERIOD_EXPIRED", "물품 판매 기간이 만료되었습니다."),
     PRODUCT_NOT_SELLING(409, "PRODUCT_NOT_SELLING", "판매 중인 물품이 아닙니다."),
     INVALID_PRODUCT_STATUS(409, "INVALID_PRODUCT_STATUS", "현재 물품 상태에서는 처리할 수 없는 요청입니다."),
     TRANSACTION_NOT_FOUND(404, "TRANSACTION_NOT_FOUND", "거래를 찾을 수 없습니다."),

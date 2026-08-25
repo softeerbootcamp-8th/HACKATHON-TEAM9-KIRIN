@@ -1,5 +1,6 @@
 package com.kirin.superservice.product.controller;
 
+import static org.hamcrest.Matchers.nullValue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -9,10 +10,15 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.kirin.superservice.global.auth.SessionConst;
 import com.kirin.superservice.global.slack.SlackErrorNotifier;
-import com.kirin.superservice.locker.exception.LockerAlreadyOccupiedException;
 import com.kirin.superservice.product.domain.Product;
 import com.kirin.superservice.product.domain.ProductStatus;
+import com.kirin.superservice.product.dto.request.CancelLockerReservationRequest;
+import com.kirin.superservice.product.dto.request.CompleteDepositRequest;
+import com.kirin.superservice.product.dto.request.CompleteRecoveryRequest;
 import com.kirin.superservice.product.dto.request.RegisterProductRequest;
+import com.kirin.superservice.product.dto.request.ReserveLockerRequest;
+import com.kirin.superservice.product.dto.request.StartDepositRequest;
+import com.kirin.superservice.product.dto.request.StartRecoveryRequest;
 import com.kirin.superservice.product.exception.ProductNotFoundException;
 import com.kirin.superservice.product.service.ProductService;
 import java.time.LocalDateTime;
@@ -38,7 +44,6 @@ class ProductControllerTest {
 
     private static final String 등록_요청_본문 = """
             {
-              "lockerId": 1,
               "name": "아이패드",
               "price": 300000,
               "description": "상태 좋음",
@@ -47,12 +52,17 @@ class ProductControllerTest {
             """;
 
     private Product 물품(Long id, ProductStatus status) {
-        return new Product(id, 1L, "아이패드", 300000L, "상태 좋음", null, "원기",
-                status, LocalDateTime.now());
+        Product product = new Product(id, status == ProductStatus.PREPARING ? null : 1L,
+                "아이패드", 300000L, "상태 좋음", null, "원기", status, LocalDateTime.now());
+        if (status == ProductStatus.RESERVED) {
+            product.reserveLocker(1L, LocalDateTime.of(2026, 8, 25, 12, 0),
+                    LocalDateTime.of(2026, 8, 25, 16, 0));
+        }
+        return product;
     }
 
     @Test
-    void 유효한_물품정보로_등록하면_200과_물품정보를_반환한다() throws Exception {
+    void 유효한_물품정보로_등록하면_200과_사물함없는_물품정보를_반환한다() throws Exception {
         // given
         given(productService.registerProduct(any(RegisterProductRequest.class)))
                 .willReturn(물품(1L, ProductStatus.PREPARING));
@@ -64,7 +74,7 @@ class ProductControllerTest {
                         .content(등록_요청_본문))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.productId").value(1))
-                .andExpect(jsonPath("$.lockerId").value(1))
+                .andExpect(jsonPath("$.lockerId").value(nullValue()))
                 .andExpect(jsonPath("$.status").value("PREPARING"));
     }
 
@@ -73,7 +83,6 @@ class ProductControllerTest {
         // given
         String 이름_없는_요청 = """
                 {
-                  "lockerId": 1,
                   "price": 300000,
                   "sellerName": "원기"
                 }
@@ -86,21 +95,6 @@ class ProductControllerTest {
                         .content(이름_없는_요청))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("INVALID_REQUEST"));
-    }
-
-    @Test
-    void 이미_사용중인_보관함에_등록하면_409를_반환한다() throws Exception {
-        // given
-        given(productService.registerProduct(any(RegisterProductRequest.class)))
-                .willThrow(new LockerAlreadyOccupiedException(1L));
-
-        // when & then
-        mockMvc.perform(post("/api/products")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .sessionAttr(SessionConst.LOGIN_MEMBER_ID, 1L)
-                        .content(등록_요청_본문))
-                .andExpect(status().isConflict())
-                .andExpect(jsonPath("$.code").value("LOCKER_ALREADY_OCCUPIED"));
     }
 
     @Test
@@ -145,15 +139,143 @@ class ProductControllerTest {
     }
 
     @Test
-    void 등록완료를_요청하면_200과_판매중_물품을_반환한다() throws Exception {
+    void 판매자_물품_목록을_조회하면_200과_최신순_목록을_반환한다() throws Exception {
         // given
-        given(productService.completeRegistration(1L)).willReturn(물품(1L, ProductStatus.SELLING));
+        given(productService.findAllProductsBySellerName("원기", null))
+                .willReturn(List.of(물품(2L, ProductStatus.PREPARING), 물품(1L, ProductStatus.SOLD)));
 
         // when & then
-        mockMvc.perform(post("/api/products/1/registration-complete")
+        mockMvc.perform(get("/api/products/sellers/원기")
                         .sessionAttr(SessionConst.LOGIN_MEMBER_ID, 1L))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.products[0].productId").value(2))
+                .andExpect(jsonPath("$.products[1].productId").value(1));
+    }
+
+    @Test
+    void 판매자_물품_목록을_상태로_필터링할_수_있다() throws Exception {
+        // given
+        given(productService.findAllProductsBySellerName("원기", ProductStatus.RESERVED))
+                .willReturn(List.of(물품(1L, ProductStatus.RESERVED)));
+
+        // when & then
+        mockMvc.perform(get("/api/products/sellers/원기")
+                        .param("status", "RESERVED")
+                        .sessionAttr(SessionConst.LOGIN_MEMBER_ID, 1L))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.products[0].productId").value(1))
+                .andExpect(jsonPath("$.products[0].status").value("RESERVED"));
+    }
+
+    @Test
+    void 사물함을_예약하면_200과_예약된_물품정보를_반환한다() throws Exception {
+        // given
+        given(productService.reserveLocker(any(Long.class), any(ReserveLockerRequest.class)))
+                .willReturn(물품(1L, ProductStatus.RESERVED));
+
+        // when & then
+        mockMvc.perform(post("/api/products/1/locker-reservation")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .sessionAttr(SessionConst.LOGIN_MEMBER_ID, 1L)
+                        .content("""
+                                {
+                                  "lockerId": 1,
+                                  "sellerName": "원기"
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.productId").value(1))
+                .andExpect(jsonPath("$.lockerId").value(1))
+                .andExpect(jsonPath("$.status").value("RESERVED"));
+    }
+
+    @Test
+    void 예약을_취소하면_200과_준비중_물품정보를_반환한다() throws Exception {
+        // given
+        given(productService.cancelLockerReservation(any(Long.class),
+                any(CancelLockerReservationRequest.class)))
+                .willReturn(물품(1L, ProductStatus.PREPARING));
+
+        // when & then
+        mockMvc.perform(post("/api/products/1/locker-reservation/cancel")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .sessionAttr(SessionConst.LOGIN_MEMBER_ID, 1L)
+                        .content("{" + "\"sellerName\":\"원기\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.productId").value(1))
+                .andExpect(jsonPath("$.lockerId").value(nullValue()))
+                .andExpect(jsonPath("$.status").value("PREPARING"));
+    }
+
+    @Test
+    void 물품_투입을_시작하면_200과_예약중_물품정보를_반환한다() throws Exception {
+        // given
+        Product product = 물품(1L, ProductStatus.RESERVED);
+        product.startDeposit(LocalDateTime.of(2026, 8, 25, 12, 0));
+        given(productService.startDeposit(any(Long.class), any(StartDepositRequest.class)))
+                .willReturn(product);
+
+        // when & then
+        mockMvc.perform(post("/api/products/1/deposit-start")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .sessionAttr(SessionConst.LOGIN_MEMBER_ID, 1L)
+                        .content("{" + "\"sellerName\":\"원기\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.productId").value(1))
+                .andExpect(jsonPath("$.status").value("RESERVED"));
+    }
+
+    @Test
+    void 물품_투입을_완료하면_200과_판매중_물품정보를_반환한다() throws Exception {
+        // given
+        Product product = 물품(1L, ProductStatus.RESERVED);
+        product.startDeposit(LocalDateTime.of(2026, 8, 25, 11, 59));
+        product.completeDeposit(LocalDateTime.of(2026, 8, 25, 12, 0),
+                LocalDateTime.of(2026, 9, 1, 12, 0));
+        given(productService.completeDeposit(any(Long.class), any(CompleteDepositRequest.class)))
+                .willReturn(product);
+
+        // when & then
+        mockMvc.perform(post("/api/products/1/deposit-complete")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .sessionAttr(SessionConst.LOGIN_MEMBER_ID, 1L)
+                        .content("{" + "\"sellerName\":\"원기\"}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.productId").value(1))
                 .andExpect(jsonPath("$.status").value("SELLING"));
+    }
+
+    @Test
+    void 판매자_회수를_시작하면_200과_만료물품정보를_반환한다() throws Exception {
+        // given
+        Product product = 물품(1L, ProductStatus.EXPIRED);
+        product.startRecovery(LocalDateTime.of(2026, 8, 25, 12, 0));
+        given(productService.startRecovery(any(Long.class), any(StartRecoveryRequest.class)))
+                .willReturn(product);
+
+        // when & then
+        mockMvc.perform(post("/api/products/1/recovery-start")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .sessionAttr(SessionConst.LOGIN_MEMBER_ID, 1L)
+                        .content("{" + "\"sellerName\":\"원기\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.productId").value(1))
+                .andExpect(jsonPath("$.status").value("EXPIRED"));
+    }
+
+    @Test
+    void 판매자_회수를_완료하면_200과_준비중_물품정보를_반환한다() throws Exception {
+        // given
+        given(productService.completeRecovery(any(Long.class), any(CompleteRecoveryRequest.class)))
+                .willReturn(물품(1L, ProductStatus.PREPARING));
+
+        // when & then
+        mockMvc.perform(post("/api/products/1/recovery-complete")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .sessionAttr(SessionConst.LOGIN_MEMBER_ID, 1L)
+                        .content("{" + "\"sellerName\":\"원기\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.productId").value(1))
+                .andExpect(jsonPath("$.status").value("PREPARING"));
     }
 }

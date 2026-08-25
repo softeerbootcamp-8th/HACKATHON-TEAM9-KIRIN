@@ -31,3 +31,7 @@ toss:
   payment:
     base-url: ${TOSS_BASE_URL:https://api.tosspayments.com}
     secret-key: ${TOSS_SECRET_KEY:test_dummy_secret_key_please_set_TOSS_SECRET_KEY}
+
+kirin:
+  expiration:
+    fixed-delay: 60000

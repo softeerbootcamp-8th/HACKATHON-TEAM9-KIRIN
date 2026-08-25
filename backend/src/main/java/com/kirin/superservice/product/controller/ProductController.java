@@ -2,7 +2,13 @@ package com.kirin.superservice.product.controller;
 
 import com.kirin.superservice.product.domain.Product;
 import com.kirin.superservice.product.domain.ProductStatus;
+import com.kirin.superservice.product.dto.request.CancelLockerReservationRequest;
+import com.kirin.superservice.product.dto.request.CompleteDepositRequest;
+import com.kirin.superservice.product.dto.request.CompleteRecoveryRequest;
 import com.kirin.superservice.product.dto.request.RegisterProductRequest;
+import com.kirin.superservice.product.dto.request.ReserveLockerRequest;
+import com.kirin.superservice.product.dto.request.StartDepositRequest;
+import com.kirin.superservice.product.dto.request.StartRecoveryRequest;
 import com.kirin.superservice.product.dto.response.ProductListResponse;
 import com.kirin.superservice.product.dto.response.ProductResponse;
 import com.kirin.superservice.product.service.ProductService;
@@ -29,10 +35,65 @@ public class ProductController {
         return ProductResponse.fromEntity(product);
     }
 
+    @PostMapping("/{productId}/locker-reservation")
+    public ProductResponse reserveLocker(
+            @PathVariable Long productId,
+            @RequestBody @Valid ReserveLockerRequest request) {
+        Product product = productService.reserveLocker(productId, request);
+        return ProductResponse.fromEntity(product);
+    }
+
+    @PostMapping("/{productId}/locker-reservation/cancel")
+    public ProductResponse cancelLockerReservation(
+            @PathVariable Long productId,
+            @RequestBody @Valid CancelLockerReservationRequest request) {
+        Product product = productService.cancelLockerReservation(productId, request);
+        return ProductResponse.fromEntity(product);
+    }
+
+    @PostMapping("/{productId}/deposit-start")
+    public ProductResponse startDeposit(
+            @PathVariable Long productId,
+            @RequestBody @Valid StartDepositRequest request) {
+        Product product = productService.startDeposit(productId, request);
+        return ProductResponse.fromEntity(product);
+    }
+
+    @PostMapping("/{productId}/deposit-complete")
+    public ProductResponse completeDeposit(
+            @PathVariable Long productId,
+            @RequestBody @Valid CompleteDepositRequest request) {
+        Product product = productService.completeDeposit(productId, request);
+        return ProductResponse.fromEntity(product);
+    }
+
+    @PostMapping("/{productId}/recovery-start")
+    public ProductResponse startRecovery(
+            @PathVariable Long productId,
+            @RequestBody @Valid StartRecoveryRequest request) {
+        Product product = productService.startRecovery(productId, request);
+        return ProductResponse.fromEntity(product);
+    }
+
+    @PostMapping("/{productId}/recovery-complete")
+    public ProductResponse completeRecovery(
+            @PathVariable Long productId,
+            @RequestBody @Valid CompleteRecoveryRequest request) {
+        Product product = productService.completeRecovery(productId, request);
+        return ProductResponse.fromEntity(product);
+    }
+
     @GetMapping
     public ProductListResponse getProducts(
             @RequestParam(defaultValue = "SELLING") ProductStatus status) {
         return ProductListResponse.fromEntities(productService.findAllProductsByStatus(status));
+    }
+
+    @GetMapping("/sellers/{sellerName}")
+    public ProductListResponse getSellerProducts(
+            @PathVariable String sellerName,
+            @RequestParam(required = false) ProductStatus status) {
+        return ProductListResponse.fromEntities(productService.findAllProductsBySellerName(sellerName, status));
     }
 
     @GetMapping("/{productId}")
@@ -41,9 +102,4 @@ public class ProductController {
         return ProductResponse.fromEntity(product);
     }
 
-    @PostMapping("/{productId}/registration-complete")
-    public ProductResponse completeRegistration(@PathVariable Long productId) {
-        Product product = productService.completeRegistration(productId);
-        return ProductResponse.fromEntity(product);
-    }
 }
