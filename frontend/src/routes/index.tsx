@@ -26,6 +26,10 @@ export const Route = createFileRoute("/")({
 type HomeLocker = LockerGridItem & {
   /** 본인이 예약/판매 중인 사물함인지 — 아니면 08-1 안내 모달 또는 토스트만 노출 */
   isMine?: boolean;
+  /** 사물함 내부 규격 — 지정하지 않으면 DEFAULT_LOCKER_SIZE 를 쓴다 */
+  size?: string;
+  /** 최대 점유 가능 일수 — 지정하지 않으면 DEFAULT_MAX_OCCUPANCY_DAYS 를 쓴다 */
+  maxOccupancyDays?: number;
   reservedInfo?: { product: string; period: string; remaining: string };
   sellingInfo?: {
     product: string;
@@ -35,6 +39,11 @@ type HomeLocker = LockerGridItem & {
     remaining: string;
   };
 };
+
+// 사물함이 전부 동일 규격이라 기본값으로 둔다 — 사물함마다 규격이 달라지면
+// LOCKERS 각 항목에 size/maxOccupancyDays 를 지정해 덮어쓴다.
+const DEFAULT_LOCKER_SIZE = "40 × 100 × 50 cm";
+const DEFAULT_MAX_OCCUPANCY_DAYS = 7;
 
 // Figma "01 홈 · 사물함 현황" 예시 데이터 — 실제 데이터는 API 연동 시 교체한다.
 const LOCKERS: HomeLocker[] = [
@@ -190,8 +199,12 @@ function HomePage() {
                 </BottomSheetTitle>
               </BottomSheetHeader>
               <BottomSheetBody className="flex flex-col items-center gap-10 pt-10 pb-4">
-                <p className="text-sm text-[var(--color-text-muted)]">
-                  등록된 상품이 없습니다.
+                <p className="text-center text-sm text-[var(--color-text-muted)]">
+                  비어있는 사물함이에요
+                  <br />
+                  {sheet.locker.size ?? DEFAULT_LOCKER_SIZE} · 최대{" "}
+                  {sheet.locker.maxOccupancyDays ?? DEFAULT_MAX_OCCUPANCY_DAYS}
+                  일 점유 가능
                 </p>
                 <Button
                   fullWidth
