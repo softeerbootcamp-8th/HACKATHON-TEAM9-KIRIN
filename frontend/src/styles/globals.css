@@ -38,10 +38,11 @@
   --color-info: #3b6fd4;
   --color-info-bg: #eaf0fb;
   --color-live: var(--color-info);
-  /* 사물함 현황 그리드 "내 상품"(예약중·판매중, 본인) 전용 — 배경만 두 단계로 나눈다 (Figma "01 홈 · 사물함 현황") */
+  /* 사물함 현황 그리드 + 예약중·판매중(본인) 배지 전용 — 배경만 두 단계로 나눈다
+     (Figma "01 홈 · 사물함 현황", "03/04 홈 · 바텀시트(예약중·판매중·본인)") */
   --color-mine: #ff4d35;
   --color-mine-reserved-bg: #ffedd3;
-  --color-mine-selling-bg: #ffb855;
+  --color-mine-selling-bg: #ffdcc0;
 
   /* 비활성 */
   --color-disabled-bg: #e5e5e5;

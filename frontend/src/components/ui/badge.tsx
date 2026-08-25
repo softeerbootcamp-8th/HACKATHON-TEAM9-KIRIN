@@ -20,6 +20,9 @@ const badgeVariants = cva(
         info: "bg-[var(--color-info-bg)] text-[var(--color-info)]",
         // 본인 소유 예약중 배지 (Figma "Badge/예약중", "03 홈 · 바텀시트(예약중·본인)")
         mine: "bg-[var(--color-mine-reserved-bg)] text-[var(--color-mine)]",
+        // 본인 소유 판매중 배지 (Figma "Badge/판매중", "04 홈 · 바텀시트(판매중·본인)")
+        mineSelling:
+          "bg-[var(--color-mine-selling-bg)] text-[var(--color-mine)]",
         muted: "bg-[var(--color-surface-2)] text-[var(--color-text-muted)]",
       },
     },

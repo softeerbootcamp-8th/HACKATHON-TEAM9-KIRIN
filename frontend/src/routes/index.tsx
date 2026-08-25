@@ -520,8 +520,8 @@ function SellingSheetBody({
   return (
     <>
       <BottomSheetHeader className="h-auto items-center justify-start gap-2">
-        <BottomSheetTitle>{locker.number}번 사물함</BottomSheetTitle>
-        <Badge variant="danger">판매중</Badge>
+        <BottomSheetTitle>{locker.number}번 진열함</BottomSheetTitle>
+        <Badge variant="mineSelling">판매중</Badge>
       </BottomSheetHeader>
       <BottomSheetBody className="flex flex-col gap-3">
         <ItemRow
@@ -549,12 +549,12 @@ function SellingSheetBody({
               value: product.sellingExpiresAt
                 ? formatRemaining(product.sellingExpiresAt)
                 : "-",
-              tone: "danger",
+              tone: "mine",
             },
           ]}
         />
         <p className="text-xs text-[var(--color-text-muted)]">
-          판매를 종료하면 사물함이 열려요. 상품을 회수한 뒤 문을 닫아 주세요.
+          판매를 종료하면 진열함이 열려요. 상품을 회수한 뒤 문을 닫아 주세요.
         </p>
         <Button fullWidth size="lg" disabled={pending} onClick={onEndSelling}>
           판매 종료
