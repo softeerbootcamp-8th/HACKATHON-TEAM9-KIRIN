@@ -11,6 +11,7 @@ import com.kirin.superservice.product.exception.ProductNotSellingException;
 import com.kirin.superservice.product.exception.SellingPeriodExpiredException;
 import com.kirin.superservice.product.service.ProductService;
 import com.kirin.superservice.transaction.domain.Transaction;
+import com.kirin.superservice.transaction.domain.TransactionStatus;
 import com.kirin.superservice.transaction.dto.request.PurchaseProductRequest;
 import com.kirin.superservice.transaction.exception.PriceMismatchException;
 import com.kirin.superservice.transaction.exception.TransactionAccessDeniedException;
@@ -112,6 +113,23 @@ public class TransactionService {
         locker.release();
         log.info("물품 수령 완료 - transactionId={}, lockerId={}", transactionId, transaction.getLockerId());
         return transaction;
+    }
+
+    /**
+     * 데모용: 사물함 잠금 버튼만으로 수령 완료를 흉내 낸다. 구매자 본인 확인 없이,
+     * 그 사물함에 결제완료(PAID) 상태인 거래가 있으면 바로 수령완료 처리한다.
+     */
+    @Transactional
+    public void completePickupForDemo(Long lockerId) {
+        transactionRepository.findByLockerIdAndStatus(lockerId, TransactionStatus.PAID)
+                .ifPresent(transaction -> {
+                    transaction.completePickup();
+                    Locker locker = lockerService.getLockerForUpdate(lockerId);
+                    locker.changeLockStatus(LockStatus.LOCKED);
+                    locker.release();
+                    log.info("데모용 사물함 잠금으로 수령 완료 - transactionId={}, lockerId={}",
+                            transaction.getId(), lockerId);
+                });
     }
 
     private void validateBuyer(Transaction transaction, Long buyerMemberId) {
