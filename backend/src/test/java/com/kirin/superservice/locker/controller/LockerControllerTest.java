@@ -5,6 +5,7 @@ import static org.mockito.BDDMockito.never;
 import static org.mockito.BDDMockito.then;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -215,5 +216,22 @@ class LockerControllerTest {
                         .content("{\"lockStatus\":\"UNLOCKED\"}"))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.code").value("LOCKER_NOT_FOUND"));
+    }
+
+    @Test
+    void 관리자가_사물함을_초기화하면_잠김_비어있음_상태를_반환한다() throws Exception {
+        // given
+        Locker locker = new Locker(1L, LockStatus.LOCKED, UsageStatus.AVAILABLE);
+        given(lockerService.getLocker(1L)).willReturn(locker);
+
+        // when & then
+        mockMvc.perform(post("/api/lockers/1/reset"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.lockerId").value(1))
+                .andExpect(jsonPath("$.lockStatus").value("LOCKED"))
+                .andExpect(jsonPath("$.usageStatus").value("AVAILABLE"))
+                .andExpect(jsonPath("$.isMine").value(false));
+
+        then(productService).should().resetLockerForAdmin(1L);
     }
 }

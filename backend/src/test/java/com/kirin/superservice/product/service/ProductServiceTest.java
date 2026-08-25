@@ -426,6 +426,40 @@ class ProductServiceTest {
         assertThat(product.getStatus()).isEqualTo(ProductStatus.SELLING);
     }
 
+    @Test
+    void 관리자가_초기화하면_판매중이던_물품이_준비중으로_복구되고_사물함이_비워진다() {
+        // given
+        Product product = 판매중물품();
+        Locker locker = new Locker(1L, LockStatus.UNLOCKED, UsageStatus.OCCUPIED);
+        given(productRepository.findByLockerId(1L)).willReturn(Optional.of(product));
+        given(productRepository.findByIdForUpdate(1L)).willReturn(Optional.of(product));
+        given(lockerService.getLockerForUpdate(1L)).willReturn(locker);
+
+        // when
+        productService.resetLockerForAdmin(1L);
+
+        // then
+        assertThat(product.getStatus()).isEqualTo(ProductStatus.PREPARING);
+        assertThat(product.getLockerId()).isNull();
+        assertThat(locker.getLockStatus()).isEqualTo(LockStatus.LOCKED);
+        assertThat(locker.getUsageStatus()).isEqualTo(UsageStatus.AVAILABLE);
+    }
+
+    @Test
+    void 관리자가_비어있는_사물함을_초기화해도_잠금_비어있음_상태가_유지된다() {
+        // given
+        Locker locker = new Locker(1L, LockStatus.LOCKED, UsageStatus.AVAILABLE);
+        given(productRepository.findByLockerId(1L)).willReturn(Optional.empty());
+        given(lockerService.getLockerForUpdate(1L)).willReturn(locker);
+
+        // when
+        productService.resetLockerForAdmin(1L);
+
+        // then
+        assertThat(locker.getLockStatus()).isEqualTo(LockStatus.LOCKED);
+        assertThat(locker.getUsageStatus()).isEqualTo(UsageStatus.AVAILABLE);
+    }
+
     private Product 예약된물품() {
         Product product = 물품(1L, ProductStatus.PREPARING);
         product.reserveLocker(1L, LocalDateTime.of(2026, 8, 25, 11, 0),
