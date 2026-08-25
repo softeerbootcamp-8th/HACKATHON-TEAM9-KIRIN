@@ -9,6 +9,7 @@ import com.kirin.superservice.locker.dto.response.LockerLockStatusResponse;
 import com.kirin.superservice.locker.dto.response.LockerSummaryResponse;
 import com.kirin.superservice.locker.service.LockerService;
 import com.kirin.superservice.product.domain.Product;
+import com.kirin.superservice.product.dto.response.ProductResponse;
 import com.kirin.superservice.product.service.ProductService;
 import com.kirin.superservice.transaction.service.TransactionService;
 import jakarta.validation.Valid;
@@ -55,6 +56,13 @@ public class LockerController {
     public LockerLockStatusResponse getLockStatus(@PathVariable Long lockerId) {
         Locker locker = lockerService.getLocker(lockerId);
         return LockerLockStatusResponse.fromEntity(locker);
+    }
+
+    /** 구매자가 물품보관함에 붙은 QR을 스캔해 지금 그 안에 있는 물품을 조회한다. 로그인이 필요 없다. */
+    @GetMapping("/{lockerId}/product")
+    public ProductResponse getProductByLocker(@PathVariable Long lockerId) {
+        Product product = productService.getProductByLockerId(lockerId);
+        return ProductResponse.fromEntity(product);
     }
 
     @PatchMapping("/{lockerId}/lock-status")

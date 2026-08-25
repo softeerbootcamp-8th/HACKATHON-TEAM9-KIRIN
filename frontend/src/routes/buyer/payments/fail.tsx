@@ -4,14 +4,14 @@ import { Header } from "@/components/layout/header";
 import { Button } from "@/components/ui/button";
 
 type PaymentFailSearch = {
-  productId?: number;
+  lockerId?: number;
   code?: string;
   message?: string;
 };
 
 export const Route = createFileRoute("/buyer/payments/fail")({
   validateSearch: (search: Record<string, unknown>): PaymentFailSearch => ({
-    productId: search.productId != null ? Number(search.productId) : undefined,
+    lockerId: search.lockerId != null ? Number(search.lockerId) : undefined,
     code: search.code != null ? String(search.code) : undefined,
     message: search.message != null ? String(search.message) : undefined,
   }),
@@ -21,13 +21,13 @@ export const Route = createFileRoute("/buyer/payments/fail")({
 /** 토스 결제창이 실패/취소 시 리다이렉트하는 화면. */
 function PaymentFailPage() {
   const router = useRouter();
-  const { productId, message } = Route.useSearch();
+  const { lockerId, message } = Route.useSearch();
 
   const goBack = () => {
-    if (productId != null) {
+    if (lockerId != null) {
       router.navigate({
-        to: "/buyer/products/$id",
-        params: { id: String(productId) },
+        to: "/buyer/lockers/$number",
+        params: { number: String(lockerId) },
       });
     } else {
       router.navigate({ to: "/" });

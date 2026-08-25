@@ -371,6 +371,24 @@ paths:
         default:
           $ref: "#/components/responses/Error"
 
+  /lockers/{lockerId}/product:
+    get:
+      operationId: getProductByLocker
+      tags:
+        - lockers
+      summary: 사물함 QR 스캔으로 그 안에 있는 물품 조회 (로그인 불필요)
+      parameters:
+        - $ref: "#/components/parameters/LockerId"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProductResponse"
+        default:
+          $ref: "#/components/responses/Error"
+
   /lockers/{lockerId}/reset:
     post:
       operationId: resetLocker
