@@ -27,6 +27,7 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -88,6 +89,24 @@ class ProductServiceTest {
         assertThat(result.getLockerId()).isNull();
         assertThat(result.getSellerMemberId()).isEqualTo(판매자_ID);
         assertThat(result.getSellerName()).isEqualTo("원기");
+    }
+
+    @Test
+    void 사물함이_재사용되어_같은_lockerId를_가진_물품이_여러_건이면_가장_최근_물품만_반환한다() {
+        // given
+        Product 이전_물품 = new Product(1L, 1L, "구 물품", 10000L, null, null,
+                판매자_ID, "원기", ProductStatus.SOLD, LocalDateTime.of(2026, 8, 20, 10, 0));
+        Product 최신_물품 = new Product(2L, 1L, "새 물품", 20000L, null, null,
+                다른_회원_ID, "재훈", ProductStatus.RESERVED, LocalDateTime.of(2026, 8, 25, 10, 0));
+        given(productRepository.findAllByLockerIdIsNotNull())
+                .willReturn(List.of(이전_물품, 최신_물품));
+
+        // when
+        Map<Long, Product> result = productService.findAllProductsByLockerId();
+
+        // then
+        assertThat(result).hasSize(1);
+        assertThat(result.get(1L)).isEqualTo(최신_물품);
     }
 
     @Test
