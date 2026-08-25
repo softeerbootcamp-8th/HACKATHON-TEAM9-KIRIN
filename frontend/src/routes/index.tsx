@@ -25,6 +25,7 @@ import {
   formatDday,
   formatPrice,
   formatRemaining,
+  formatRemainingDetailed,
 } from "@/lib/format";
 import {
   useGetLockers,
@@ -75,7 +76,7 @@ type SheetState =
 function InfoBox({
   rows,
 }: {
-  rows: { label: string; value: string; tone?: "danger" }[];
+  rows: { label: string; value: string; tone?: "danger" | "mine" }[];
 }) {
   return (
     <div className="flex w-full flex-col gap-2.5 rounded-[var(--radius-sm)] border border-[var(--color-border)] bg-[var(--color-surface-2)] p-3.5 text-[13px]">
@@ -86,7 +87,9 @@ function InfoBox({
             className={
               row.tone === "danger"
                 ? "font-medium text-[var(--color-danger)]"
-                : "font-medium text-[var(--color-text-sub)]"
+                : row.tone === "mine"
+                  ? "font-medium text-[var(--color-mine)]"
+                  : "font-medium text-[var(--color-text-sub)]"
             }
           >
             {row.value}
@@ -369,6 +372,7 @@ function HomePage() {
             <ReservedSheetBody
               locker={effectiveSheet.locker}
               product={selectedProduct}
+              now={now}
               onCancel={() => handleCancelReservation(effectiveSheet.locker)}
               onOpen={() => handleOpenForDeposit(effectiveSheet.locker)}
               pending={
@@ -444,12 +448,14 @@ function HomePage() {
 function ReservedSheetBody({
   locker,
   product,
+  now,
   onCancel,
   onOpen,
   pending,
 }: {
   locker: HomeLocker;
   product: ProductResponse;
+  now: Date;
   onCancel: () => void;
   onOpen: () => void;
   pending: boolean;
@@ -457,25 +463,19 @@ function ReservedSheetBody({
   return (
     <>
       <BottomSheetHeader className="h-auto items-center justify-start gap-2">
-        <BottomSheetTitle>{locker.number}번 사물함</BottomSheetTitle>
-        <Badge variant="info">예약중</Badge>
+        <BottomSheetTitle>{locker.number}번 진열함</BottomSheetTitle>
+        <Badge variant="mine">예약중</Badge>
       </BottomSheetHeader>
       <BottomSheetBody className="flex flex-col gap-3">
         <InfoBox
           rows={[
             { label: "예약 상품", value: product.name },
             {
-              label: "점유 기간",
-              value:
-                product.reservedAt && product.reservationExpiresAt
-                  ? `${formatDateTime(product.reservedAt)} ~ ${formatDateTime(product.reservationExpiresAt)}`
-                  : "-",
-            },
-            {
-              label: "남은 시간",
+              label: "남은 예약 시간",
               value: product.reservationExpiresAt
-                ? formatRemaining(product.reservationExpiresAt)
+                ? formatRemainingDetailed(product.reservationExpiresAt, now)
                 : "-",
+              tone: "mine",
             },
           ]}
         />
