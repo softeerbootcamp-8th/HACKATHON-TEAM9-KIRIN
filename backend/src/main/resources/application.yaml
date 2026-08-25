@@ -15,6 +15,10 @@ spring:
   sql:
     init:
       mode: always
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB
 
 async:
   slack-notification:
@@ -35,3 +39,6 @@ toss:
 kirin:
   expiration:
     fixed-delay: 60000
+  image:
+    upload-dir: ${IMAGE_UPLOAD_DIR:uploads/images}
+    base-url: /api/images
