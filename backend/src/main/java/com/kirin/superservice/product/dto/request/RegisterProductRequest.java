@@ -6,7 +6,6 @@ import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
 
 public record RegisterProductRequest(
-        @NotNull Long lockerId,
         @NotBlank @Size(max = 100) String name,
         @NotNull @Positive Long price,
         @Size(max = 1000) String description,

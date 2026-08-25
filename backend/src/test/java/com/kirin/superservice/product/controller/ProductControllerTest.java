@@ -1,5 +1,6 @@
 package com.kirin.superservice.product.controller;
 
+import static org.hamcrest.Matchers.nullValue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -7,7 +8,6 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.kirin.superservice.locker.exception.LockerAlreadyOccupiedException;
 import com.kirin.superservice.product.domain.Product;
 import com.kirin.superservice.product.domain.ProductStatus;
 import com.kirin.superservice.product.dto.request.RegisterProductRequest;
@@ -33,7 +33,6 @@ class ProductControllerTest {
 
     private static final String 등록_요청_본문 = """
             {
-              "lockerId": 1,
               "name": "아이패드",
               "price": 300000,
               "description": "상태 좋음",
@@ -42,12 +41,12 @@ class ProductControllerTest {
             """;
 
     private Product 물품(Long id, ProductStatus status) {
-        return new Product(id, 1L, "아이패드", 300000L, "상태 좋음", null, "원기",
-                status, LocalDateTime.now());
+        return new Product(id, status == ProductStatus.PREPARING ? null : 1L,
+                "아이패드", 300000L, "상태 좋음", null, "원기", status, LocalDateTime.now());
     }
 
     @Test
-    void 유효한_물품정보로_등록하면_200과_물품정보를_반환한다() throws Exception {
+    void 유효한_물품정보로_등록하면_200과_사물함없는_물품정보를_반환한다() throws Exception {
         // given
         given(productService.registerProduct(any(RegisterProductRequest.class)))
                 .willReturn(물품(1L, ProductStatus.PREPARING));
@@ -58,7 +57,7 @@ class ProductControllerTest {
                         .content(등록_요청_본문))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.productId").value(1))
-                .andExpect(jsonPath("$.lockerId").value(1))
+                .andExpect(jsonPath("$.lockerId").value(nullValue()))
                 .andExpect(jsonPath("$.status").value("PREPARING"));
     }
 
@@ -67,7 +66,6 @@ class ProductControllerTest {
         // given
         String 이름_없는_요청 = """
                 {
-                  "lockerId": 1,
                   "price": 300000,
                   "sellerName": "원기"
                 }
@@ -79,20 +77,6 @@ class ProductControllerTest {
                         .content(이름_없는_요청))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("INVALID_REQUEST"));
-    }
-
-    @Test
-    void 이미_사용중인_보관함에_등록하면_409를_반환한다() throws Exception {
-        // given
-        given(productService.registerProduct(any(RegisterProductRequest.class)))
-                .willThrow(new LockerAlreadyOccupiedException(1L));
-
-        // when & then
-        mockMvc.perform(post("/api/products")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(등록_요청_본문))
-                .andExpect(status().isConflict())
-                .andExpect(jsonPath("$.code").value("LOCKER_ALREADY_OCCUPIED"));
     }
 
     @Test
@@ -131,17 +115,5 @@ class ProductControllerTest {
                 .andExpect(jsonPath("$.products[0].productId").value(1))
                 .andExpect(jsonPath("$.products[1].productId").value(2))
                 .andExpect(jsonPath("$.products[0].status").value("SELLING"));
-    }
-
-    @Test
-    void 등록완료를_요청하면_200과_판매중_물품을_반환한다() throws Exception {
-        // given
-        given(productService.completeRegistration(1L)).willReturn(물품(1L, ProductStatus.SELLING));
-
-        // when & then
-        mockMvc.perform(post("/api/products/1/registration-complete"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.productId").value(1))
-                .andExpect(jsonPath("$.status").value("SELLING"));
     }
 }

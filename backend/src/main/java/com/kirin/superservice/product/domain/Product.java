@@ -23,7 +23,7 @@ public class Product {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "locker_id", nullable = false)
+    @Column(name = "locker_id")
     private Long lockerId;
 
     @Column(name = "name", nullable = false, length = 100)
@@ -48,6 +48,24 @@ public class Product {
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
+    @Column(name = "reserved_at")
+    private LocalDateTime reservedAt;
+
+    @Column(name = "reservation_expires_at")
+    private LocalDateTime reservationExpiresAt;
+
+    @Column(name = "deposit_started_at")
+    private LocalDateTime depositStartedAt;
+
+    @Column(name = "selling_started_at")
+    private LocalDateTime sellingStartedAt;
+
+    @Column(name = "selling_expires_at")
+    private LocalDateTime sellingExpiresAt;
+
+    @Column(name = "recovery_started_at")
+    private LocalDateTime recoveryStartedAt;
+
     public Product(Long id, Long lockerId, String name, Long price, String description,
             String imageUrl, String sellerName, ProductStatus status, LocalDateTime createdAt) {
         this.id = id;
@@ -61,9 +79,8 @@ public class Product {
         this.createdAt = createdAt;
     }
 
-    public Product(Long lockerId, String name, Long price, String description,
-            String imageUrl, String sellerName) {
-        this(null, lockerId, name, price, description, imageUrl, sellerName,
+    public Product(String name, Long price, String description, String imageUrl, String sellerName) {
+        this(null, null, name, price, description, imageUrl, sellerName,
                 ProductStatus.PREPARING, LocalDateTime.now());
     }
 
@@ -83,7 +100,15 @@ public class Product {
         return this.status == ProductStatus.SELLING;
     }
 
+    public boolean isReserved() {
+        return this.status == ProductStatus.RESERVED;
+    }
+
     public boolean isSold() {
         return this.status == ProductStatus.SOLD;
+    }
+
+    public boolean isExpired() {
+        return this.status == ProductStatus.EXPIRED;
     }
 }

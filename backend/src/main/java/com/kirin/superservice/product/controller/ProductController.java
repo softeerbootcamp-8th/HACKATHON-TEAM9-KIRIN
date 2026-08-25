@@ -41,9 +41,4 @@ public class ProductController {
         return ProductResponse.fromEntity(product);
     }
 
-    @PostMapping("/{productId}/registration-complete")
-    public ProductResponse completeRegistration(@PathVariable Long productId) {
-        Product product = productService.completeRegistration(productId);
-        return ProductResponse.fromEntity(product);
-    }
 }
