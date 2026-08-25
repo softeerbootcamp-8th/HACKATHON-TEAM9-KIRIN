@@ -20,6 +20,13 @@ CURRENT_LINK="${WEB_ROOT}/current"
 LOCK_FILE="${WEB_ROOT}/deploy.lock"
 KEEP_RELEASES=5
 
+# Certbot's nginx vhost only listens on 443 for this host — the plain :80
+# vhost is Certbot's own catch-all redirector, which 404s any request whose
+# Host header isn't exactly SITE_HOST (e.g. a bare "curl 127.0.0.1"). So the
+# smoke test must speak TLS and send the right Host/SNI. --resolve pins that
+# hostname to localhost so this works without depending on public DNS.
+SITE_HOST="odagada.shop"
+
 INCOMING_DIR="${1:-}"
 RELEASE_ID="${2:-}"
 
@@ -65,11 +72,12 @@ swap_to() {
 
 smoke_test() {
   local ok=true
-  if ! curl -fsS --max-time 5 http://127.0.0.1/ | grep -qi '<div id="root"'; then
+  local curl_opts=(-fsS --max-time 5 --resolve "${SITE_HOST}:443:127.0.0.1")
+  if ! curl "${curl_opts[@]}" "https://${SITE_HOST}/" | grep -qi '<div id="root"'; then
     log "Smoke test failed: homepage did not return expected content."
     ok=false
   fi
-  if ! curl -fsS --max-time 5 http://127.0.0.1/api/actuator/health | grep -q '"status":"UP"'; then
+  if ! curl "${curl_opts[@]}" "https://${SITE_HOST}/api/actuator/health" | grep -q '"status":"UP"'; then
     log "Smoke test failed: /api/actuator/health did not report UP through nginx."
     ok=false
   fi
