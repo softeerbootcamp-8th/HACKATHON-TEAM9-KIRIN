@@ -229,10 +229,20 @@ public class ProductService {
         locker.changeLockStatus(LockStatus.LOCKED);
     }
 
-    /** 물품보관함 현황 조회용으로, 사물함을 점유 중인 물품을 lockerId로 매핑해 조회한다. */
+    /**
+     * 물품보관함 현황 조회용으로, 사물함을 점유 중인 물품을 lockerId로 매핑해 조회한다.
+     * lockerId는 물품이 회수·수령완료된 뒤에도 지워지지 않고 이력으로 남기 때문에, 같은
+     * lockerId를 가진 물품이 여러 건 존재할 수 있다. 그중 가장 최근에 등록된 물품이 현재
+     * 그 사물함을 점유 중인 물품이다(사물함이 비워진 뒤에만 재예약이 가능하므로).
+     */
     public Map<Long, Product> findAllProductsByLockerId() {
         return productRepository.findAllByLockerIdIsNotNull().stream()
-                .collect(Collectors.toMap(Product::getLockerId, product -> product));
+                .collect(Collectors.toMap(
+                        Product::getLockerId,
+                        product -> product,
+                        (existing, latest) -> existing.getCreatedAt().isAfter(latest.getCreatedAt())
+                                ? existing
+                                : latest));
     }
 
     /** 물품보관함을 지금 사용 중인 물품의 판매자인지 확인한다. 사물함 잠금 상태를 직접 조작할 때 사용한다. */
@@ -259,6 +269,20 @@ public class ProductService {
             locker.occupy();
             log.info("데모용 사물함 잠금으로 판매 시작 - productId={}, lockerId={}", product.getId(), lockerId);
         });
+    }
+
+    /**
+     * 관리자용: 사물함을 초기 상태(잠김·비어있음)로 강제로 되돌린다. 사물함에 물려있는
+     * 물품이 있으면 상태와 무관하게 회수 완료(PREPARING)로 되돌려 다시 등록·예약할 수 있게 한다.
+     */
+    @Transactional
+    public void resetLockerForAdmin(Long lockerId) {
+        productRepository.findByLockerId(lockerId)
+                .ifPresent(found -> getProductForUpdate(found.getId()).completeRecovery());
+        Locker locker = lockerService.getLockerForUpdate(lockerId);
+        locker.changeLockStatus(LockStatus.LOCKED);
+        locker.release();
+        log.info("관리자용 사물함 초기화 - lockerId={}", lockerId);
     }
 
     private void validateSeller(Product product, Long sellerMemberId) {
