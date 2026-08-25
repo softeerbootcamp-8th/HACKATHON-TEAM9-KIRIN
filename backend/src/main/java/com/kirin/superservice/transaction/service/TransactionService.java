@@ -1,0 +1,92 @@
+package com.kirin.superservice.transaction.service;
+
+import com.kirin.superservice.locker.domain.Locker;
+import com.kirin.superservice.locker.domain.LockStatus;
+import com.kirin.superservice.locker.service.LockerService;
+import com.kirin.superservice.payment.dto.response.PaymentConfirmResponse;
+import com.kirin.superservice.product.domain.Product;
+import com.kirin.superservice.product.exception.ProductNotSellingException;
+import com.kirin.superservice.product.service.ProductService;
+import com.kirin.superservice.transaction.domain.Transaction;
+import com.kirin.superservice.transaction.dto.request.PurchaseProductRequest;
+import com.kirin.superservice.transaction.exception.PriceMismatchException;
+import com.kirin.superservice.transaction.exception.TransactionNotFoundException;
+import com.kirin.superservice.transaction.repository.TransactionRepository;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+@Slf4j
+@Service
+@RequiredArgsConstructor
+@Transactional(readOnly = true)
+public class TransactionService {
+
+    private final TransactionRepository transactionRepository;
+    private final ProductService productService;
+    private final LockerService lockerService;
+
+    public Transaction getTransaction(Long transactionId) {
+        return transactionRepository.findById(transactionId)
+                .orElseThrow(() -> new TransactionNotFoundException(transactionId));
+    }
+
+    /**
+     * 결제를 부르기 전에 살 수 있는 물품인지 확인한다. 이미 팔린 물건에 돈부터 받는 일을 막는다.
+     */
+    public void validatePurchasable(Long productId, Long amount) {
+        Product product = productService.getProduct(productId);
+        if (!product.isSelling()) {
+            throw new ProductNotSellingException(productId, product.getStatus());
+        }
+        if (!product.getPrice().equals(amount)) {
+            throw new PriceMismatchException(productId, product.getPrice(), amount);
+        }
+    }
+
+    /**
+     * 결제 승인 결과를 반영한다. 외부 호출 없이 DB 작업만 하므로 트랜잭션이 짧게 끝난다.
+     * 물품을 먼저 잠그고 보관함을 건드린다 — 잠금 순서를 뒤집지 않는다.
+     */
+    @Transactional
+    public Transaction completePurchase(PurchaseProductRequest request, PaymentConfirmResponse payment) {
+        Product product = productService.getProductForUpdate(request.productId());
+        if (!product.isSelling()) {
+            throw new ProductNotSellingException(product.getId(), product.getStatus());
+        }
+        product.markSold();
+        lockerService.getLocker(product.getLockerId()).changeLockStatus(LockStatus.UNLOCKED);
+
+        Transaction transaction = transactionRepository.save(new Transaction(
+                product.getId(),
+                product.getLockerId(),
+                request.buyerName(),
+                request.amount(),
+                payment.paymentKey(),
+                payment.orderId(),
+                payment.approvedAt()));
+        log.info("물품 구매 완료 - transactionId={}, productId={}, lockerId={}, orderId={}",
+                transaction.getId(), product.getId(), product.getLockerId(), payment.orderId());
+        return transaction;
+    }
+
+    /**
+     * 구매자가 물건을 꺼낸 뒤 호출한다. 보관함을 잠그고 다시 비어 있는 상태로 되돌린다.
+     * 버튼을 두 번 눌러도 문제가 없도록 이미 수령완료면 그대로 둔다.
+     */
+    @Transactional
+    public Transaction completePickup(Long transactionId) {
+        Transaction transaction = getTransaction(transactionId);
+        if (transaction.isDone()) {
+            return transaction;
+        }
+        transaction.completePickup();
+
+        Locker locker = lockerService.getLocker(transaction.getLockerId());
+        locker.changeLockStatus(LockStatus.LOCKED);
+        locker.release();
+        log.info("물품 수령 완료 - transactionId={}, lockerId={}", transactionId, transaction.getLockerId());
+        return transaction;
+    }
+}
