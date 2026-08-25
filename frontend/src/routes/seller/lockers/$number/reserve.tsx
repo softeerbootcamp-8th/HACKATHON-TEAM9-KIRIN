@@ -21,7 +21,9 @@ export const Route = createFileRoute("/seller/lockers/$number/reserve")({
 
 /**
  * 사물함 예약 · 상품 선택 (Figma "05 사물함 예약 · 상품 선택").
- * 예약 확정 시 "08 모달 · 사물함 잠금 해제" 를 띄우고, 확인하면 홈으로 돌아간다.
+ * "자리 예약"은 사물함을 열지 않고 홈의 예약중(본인) 바텀시트로 바로 이동하고,
+ * "바로 팔기"는 예약과 동시에 사물함을 열어 "08 모달 · 사물함 잠금 해제" 를
+ * 띄운 뒤 확인하면 홈으로 돌아간다.
  */
 function ReservePage() {
   const { number } = Route.useParams();
@@ -31,7 +33,7 @@ function ReservePage() {
 
   // 사물함 한 칸에는 상품을 하나만 넣을 수 있어 단일 선택으로 동작한다.
   const [selectedId, setSelectedId] = useState<number | null>(null);
-  const [unlocked, setUnlocked] = useState(false);
+  const [sellDialogOpen, setSellDialogOpen] = useState(false);
 
   const { data: myProductsData, isLoading } = useGetMyProducts({
     status: "PREPARING",
@@ -43,7 +45,28 @@ function ReservePage() {
 
   const isSubmitting = reserveLocker.isPending || changeLockStatus.isPending;
 
-  const handleConfirm = () => {
+  const invalidateLockerData = () => {
+    queryClient.invalidateQueries({ queryKey: ["/lockers"] });
+    queryClient.invalidateQueries({ queryKey: ["/products/me"] });
+  };
+
+  // "자리 예약" — 사물함을 열지 않고 예약만 확정한 뒤 홈의 예약중 바텀시트로 이동한다.
+  const handleReserveSpot = () => {
+    if (!selectedId) return;
+    reserveLocker.mutate(
+      { productId: selectedId, data: { lockerId } },
+      {
+        onSuccess: () => {
+          invalidateLockerData();
+          router.navigate({ to: "/", search: { openLocker: lockerId } });
+        },
+        onError: () => toast.error("사물함 예약에 실패했어요."),
+      },
+    );
+  };
+
+  // "바로 팔기" — 예약과 동시에 사물함을 열어 즉시 판매 준비를 시작한다.
+  const handleSellNow = () => {
     if (!selectedId) return;
     reserveLocker.mutate(
       { productId: selectedId, data: { lockerId } },
@@ -53,9 +76,8 @@ function ReservePage() {
             { lockerId, data: { lockStatus: "UNLOCKED" } },
             {
               onSuccess: () => {
-                queryClient.invalidateQueries({ queryKey: ["/lockers"] });
-                queryClient.invalidateQueries({ queryKey: ["/products/me"] });
-                setUnlocked(true);
+                invalidateLockerData();
+                setSellDialogOpen(true);
               },
               onError: () => toast.error("사물함을 여는 데 실패했어요."),
             },
@@ -113,30 +135,39 @@ function ReservePage() {
         )}
 
         <p className="text-xs text-[var(--color-text-muted)]">
-          선택한 상품은 예약 확정 후 {number}번 사물함에 등록돼요.
+          선택한 상품은 예약 확정 후 {number}번 진열함에 등록돼요.
         </p>
       </div>
 
-      <div className="mt-auto flex flex-col border-t border-[var(--color-border)] px-4 py-3">
+      <div className="mt-auto flex gap-4 border-t border-[var(--color-border)] px-4 py-3">
         <Button
-          fullWidth
+          variant="secondary"
           size="lg"
+          className="flex-1"
           disabled={!selectedId || isSubmitting}
-          onClick={handleConfirm}
+          onClick={handleReserveSpot}
         >
-          예약 확정하기
+          자리 예약
+        </Button>
+        <Button
+          size="lg"
+          className="flex-1"
+          disabled={!selectedId || isSubmitting}
+          onClick={handleSellNow}
+        >
+          바로 팔기
         </Button>
       </div>
 
       <Dialog
-        open={unlocked}
+        open={sellDialogOpen}
         onOpenChange={(open) => {
           if (!open) router.navigate({ to: "/" });
         }}
       >
         <DialogContent className="max-w-[313px] gap-3.5 rounded-[16px] p-5">
           <DialogTitle className="text-center text-[17px]">
-            {number}번 사물함이 열렸어요
+            {number}번 진열함이 열렸어요
           </DialogTitle>
 
           <ul className="flex flex-col gap-2 text-[13px] text-[var(--color-text-muted)]">

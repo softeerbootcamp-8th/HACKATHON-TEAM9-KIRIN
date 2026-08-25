@@ -35,7 +35,20 @@ import {
 } from "@/api/generated/products/products";
 import type { ProductResponse } from "@/api/generated/model";
 
+/**
+ * "05 사물함 예약 · 상품 선택" 에서 "자리 예약"을 누르면 사물함 번호를 쿼리
+ * 파라미터로 들고 홈으로 돌아온다 — 홈은 사물함 목록을 불러온 뒤 해당 사물함의
+ * 예약중 바텀시트를 바로 띄운다.
+ */
+type HomeSearch = {
+  openLocker?: number;
+};
+
 export const Route = createFileRoute("/")({
+  validateSearch: (search: Record<string, unknown>): HomeSearch => ({
+    openLocker:
+      search.openLocker != null ? Number(search.openLocker) : undefined,
+  }),
   component: HomePage,
 });
 
@@ -92,10 +105,13 @@ function InfoBox({
 function HomePage() {
   const router = useRouter();
   const queryClient = useQueryClient();
+  const search = Route.useSearch();
   const [sheet, setSheet] = useState<SheetState | null>(null);
   const [infoModalLocker, setInfoModalLocker] = useState<HomeLocker | null>(
     null,
   );
+  // "진열함 열기" 확인 모달 — 개방 요청이 성공하면 뜬다.
+  const [openedLocker, setOpenedLocker] = useState<HomeLocker | null>(null);
 
   const { data: lockersData, isLoading: isLockersLoading } = useGetLockers();
   const { data: myProductsData } = useGetMyProducts({});
@@ -125,9 +141,25 @@ function HomePage() {
     });
   }, [lockersData, myProductsData]);
 
+  // "자리 예약" 직후 돌아온 경우 — 쿼리 파라미터로 받은 사물함이 사물함 목록에
+  // 반영되면(예약중·내 것) 그 바텀시트를 자동으로 띄운다. sheet state 를 별도
+  // effect 로 동기화하지 않고 렌더링 중에 파생시킨다.
+  const autoOpenLocker =
+    search.openLocker != null
+      ? lockers.find(
+          (item) =>
+            item.number === search.openLocker &&
+            item.status === "reserved" &&
+            item.isMine,
+        )
+      : undefined;
+  const effectiveSheet: SheetState | null =
+    sheet ??
+    (autoOpenLocker ? { type: "reserved", locker: autoOpenLocker } : null);
+
   const selectedProductId =
-    sheet?.type === "reserved" || sheet?.type === "selling"
-      ? sheet.locker.productId
+    effectiveSheet?.type === "reserved" || effectiveSheet?.type === "selling"
+      ? effectiveSheet.locker.productId
       : undefined;
   const { data: selectedProduct } = useGetProduct(selectedProductId ?? 0, {
     query: { enabled: selectedProductId != null },
@@ -143,7 +175,12 @@ function HomePage() {
   const startDeposit = useStartDeposit();
   const startRecovery = useStartRecovery();
 
-  const closeSheet = () => setSheet(null);
+  const closeSheet = () => {
+    setSheet(null);
+    if (search.openLocker != null) {
+      router.navigate({ to: "/", search: {}, replace: true });
+    }
+  };
 
   const handleSelect = (number: number) => {
     const locker = lockers.find((item) => item.number === number);
@@ -188,9 +225,9 @@ function HomePage() {
             { productId: locker.productId! },
             {
               onSuccess: () => {
-                toast.success("사물함이 열렸어요.");
                 invalidateLockerData();
                 closeSheet();
+                setOpenedLocker(locker);
               },
               onError: () => toast.error("입고 처리에 실패했어요."),
             },
@@ -269,15 +306,15 @@ function HomePage() {
       )}
 
       <BottomSheet
-        open={sheet !== null}
+        open={effectiveSheet !== null}
         onOpenChange={(open) => !open && closeSheet()}
       >
         <BottomSheetContent>
-          {sheet?.type === "empty" && (
+          {effectiveSheet?.type === "empty" && (
             <>
               <BottomSheetHeader>
                 <BottomSheetTitle>
-                  {sheet.locker.number}번 사물함
+                  {effectiveSheet.locker.number}번 사물함
                 </BottomSheetTitle>
               </BottomSheetHeader>
               <BottomSheetBody className="flex flex-col items-center gap-10 pt-10 pb-4">
@@ -291,7 +328,7 @@ function HomePage() {
                   fullWidth
                   size="lg"
                   onClick={() => {
-                    const number = sheet.locker.number;
+                    const number = effectiveSheet.locker.number;
                     closeSheet();
                     router.navigate({
                       to: "/seller/lockers/$number/reserve",
@@ -305,23 +342,23 @@ function HomePage() {
             </>
           )}
 
-          {sheet?.type === "reserved" && selectedProduct && (
+          {effectiveSheet?.type === "reserved" && selectedProduct && (
             <ReservedSheetBody
-              locker={sheet.locker}
+              locker={effectiveSheet.locker}
               product={selectedProduct}
-              onCancel={() => handleCancelReservation(sheet.locker)}
-              onOpen={() => handleOpenForDeposit(sheet.locker)}
+              onCancel={() => handleCancelReservation(effectiveSheet.locker)}
+              onOpen={() => handleOpenForDeposit(effectiveSheet.locker)}
               pending={
                 cancelReservation.isPending || changeLockStatus.isPending
               }
             />
           )}
 
-          {sheet?.type === "selling" && selectedProduct && (
+          {effectiveSheet?.type === "selling" && selectedProduct && (
             <SellingSheetBody
-              locker={sheet.locker}
+              locker={effectiveSheet.locker}
               product={selectedProduct}
-              onEndSelling={() => handleEndSelling(sheet.locker)}
+              onEndSelling={() => handleEndSelling(effectiveSheet.locker)}
               pending={changeLockStatus.isPending || startRecovery.isPending}
             />
           )}
@@ -341,6 +378,38 @@ function HomePage() {
             <li>· 판매 등록이 완료되면 상품 정보를 확인할 수 있어요.</li>
           </ul>
           <Button fullWidth size="lg" onClick={() => setInfoModalLocker(null)}>
+            확인
+          </Button>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={openedLocker !== null}
+        onOpenChange={(open) => !open && setOpenedLocker(null)}
+      >
+        <DialogContent className="max-w-[313px] gap-3.5 rounded-[16px] p-5">
+          <DialogTitle className="text-center text-[17px]">
+            {openedLocker?.number}번 진열함이 열렸어요
+          </DialogTitle>
+
+          <ul className="flex flex-col gap-2 text-[13px] text-[var(--color-text-muted)]">
+            <li>· 상품을 넣은 뒤 문을 닫으면 자동으로 잠겨요.</li>
+            <li>· 점유 기간은 최대 {DEFAULT_MAX_OCCUPANCY_DAYS}일이에요.</li>
+            <li>
+              · 기간이 끝나기 전까지 판매되지 않으면 상품을 회수해 주세요.
+            </li>
+          </ul>
+
+          <div className="flex gap-1.5 rounded-[var(--radius-sm)] bg-[var(--color-primary-weak)] p-3 text-[var(--color-primary)]">
+            <span className="text-[13px] font-bold">!</span>
+            <p className="text-xs font-medium">
+              문이 완전히 닫혔는지 반드시 확인해 주세요.
+              <br />
+              열린 채로 두면 분실 책임이 판매자에게 있어요.
+            </p>
+          </div>
+
+          <Button fullWidth size="lg" onClick={() => setOpenedLocker(null)}>
             확인
           </Button>
         </DialogContent>
@@ -406,7 +475,7 @@ function ReservedSheetBody({
             disabled={pending}
             onClick={onOpen}
           >
-            사물함 열기
+            진열함 열기
           </Button>
         </div>
       </BottomSheetBody>
