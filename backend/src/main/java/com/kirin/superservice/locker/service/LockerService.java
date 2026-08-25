@@ -4,6 +4,7 @@ import com.kirin.superservice.locker.domain.Locker;
 import com.kirin.superservice.locker.domain.LockStatus;
 import com.kirin.superservice.locker.exception.LockerNotFoundException;
 import com.kirin.superservice.locker.repository.LockerRepository;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -17,8 +18,18 @@ public class LockerService {
 
     private final LockerRepository lockerRepository;
 
+    public List<Locker> findAllLockers() {
+        return lockerRepository.findAll();
+    }
+
     public Locker getLocker(Long lockerId) {
         return lockerRepository.findById(lockerId)
+                .orElseThrow(() -> new LockerNotFoundException(lockerId));
+    }
+
+    @Transactional
+    public Locker getLockerForUpdate(Long lockerId) {
+        return lockerRepository.findByIdForUpdate(lockerId)
                 .orElseThrow(() -> new LockerNotFoundException(lockerId));
     }
 

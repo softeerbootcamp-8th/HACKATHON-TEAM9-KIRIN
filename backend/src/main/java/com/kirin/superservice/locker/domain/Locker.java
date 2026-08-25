@@ -23,12 +23,29 @@ public class Locker {
     @Column(name = "lock_status", nullable = false, length = 20)
     private LockStatus lockStatus;
 
-    public Locker(Long id, LockStatus lockStatus) {
+    @Enumerated(EnumType.STRING)
+    @Column(name = "usage_status", nullable = false, length = 20)
+    private UsageStatus usageStatus;
+
+    public Locker(Long id, LockStatus lockStatus, UsageStatus usageStatus) {
         this.id = id;
         this.lockStatus = lockStatus;
+        this.usageStatus = usageStatus;
     }
 
     public void changeLockStatus(LockStatus lockStatus) {
         this.lockStatus = lockStatus;
+    }
+
+    public void occupy() {
+        this.usageStatus = UsageStatus.OCCUPIED;
+    }
+
+    public void release() {
+        this.usageStatus = UsageStatus.AVAILABLE;
+    }
+
+    public boolean isAvailable() {
+        return this.usageStatus == UsageStatus.AVAILABLE;
     }
 }

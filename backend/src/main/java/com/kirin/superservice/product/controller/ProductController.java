@@ -1,0 +1,49 @@
+package com.kirin.superservice.product.controller;
+
+import com.kirin.superservice.product.domain.Product;
+import com.kirin.superservice.product.domain.ProductStatus;
+import com.kirin.superservice.product.dto.request.RegisterProductRequest;
+import com.kirin.superservice.product.dto.response.ProductListResponse;
+import com.kirin.superservice.product.dto.response.ProductResponse;
+import com.kirin.superservice.product.service.ProductService;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+@RequestMapping("/api/products")
+@RequiredArgsConstructor
+public class ProductController {
+
+    private final ProductService productService;
+
+    @PostMapping
+    public ProductResponse registerProduct(@RequestBody @Valid RegisterProductRequest request) {
+        Product product = productService.registerProduct(request);
+        return ProductResponse.fromEntity(product);
+    }
+
+    @GetMapping
+    public ProductListResponse getProducts(
+            @RequestParam(defaultValue = "SELLING") ProductStatus status) {
+        return ProductListResponse.fromEntities(productService.findAllProductsByStatus(status));
+    }
+
+    @GetMapping("/{productId}")
+    public ProductResponse getProduct(@PathVariable Long productId) {
+        Product product = productService.getProduct(productId);
+        return ProductResponse.fromEntity(product);
+    }
+
+    @PostMapping("/{productId}/registration-complete")
+    public ProductResponse completeRegistration(@PathVariable Long productId) {
+        Product product = productService.completeRegistration(productId);
+        return ProductResponse.fromEntity(product);
+    }
+}
