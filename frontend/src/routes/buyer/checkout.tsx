@@ -68,11 +68,17 @@ function CheckoutPage() {
     if (!widgets || !product || isPaying) return;
     setIsPaying(true);
     try {
+      // 결제 성공/실패 화면에서 "상품으로 돌아가기"가 사물함 번호 기반
+      // 상품 상세(`/buyer/lockers/$number`)로 이동해야 해서 lockerId도 같이 넘긴다.
+      const returnParams = new URLSearchParams({
+        productId: String(product.productId),
+        ...(product.lockerId != null ? { lockerId: String(product.lockerId) } : {}),
+      });
       await widgets.requestPayment({
         orderId: orderIdRef.current,
         orderName: product.name,
-        successUrl: `${window.location.origin}/buyer/payments/success?productId=${product.productId}`,
-        failUrl: `${window.location.origin}/buyer/payments/fail?productId=${product.productId}`,
+        successUrl: `${window.location.origin}/buyer/payments/success?${returnParams}`,
+        failUrl: `${window.location.origin}/buyer/payments/fail?${returnParams}`,
       });
     } catch (error) {
       if (error instanceof Error && error.name === "UserCancelError") return;

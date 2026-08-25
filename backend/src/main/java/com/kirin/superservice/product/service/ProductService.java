@@ -252,6 +252,15 @@ public class ProductService {
                                 : latest));
     }
 
+    /** QR로 스캔한 물품보관함 번호로 지금 그 안에 있는 물품을 조회한다. 구매자가 로그인 없이도 호출한다. */
+    public Product getProductByLockerId(Long lockerId) {
+        Product product = findAllProductsByLockerId().get(lockerId);
+        if (product == null) {
+            throw ProductNotFoundException.byLockerId(lockerId);
+        }
+        return product;
+    }
+
     /** 물품보관함을 지금 사용 중인 물품의 판매자인지 확인한다. 사물함 잠금 상태를 직접 조작할 때 사용한다. */
     public void validateLockerSeller(Long lockerId, Long sellerMemberId) {
         Product product = productRepository.findByLockerId(lockerId)

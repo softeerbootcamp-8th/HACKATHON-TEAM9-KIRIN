@@ -28,7 +28,8 @@ const SCAN_FRAME_CORNERS = [
  *
  * Figma 프레임 자체가 "예약중 안내 모달이 스캔 화면 위에 뜬 상태"를 그대로
  * 담고 있어, 진입 시 모달이 기본으로 열려 있다. 모달을 닫으면 스캔 프레임을
- * 눌러 상품 상세로 이동하는 흐름을 데모로 붙였다(실제 QR 디코딩은 아직 없음).
+ * 눌러 사물함 번호(QR에 담긴 값)로 상품 상세(`/buyer/lockers/$number`)로
+ * 이동하는 흐름을 데모로 붙였다(실제 QR 디코딩은 아직 없어 16번으로 고정).
  */
 function ScanPage() {
   const router = useRouter();
@@ -59,7 +60,10 @@ function ScanPage() {
         <button
           type="button"
           onClick={() =>
-            router.navigate({ to: "/buyer/products/$id", params: { id: "1" } })
+            router.navigate({
+              to: "/buyer/lockers/$number",
+              params: { number: "16" },
+            })
           }
           className="relative size-[240px] rounded-[20px] border border-white/35"
           aria-label="스캔 (데모: 상품 상세로 이동)"

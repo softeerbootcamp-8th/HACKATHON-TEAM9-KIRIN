@@ -5,10 +5,10 @@ import { Header } from "@/components/layout/header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { formatDateTime, formatPrice } from "@/lib/format";
-import { useGetProduct } from "@/api/generated/products/products";
+import { useGetProductByLocker } from "@/api/generated/lockers/lockers";
 import type { ProductStatus } from "@/api/generated/model";
 
-export const Route = createFileRoute("/buyer/products/$id")({
+export const Route = createFileRoute("/buyer/lockers/$number")({
   component: ProductDetailPage,
 });
 
@@ -25,15 +25,16 @@ const STATUS_BADGE: Record<
 
 /**
  * 상품 상세 (Figma "09 상품 상세 (QR 스캔 후)").
- * 헤더 타이틀은 상품명이 아니라 사물함 번호를 보여준다 — QR로 스캔한 사물함
- * 맥락을 유지하기 위한 디자인 의도로 보인다.
+ * 사물함에 붙은 QR을 스캔해 들어오는 화면이라 상품 id가 아니라 사물함 번호로
+ * 접근한다 — `GET /lockers/{lockerId}/product`로 그 사물함에 지금 있는 상품을 조회한다.
+ * 헤더 타이틀도 상품명이 아니라 사물함 번호를 보여준다.
  */
 function ProductDetailPage() {
   const router = useRouter();
-  const { id } = Route.useParams();
-  const productId = Number(id);
+  const { number } = Route.useParams();
+  const lockerId = Number(number);
 
-  const { data: product, isLoading } = useGetProduct(productId);
+  const { data: product, isLoading } = useGetProductByLocker(lockerId);
 
   if (isLoading || !product) {
     return (
@@ -50,14 +51,7 @@ function ProductDetailPage() {
 
   return (
     <PageContainer>
-      <Header
-        title={
-          product.lockerId != null
-            ? `${product.lockerId}번 사물함`
-            : "상품 상세"
-        }
-        onBack={() => router.history.back()}
-      />
+      <Header title={`${lockerId}번 사물함`} onBack={() => router.history.back()} />
 
       {product.imageUrl ? (
         <img
@@ -110,7 +104,7 @@ function ProductDetailPage() {
           <div className="flex items-center justify-between">
             <span className="text-[var(--color-text-muted)]">사물함</span>
             <span className="font-medium text-[var(--color-text-sub)]">
-              {product.lockerId != null ? `${product.lockerId}번` : "미배치"}
+              {lockerId}번
             </span>
           </div>
           {product.sellingExpiresAt && (

@@ -111,6 +111,29 @@ class ProductServiceTest {
     }
 
     @Test
+    void 물품보관함_번호로_지금_그_안에_있는_물품을_조회한다() {
+        // given
+        Product 물품 = 물품(1L, ProductStatus.SELLING);
+        given(productRepository.findAllByLockerIdIsNotNull()).willReturn(List.of(물품));
+
+        // when
+        Product result = productService.getProductByLockerId(1L);
+
+        // then
+        assertThat(result).isEqualTo(물품);
+    }
+
+    @Test
+    void 물품이_없는_물품보관함_번호로_조회하면_예외가_발생한다() {
+        // given
+        given(productRepository.findAllByLockerIdIsNotNull()).willReturn(List.of());
+
+        // when & then
+        assertThatThrownBy(() -> productService.getProductByLockerId(1L))
+                .isInstanceOf(ProductNotFoundException.class);
+    }
+
+    @Test
     void 존재하지_않는_물품을_조회하면_예외가_발생한다() {
         // given
         given(productRepository.findById(999L)).willReturn(Optional.empty());

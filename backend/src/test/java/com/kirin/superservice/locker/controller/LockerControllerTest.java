@@ -17,6 +17,8 @@ import com.kirin.superservice.global.slack.SlackErrorNotifier;
 import com.kirin.superservice.locker.exception.LockerNotFoundException;
 import com.kirin.superservice.locker.service.LockerService;
 import com.kirin.superservice.product.domain.Product;
+import com.kirin.superservice.product.domain.ProductStatus;
+import com.kirin.superservice.product.exception.ProductNotFoundException;
 import com.kirin.superservice.product.service.ProductService;
 import com.kirin.superservice.transaction.service.TransactionService;
 import java.time.LocalDateTime;
@@ -216,6 +218,34 @@ class LockerControllerTest {
                         .content("{\"lockStatus\":\"UNLOCKED\"}"))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.code").value("LOCKER_NOT_FOUND"));
+    }
+
+    @Test
+    void QR로_스캔한_보관함_번호로_지금_그_안에_있는_물품을_조회하면_200과_물품정보를_반환한다() throws Exception {
+        // given
+        Product product = new Product(1L, 1L, "아이패드", 300000L, "상태 좋음", null,
+                1L, "원기", ProductStatus.SELLING, LocalDateTime.now());
+        given(productService.getProductByLockerId(1L)).willReturn(product);
+
+        // when & then
+        mockMvc.perform(get("/api/lockers/1/product"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.productId").value(1))
+                .andExpect(jsonPath("$.lockerId").value(1))
+                .andExpect(jsonPath("$.name").value("아이패드"))
+                .andExpect(jsonPath("$.status").value("SELLING"));
+    }
+
+    @Test
+    void 물품이_없는_보관함_번호로_조회하면_404를_반환한다() throws Exception {
+        // given
+        given(productService.getProductByLockerId(999L))
+                .willThrow(ProductNotFoundException.byLockerId(999L));
+
+        // when & then
+        mockMvc.perform(get("/api/lockers/999/product"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("PRODUCT_NOT_FOUND"));
     }
 
     @Test

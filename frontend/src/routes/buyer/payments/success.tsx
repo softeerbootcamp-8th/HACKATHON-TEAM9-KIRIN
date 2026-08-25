@@ -7,6 +7,7 @@ import { usePurchaseProduct } from "@/api/generated/transactions/transactions";
 
 type PaymentSuccessSearch = {
   productId: number;
+  lockerId?: number;
   paymentKey: string;
   orderId: string;
   amount: number;
@@ -15,6 +16,7 @@ type PaymentSuccessSearch = {
 export const Route = createFileRoute("/buyer/payments/success")({
   validateSearch: (search: Record<string, unknown>): PaymentSuccessSearch => ({
     productId: Number(search.productId),
+    lockerId: search.lockerId != null ? Number(search.lockerId) : undefined,
     paymentKey: String(search.paymentKey ?? ""),
     orderId: String(search.orderId ?? ""),
     amount: Number(search.amount),
@@ -28,7 +30,8 @@ export const Route = createFileRoute("/buyer/payments/success")({
  */
 function PaymentSuccessPage() {
   const router = useRouter();
-  const { productId, paymentKey, orderId, amount } = Route.useSearch();
+  const { productId, lockerId, paymentKey, orderId, amount } =
+    Route.useSearch();
   const purchaseProduct = usePurchaseProduct();
   const [failed, setFailed] = useState(false);
   const requested = useRef(false);
@@ -64,10 +67,12 @@ function PaymentSuccessPage() {
           </p>
           <Button
             onClick={() =>
-              router.navigate({
-                to: "/buyer/products/$id",
-                params: { id: String(productId) },
-              })
+              lockerId != null
+                ? router.navigate({
+                    to: "/buyer/lockers/$number",
+                    params: { number: String(lockerId) },
+                  })
+                : router.navigate({ to: "/" })
             }
           >
             상품으로 돌아가기
