@@ -11,8 +11,7 @@ type PaymentFailSearch = {
 
 export const Route = createFileRoute("/buyer/payments/fail")({
   validateSearch: (search: Record<string, unknown>): PaymentFailSearch => ({
-    productId:
-      search.productId != null ? Number(search.productId) : undefined,
+    productId: search.productId != null ? Number(search.productId) : undefined,
     code: search.code != null ? String(search.code) : undefined,
     message: search.message != null ? String(search.message) : undefined,
   }),

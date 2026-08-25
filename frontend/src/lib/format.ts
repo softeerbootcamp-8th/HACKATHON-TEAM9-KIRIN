@@ -21,7 +21,10 @@ export function formatShortDate(iso: string): string {
 }
 
 /** 만료 시각까지 남은 시간을 "6일 남음" / "3시간 남음" / "곧 만료" 형태로 표시한다. */
-export function formatRemaining(expiresAtIso: string, now: Date = new Date()): string {
+export function formatRemaining(
+  expiresAtIso: string,
+  now: Date = new Date(),
+): string {
   const diffMs = new Date(expiresAtIso).getTime() - now.getTime();
   if (diffMs <= 0) return "곧 만료";
 

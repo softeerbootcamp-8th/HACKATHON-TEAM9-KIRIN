@@ -19,7 +19,9 @@ const SessionContext = createContext<SessionContextValue | null>(null);
 export function useCurrentMember(): MemberResponse {
   const context = useContext(SessionContext);
   if (!context) {
-    throw new Error("useCurrentMember는 SessionProvider 안에서만 사용할 수 있어요.");
+    throw new Error(
+      "useCurrentMember는 SessionProvider 안에서만 사용할 수 있어요.",
+    );
   }
   return context.member;
 }

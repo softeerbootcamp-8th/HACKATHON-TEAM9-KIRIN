@@ -13,9 +13,7 @@ type PaymentSuccessSearch = {
 };
 
 export const Route = createFileRoute("/buyer/payments/success")({
-  validateSearch: (
-    search: Record<string, unknown>,
-  ): PaymentSuccessSearch => ({
+  validateSearch: (search: Record<string, unknown>): PaymentSuccessSearch => ({
     productId: Number(search.productId),
     paymentKey: String(search.paymentKey ?? ""),
     orderId: String(search.orderId ?? ""),

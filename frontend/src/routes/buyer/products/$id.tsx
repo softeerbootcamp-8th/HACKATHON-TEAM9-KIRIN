@@ -52,7 +52,9 @@ function ProductDetailPage() {
     <PageContainer>
       <Header
         title={
-          product.lockerId != null ? `${product.lockerId}번 사물함` : "상품 상세"
+          product.lockerId != null
+            ? `${product.lockerId}번 사물함`
+            : "상품 상세"
         }
         onBack={() => router.history.back()}
       />
@@ -132,10 +134,7 @@ function ProductDetailPage() {
           </p>
         </div>
         <Button asChild size="lg" className="flex-1">
-          <Link
-            to="/buyer/checkout"
-            search={{ productId: product.productId }}
-          >
+          <Link to="/buyer/checkout" search={{ productId: product.productId }}>
             구매하기
           </Link>
         </Button>

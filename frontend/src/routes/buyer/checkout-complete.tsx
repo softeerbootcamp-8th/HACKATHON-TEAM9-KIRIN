@@ -80,9 +80,7 @@ function CheckoutCompletePage() {
           </div>
           {transaction.approvedAt && (
             <div className="flex items-center justify-between">
-              <span className="text-[var(--color-text-muted)]">
-                결제 시각
-              </span>
+              <span className="text-[var(--color-text-muted)]">결제 시각</span>
               <span className="font-medium text-[var(--color-text-sub)]">
                 {formatDateTime(transaction.approvedAt)}
               </span>

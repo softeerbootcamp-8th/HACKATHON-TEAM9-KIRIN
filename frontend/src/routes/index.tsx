@@ -311,7 +311,9 @@ function HomePage() {
               product={selectedProduct}
               onCancel={() => handleCancelReservation(sheet.locker)}
               onOpen={() => handleOpenForDeposit(sheet.locker)}
-              pending={cancelReservation.isPending || changeLockStatus.isPending}
+              pending={
+                cancelReservation.isPending || changeLockStatus.isPending
+              }
             />
           )}
 
@@ -398,7 +400,12 @@ function ReservedSheetBody({
           >
             예약 취소
           </Button>
-          <Button size="lg" className="flex-1" disabled={pending} onClick={onOpen}>
+          <Button
+            size="lg"
+            className="flex-1"
+            disabled={pending}
+            onClick={onOpen}
+          >
             사물함 열기
           </Button>
         </div>
