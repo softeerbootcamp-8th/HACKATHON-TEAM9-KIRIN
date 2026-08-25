@@ -45,6 +45,9 @@ jobs:
         run: pnpm build
         env:
           VITE_API_BASE_URL: /api
+          # 백엔드 TOSS_SECRET_KEY와 반드시 같은 페어여야 한다 — 어긋나면 결제창은
+          # 뜨지만 승인 단계에서 실패한다 (frontend/.env.example 참고).
+          VITE_TOSS_CLIENT_KEY: ${{ secrets.TOSS_CLIENT_KEY }}
       - name: Upload dist artifact
         if: ${{ inputs.upload-dist }}
         uses: actions/upload-artifact@v4
