@@ -102,6 +102,44 @@ class ProductControllerTest {
     }
 
     @Test
+    void 판매_가격이_최소가격보다_낮으면_400을_반환한다() throws Exception {
+        // given
+        String 너무_낮은_가격_요청 = """
+                {
+                  "name": "아이패드",
+                  "price": 999
+                }
+                """;
+
+        // when & then
+        mockMvc.perform(post("/api/products")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .sessionAttr(SessionConst.LOGIN_MEMBER_ID, 1L)
+                        .content(너무_낮은_가격_요청))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("INVALID_REQUEST"));
+    }
+
+    @Test
+    void 판매_가격이_최대가격보다_높으면_400을_반환한다() throws Exception {
+        // given
+        String 너무_높은_가격_요청 = """
+                {
+                  "name": "아이패드",
+                  "price": 1000000001
+                }
+                """;
+
+        // when & then
+        mockMvc.perform(post("/api/products")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .sessionAttr(SessionConst.LOGIN_MEMBER_ID, 1L)
+                        .content(너무_높은_가격_요청))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("INVALID_REQUEST"));
+    }
+
+    @Test
     void 존재하는_물품을_조회하면_200과_물품정보를_반환한다() throws Exception {
         // given
         given(productService.getProduct(1L)).willReturn(물품(1L, ProductStatus.SELLING));

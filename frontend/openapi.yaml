@@ -622,6 +622,8 @@ components:
         price:
           type: integer
           format: int64
+          minimum: 1000
+          maximum: 1000000000
         description:
           type: string
           maxLength: 1000

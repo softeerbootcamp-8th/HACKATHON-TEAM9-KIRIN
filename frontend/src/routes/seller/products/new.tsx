@@ -22,6 +22,8 @@ export const Route = createFileRoute("/seller/products/new")({
 const MAX_PHOTOS = 10;
 const NAME_MAX_LENGTH = 32;
 const DESCRIPTION_MAX_LENGTH = 500;
+const MIN_PRICE = 1_000;
+const MAX_PRICE = 1_000_000_000;
 
 type Photo = { id: string; url: string; file: File };
 
@@ -81,6 +83,12 @@ function NewProductPage() {
 
   const handleSubmit = async () => {
     if (!canSubmit || isSubmitting) return;
+
+    const priceValue = Number(price);
+    if (priceValue < MIN_PRICE || priceValue > MAX_PRICE) {
+      toast.error("판매 가격은 최소 1천원, 최대 10억원까지 설정할 수 있어요.");
+      return;
+    }
 
     try {
       let imageUrl: string | undefined;
@@ -218,6 +226,9 @@ function NewProductPage() {
               원
             </span>
           </div>
+          <p className="text-xs text-[var(--color-text-placeholder)]">
+            최소 1천원 ~ 최대 10억원
+          </p>
         </div>
       </div>
 
