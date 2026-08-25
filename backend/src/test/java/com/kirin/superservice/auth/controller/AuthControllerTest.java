@@ -1,4 +1,4 @@
-package com.kirin.superservice.member.controller;
+package com.kirin.superservice.auth.controller;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;

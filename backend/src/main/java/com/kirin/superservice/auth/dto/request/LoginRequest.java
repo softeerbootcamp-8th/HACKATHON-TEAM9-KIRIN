@@ -1,4 +1,4 @@
-package com.kirin.superservice.member.dto.request;
+package com.kirin.superservice.auth.dto.request;
 
 import com.kirin.superservice.member.service.LoginCommand;
 

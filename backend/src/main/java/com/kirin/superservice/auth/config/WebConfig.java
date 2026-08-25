@@ -1,4 +1,4 @@
-package com.kirin.superservice.global.config;
+package com.kirin.superservice.auth.config;
 
 import java.util.List;
 

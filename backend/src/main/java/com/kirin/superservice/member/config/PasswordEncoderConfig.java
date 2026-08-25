@@ -1,4 +1,4 @@
-package com.kirin.superservice.global.config;
+package com.kirin.superservice.member.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
