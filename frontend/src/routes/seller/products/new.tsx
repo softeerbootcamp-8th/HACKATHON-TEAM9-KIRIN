@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { createFileRoute, useRouter } from "@tanstack/react-router";
+import { useQueryClient } from "@tanstack/react-query";
 import { Camera, X } from "lucide-react";
 import { toast } from "sonner";
 import { PageContainer } from "@/components/layout/page";
@@ -9,7 +10,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { useUploadImage } from "@/api/generated/images/images";
-import { useRegisterProduct } from "@/api/generated/products/products";
+import {
+  useRegisterProduct,
+  getGetMyProductsQueryKey,
+} from "@/api/generated/products/products";
 
 export const Route = createFileRoute("/seller/products/new")({
   component: NewProductPage,
@@ -29,6 +33,7 @@ type Photo = { id: string; url: string; file: File };
  */
 function NewProductPage() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const [photos, setPhotos] = useState<Photo[]>([]);
   const photosRef = useRef<Photo[]>([]);
 
@@ -94,6 +99,10 @@ function NewProductPage() {
           imageUrl,
         },
       });
+
+      // 뒤로 돌아갈 화면(예약 상품 선택, 내 리스트)이 캐시된 목록을 그대로
+      // 보여주지 않도록 방금 등록한 상품이 반영되게 무효화한다.
+      queryClient.invalidateQueries({ queryKey: getGetMyProductsQueryKey({}) });
 
       toast.success("상품이 등록됐어요.");
       router.history.back();
