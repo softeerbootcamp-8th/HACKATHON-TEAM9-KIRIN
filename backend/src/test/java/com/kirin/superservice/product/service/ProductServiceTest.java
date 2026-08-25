@@ -13,10 +13,13 @@ import com.kirin.superservice.locker.service.LockerService;
 import com.kirin.superservice.product.domain.Product;
 import com.kirin.superservice.product.domain.ProductStatus;
 import com.kirin.superservice.product.dto.request.CancelLockerReservationRequest;
+import com.kirin.superservice.product.dto.request.CompleteDepositRequest;
 import com.kirin.superservice.product.dto.request.RegisterProductRequest;
 import com.kirin.superservice.product.dto.request.ReserveLockerRequest;
+import com.kirin.superservice.product.dto.request.StartDepositRequest;
 import com.kirin.superservice.product.exception.SellerMismatchException;
 import com.kirin.superservice.product.exception.ProductNotFoundException;
+import com.kirin.superservice.product.exception.ReservationExpiredException;
 import com.kirin.superservice.product.repository.ProductRepository;
 import java.time.Clock;
 import java.time.Instant;
@@ -156,5 +159,63 @@ class ProductServiceTest {
         assertThat(result.getReservationExpiresAt()).isNull();
         assertThat(locker.getUsageStatus()).isEqualTo(UsageStatus.AVAILABLE);
         assertThat(locker.getLockStatus()).isEqualTo(LockStatus.LOCKED);
+    }
+
+    @Test
+    void 유효한_예약의_투입을_시작하면_사물함이_열린다() {
+        // given
+        Product product = 예약된물품();
+        Locker locker = new Locker(1L, LockStatus.LOCKED, UsageStatus.RESERVED);
+        given(productRepository.findByIdForUpdate(1L)).willReturn(Optional.of(product));
+        given(lockerService.getLockerForUpdate(1L)).willReturn(locker);
+
+        // when
+        Product result = productService.startDeposit(1L, new StartDepositRequest("원기"));
+
+        // then
+        assertThat(result.getStatus()).isEqualTo(ProductStatus.RESERVED);
+        assertThat(result.getDepositStartedAt()).isEqualTo(LocalDateTime.of(2026, 8, 25, 12, 0));
+        assertThat(locker.getUsageStatus()).isEqualTo(UsageStatus.RESERVED);
+        assertThat(locker.getLockStatus()).isEqualTo(LockStatus.UNLOCKED);
+    }
+
+    @Test
+    void 투입을_완료하면_판매가_시작되고_사물함이_점유상태로_바뀐다() {
+        // given
+        Product product = 예약된물품();
+        product.startDeposit(LocalDateTime.of(2026, 8, 25, 11, 59));
+        Locker locker = new Locker(1L, LockStatus.UNLOCKED, UsageStatus.RESERVED);
+        given(productRepository.findByIdForUpdate(1L)).willReturn(Optional.of(product));
+        given(lockerService.getLockerForUpdate(1L)).willReturn(locker);
+
+        // when
+        Product result = productService.completeDeposit(1L, new CompleteDepositRequest("원기"));
+
+        // then
+        assertThat(result.getStatus()).isEqualTo(ProductStatus.SELLING);
+        assertThat(result.getSellingStartedAt()).isEqualTo(LocalDateTime.of(2026, 8, 25, 12, 0));
+        assertThat(result.getSellingExpiresAt()).isEqualTo(LocalDateTime.of(2026, 9, 1, 12, 0));
+        assertThat(locker.getUsageStatus()).isEqualTo(UsageStatus.OCCUPIED);
+        assertThat(locker.getLockStatus()).isEqualTo(LockStatus.LOCKED);
+    }
+
+    @Test
+    void 예약만료시각에_투입을_시작하면_예외가_발생한다() {
+        // given
+        Product product = 물품(1L, ProductStatus.PREPARING);
+        product.reserveLocker(1L, LocalDateTime.of(2026, 8, 25, 8, 0),
+                LocalDateTime.of(2026, 8, 25, 12, 0));
+        given(productRepository.findByIdForUpdate(1L)).willReturn(Optional.of(product));
+
+        // when & then
+        assertThatThrownBy(() -> productService.startDeposit(1L, new StartDepositRequest("원기")))
+                .isInstanceOf(ReservationExpiredException.class);
+    }
+
+    private Product 예약된물품() {
+        Product product = 물품(1L, ProductStatus.PREPARING);
+        product.reserveLocker(1L, LocalDateTime.of(2026, 8, 25, 11, 0),
+                LocalDateTime.of(2026, 8, 25, 16, 0));
+        return product;
     }
 }

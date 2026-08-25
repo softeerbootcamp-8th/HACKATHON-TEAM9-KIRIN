@@ -3,8 +3,10 @@ package com.kirin.superservice.product.controller;
 import com.kirin.superservice.product.domain.Product;
 import com.kirin.superservice.product.domain.ProductStatus;
 import com.kirin.superservice.product.dto.request.CancelLockerReservationRequest;
+import com.kirin.superservice.product.dto.request.CompleteDepositRequest;
 import com.kirin.superservice.product.dto.request.RegisterProductRequest;
 import com.kirin.superservice.product.dto.request.ReserveLockerRequest;
+import com.kirin.superservice.product.dto.request.StartDepositRequest;
 import com.kirin.superservice.product.dto.response.ProductListResponse;
 import com.kirin.superservice.product.dto.response.ProductResponse;
 import com.kirin.superservice.product.service.ProductService;
@@ -44,6 +46,22 @@ public class ProductController {
             @PathVariable Long productId,
             @RequestBody @Valid CancelLockerReservationRequest request) {
         Product product = productService.cancelLockerReservation(productId, request);
+        return ProductResponse.fromEntity(product);
+    }
+
+    @PostMapping("/{productId}/deposit-start")
+    public ProductResponse startDeposit(
+            @PathVariable Long productId,
+            @RequestBody @Valid StartDepositRequest request) {
+        Product product = productService.startDeposit(productId, request);
+        return ProductResponse.fromEntity(product);
+    }
+
+    @PostMapping("/{productId}/deposit-complete")
+    public ProductResponse completeDeposit(
+            @PathVariable Long productId,
+            @RequestBody @Valid CompleteDepositRequest request) {
+        Product product = productService.completeDeposit(productId, request);
         return ProductResponse.fromEntity(product);
     }
 

@@ -11,8 +11,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.kirin.superservice.product.domain.Product;
 import com.kirin.superservice.product.domain.ProductStatus;
 import com.kirin.superservice.product.dto.request.CancelLockerReservationRequest;
+import com.kirin.superservice.product.dto.request.CompleteDepositRequest;
 import com.kirin.superservice.product.dto.request.RegisterProductRequest;
 import com.kirin.superservice.product.dto.request.ReserveLockerRequest;
+import com.kirin.superservice.product.dto.request.StartDepositRequest;
 import com.kirin.superservice.product.exception.ProductNotFoundException;
 import com.kirin.superservice.product.service.ProductService;
 import java.time.LocalDateTime;
@@ -160,5 +162,41 @@ class ProductControllerTest {
                 .andExpect(jsonPath("$.productId").value(1))
                 .andExpect(jsonPath("$.lockerId").value(nullValue()))
                 .andExpect(jsonPath("$.status").value("PREPARING"));
+    }
+
+    @Test
+    void 물품_투입을_시작하면_200과_예약중_물품정보를_반환한다() throws Exception {
+        // given
+        Product product = 물품(1L, ProductStatus.RESERVED);
+        product.startDeposit(LocalDateTime.of(2026, 8, 25, 12, 0));
+        given(productService.startDeposit(any(Long.class), any(StartDepositRequest.class)))
+                .willReturn(product);
+
+        // when & then
+        mockMvc.perform(post("/api/products/1/deposit-start")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{" + "\"sellerName\":\"원기\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.productId").value(1))
+                .andExpect(jsonPath("$.status").value("RESERVED"));
+    }
+
+    @Test
+    void 물품_투입을_완료하면_200과_판매중_물품정보를_반환한다() throws Exception {
+        // given
+        Product product = 물품(1L, ProductStatus.RESERVED);
+        product.startDeposit(LocalDateTime.of(2026, 8, 25, 11, 59));
+        product.completeDeposit(LocalDateTime.of(2026, 8, 25, 12, 0),
+                LocalDateTime.of(2026, 9, 1, 12, 0));
+        given(productService.completeDeposit(any(Long.class), any(CompleteDepositRequest.class)))
+                .willReturn(product);
+
+        // when & then
+        mockMvc.perform(post("/api/products/1/deposit-complete")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{" + "\"sellerName\":\"원기\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.productId").value(1))
+                .andExpect(jsonPath("$.status").value("SELLING"));
     }
 }

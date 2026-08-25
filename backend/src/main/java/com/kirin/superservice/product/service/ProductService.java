@@ -7,10 +7,13 @@ import com.kirin.superservice.locker.service.LockerService;
 import com.kirin.superservice.product.domain.Product;
 import com.kirin.superservice.product.domain.ProductStatus;
 import com.kirin.superservice.product.dto.request.CancelLockerReservationRequest;
+import com.kirin.superservice.product.dto.request.CompleteDepositRequest;
 import com.kirin.superservice.product.dto.request.RegisterProductRequest;
 import com.kirin.superservice.product.dto.request.ReserveLockerRequest;
+import com.kirin.superservice.product.dto.request.StartDepositRequest;
 import com.kirin.superservice.product.exception.InvalidProductStatusException;
 import com.kirin.superservice.product.exception.ProductNotFoundException;
+import com.kirin.superservice.product.exception.ReservationExpiredException;
 import com.kirin.superservice.product.exception.SellerMismatchException;
 import com.kirin.superservice.product.repository.ProductRepository;
 import java.time.Clock;
@@ -28,6 +31,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class ProductService {
 
     private static final long RESERVATION_HOURS = 4;
+    private static final long SELLING_DAYS = 7;
 
     private final ProductRepository productRepository;
     private final LockerService lockerService;
@@ -107,9 +111,57 @@ public class ProductService {
         return product;
     }
 
+    /** 예약한 물품보관함을 열어 물품 투입을 시작한다. */
+    @Transactional
+    public Product startDeposit(Long productId, StartDepositRequest request) {
+        Product product = getProductForUpdate(productId);
+        validateSeller(product, request.sellerName());
+        LocalDateTime now = LocalDateTime.now(clock);
+        validateReservable(product, now);
+        if (product.hasStartedDeposit()) {
+            return product;
+        }
+
+        Locker locker = lockerService.getLockerForUpdate(product.getLockerId());
+        product.startDeposit(now);
+        locker.changeLockStatus(LockStatus.UNLOCKED);
+        log.info("물품 투입 시작 - productId={}, lockerId={}, sellerName={}",
+                productId, locker.getId(), product.getSellerName());
+        return product;
+    }
+
+    /** 물품 투입을 완료하고 사물함을 잠근 뒤 7일 판매를 시작한다. */
+    @Transactional
+    public Product completeDeposit(Long productId, CompleteDepositRequest request) {
+        Product product = getProductForUpdate(productId);
+        validateSeller(product, request.sellerName());
+        LocalDateTime now = LocalDateTime.now(clock);
+        validateReservable(product, now);
+        if (!product.hasStartedDeposit()) {
+            throw new InvalidProductStatusException(productId, product.getStatus());
+        }
+
+        Locker locker = lockerService.getLockerForUpdate(product.getLockerId());
+        product.completeDeposit(now, now.plusDays(SELLING_DAYS));
+        locker.occupy();
+        locker.changeLockStatus(LockStatus.LOCKED);
+        log.info("물품 투입 완료 - productId={}, lockerId={}, sellerName={}",
+                productId, locker.getId(), product.getSellerName());
+        return product;
+    }
+
     private void validateSeller(Product product, String sellerName) {
         if (!product.isSeller(sellerName)) {
             throw new SellerMismatchException(product.getId());
+        }
+    }
+
+    private void validateReservable(Product product, LocalDateTime now) {
+        if (!product.isReserved()) {
+            throw new InvalidProductStatusException(product.getId(), product.getStatus());
+        }
+        if (product.isReservationExpiredAt(now)) {
+            throw new ReservationExpiredException(product.getId());
         }
     }
 }

@@ -84,10 +84,6 @@ public class Product {
                 ProductStatus.PREPARING, LocalDateTime.now());
     }
 
-    public void startSelling() {
-        this.status = ProductStatus.SELLING;
-    }
-
     public void reserveLocker(Long lockerId, LocalDateTime reservedAt,
             LocalDateTime reservationExpiresAt) {
         this.lockerId = lockerId;
@@ -111,6 +107,20 @@ public class Product {
 
     public boolean hasStartedDeposit() {
         return this.depositStartedAt != null;
+    }
+
+    public void startDeposit(LocalDateTime depositStartedAt) {
+        this.depositStartedAt = depositStartedAt;
+    }
+
+    public void completeDeposit(LocalDateTime sellingStartedAt, LocalDateTime sellingExpiresAt) {
+        this.sellingStartedAt = sellingStartedAt;
+        this.sellingExpiresAt = sellingExpiresAt;
+        this.status = ProductStatus.SELLING;
+    }
+
+    public boolean isReservationExpiredAt(LocalDateTime now) {
+        return !now.isBefore(this.reservationExpiresAt);
     }
 
     public void markSold() {
