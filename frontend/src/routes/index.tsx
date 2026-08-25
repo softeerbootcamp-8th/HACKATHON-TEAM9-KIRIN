@@ -172,9 +172,7 @@ function HomePage() {
     search.openLocker != null
       ? lockers.find(
           (item) =>
-            item.number === search.openLocker &&
-            item.status === "reserved" &&
-            item.isMine,
+            item.number === search.openLocker && item.status === "reserved",
         )
       : undefined;
   const effectiveSheet: SheetState | null =
@@ -310,8 +308,7 @@ function HomePage() {
           사용중
         </li>
         <li className="flex items-center gap-1">
-          <span className="size-2 rounded-full bg-[var(--color-mine)]" />
-          내 상품
+          <span className="size-2 rounded-full bg-[var(--color-mine)]" />내 상품
         </li>
         <li className="flex items-center gap-1">
           <span className="size-2 rounded-full bg-[var(--color-primary)]" />
