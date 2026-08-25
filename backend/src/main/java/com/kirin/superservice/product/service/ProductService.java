@@ -45,7 +45,15 @@ public class ProductService {
     }
 
     public List<Product> findAllProductsByStatus(ProductStatus status) {
-        return productRepository.findAllByStatusOrderByCreatedAtDesc(status);
+        return productRepository.findAllByStatusOrderByCreatedAtDescIdDesc(status);
+    }
+
+    /** 판매자명이 등록한 물품을 최신 등록순으로 조회한다. 상태를 지정하지 않으면 전체를 반환한다. */
+    public List<Product> findAllProductsBySellerName(String sellerName, ProductStatus status) {
+        if (status == null) {
+            return productRepository.findAllBySellerNameOrderByCreatedAtDescIdDesc(sellerName);
+        }
+        return productRepository.findAllBySellerNameAndStatusOrderByCreatedAtDescIdDesc(sellerName, status);
     }
 
     /**

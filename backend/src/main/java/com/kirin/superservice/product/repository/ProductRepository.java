@@ -13,7 +13,12 @@ import org.springframework.data.repository.query.Param;
 
 public interface ProductRepository extends JpaRepository<Product, Long> {
 
-    List<Product> findAllByStatusOrderByCreatedAtDesc(ProductStatus status);
+    List<Product> findAllByStatusOrderByCreatedAtDescIdDesc(ProductStatus status);
+
+    List<Product> findAllBySellerNameOrderByCreatedAtDescIdDesc(String sellerName);
+
+    List<Product> findAllBySellerNameAndStatusOrderByCreatedAtDescIdDesc(
+            String sellerName, ProductStatus status);
 
     List<Product> findAllByStatusAndReservationExpiresAtLessThanEqual(
             ProductStatus status, LocalDateTime reservationExpiresAt);

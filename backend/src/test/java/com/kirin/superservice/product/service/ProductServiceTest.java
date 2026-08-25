@@ -86,7 +86,7 @@ class ProductServiceTest {
     @Test
     void 판매중인_물품_목록을_조회하면_해당_상태의_물품만_반환한다() {
         // given
-        given(productRepository.findAllByStatusOrderByCreatedAtDesc(ProductStatus.SELLING))
+        given(productRepository.findAllByStatusOrderByCreatedAtDescIdDesc(ProductStatus.SELLING))
                 .willReturn(List.of(물품(1L, ProductStatus.SELLING), 물품(2L, ProductStatus.SELLING)));
 
         // when
@@ -95,6 +95,34 @@ class ProductServiceTest {
         // then
         assertThat(result).hasSize(2);
         assertThat(result).allMatch(Product::isSelling);
+    }
+
+    @Test
+    void 판매자명으로_물품목록을_조회하면_상태와_관계없이_최신순으로_반환한다() {
+        // given
+        List<Product> products = List.of(물품(2L, ProductStatus.PREPARING), 물품(1L, ProductStatus.SOLD));
+        given(productRepository.findAllBySellerNameOrderByCreatedAtDescIdDesc("원기"))
+                .willReturn(products);
+
+        // when
+        List<Product> result = productService.findAllProductsBySellerName("원기", null);
+
+        // then
+        assertThat(result).containsExactlyElementsOf(products);
+    }
+
+    @Test
+    void 판매자명과_상태로_물품목록을_조회하면_해당상태를_최신순으로_반환한다() {
+        // given
+        List<Product> products = List.of(물품(2L, ProductStatus.RESERVED), 물품(1L, ProductStatus.RESERVED));
+        given(productRepository.findAllBySellerNameAndStatusOrderByCreatedAtDescIdDesc(
+                "원기", ProductStatus.RESERVED)).willReturn(products);
+
+        // when
+        List<Product> result = productService.findAllProductsBySellerName("원기", ProductStatus.RESERVED);
+
+        // then
+        assertThat(result).containsExactlyElementsOf(products);
     }
 
     @Test

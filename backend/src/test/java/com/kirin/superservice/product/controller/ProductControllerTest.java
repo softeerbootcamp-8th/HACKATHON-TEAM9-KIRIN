@@ -129,6 +129,32 @@ class ProductControllerTest {
     }
 
     @Test
+    void 판매자_물품_목록을_조회하면_200과_최신순_목록을_반환한다() throws Exception {
+        // given
+        given(productService.findAllProductsBySellerName("원기", null))
+                .willReturn(List.of(물품(2L, ProductStatus.PREPARING), 물품(1L, ProductStatus.SOLD)));
+
+        // when & then
+        mockMvc.perform(get("/api/products/sellers/원기"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.products[0].productId").value(2))
+                .andExpect(jsonPath("$.products[1].productId").value(1));
+    }
+
+    @Test
+    void 판매자_물품_목록을_상태로_필터링할_수_있다() throws Exception {
+        // given
+        given(productService.findAllProductsBySellerName("원기", ProductStatus.RESERVED))
+                .willReturn(List.of(물품(1L, ProductStatus.RESERVED)));
+
+        // when & then
+        mockMvc.perform(get("/api/products/sellers/원기").param("status", "RESERVED"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.products[0].productId").value(1))
+                .andExpect(jsonPath("$.products[0].status").value("RESERVED"));
+    }
+
+    @Test
     void 사물함을_예약하면_200과_예약된_물품정보를_반환한다() throws Exception {
         // given
         given(productService.reserveLocker(any(Long.class), any(ReserveLockerRequest.class)))

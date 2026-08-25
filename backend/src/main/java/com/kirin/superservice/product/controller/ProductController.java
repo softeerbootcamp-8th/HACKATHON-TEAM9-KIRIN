@@ -89,6 +89,13 @@ public class ProductController {
         return ProductListResponse.fromEntities(productService.findAllProductsByStatus(status));
     }
 
+    @GetMapping("/sellers/{sellerName}")
+    public ProductListResponse getSellerProducts(
+            @PathVariable String sellerName,
+            @RequestParam(required = false) ProductStatus status) {
+        return ProductListResponse.fromEntities(productService.findAllProductsBySellerName(sellerName, status));
+    }
+
     @GetMapping("/{productId}")
     public ProductResponse getProduct(@PathVariable Long productId) {
         Product product = productService.getProduct(productId);
