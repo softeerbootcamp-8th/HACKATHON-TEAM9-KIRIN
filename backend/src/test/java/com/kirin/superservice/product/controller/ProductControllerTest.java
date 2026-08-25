@@ -10,7 +10,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.kirin.superservice.product.domain.Product;
 import com.kirin.superservice.product.domain.ProductStatus;
+import com.kirin.superservice.product.dto.request.CancelLockerReservationRequest;
 import com.kirin.superservice.product.dto.request.RegisterProductRequest;
+import com.kirin.superservice.product.dto.request.ReserveLockerRequest;
 import com.kirin.superservice.product.exception.ProductNotFoundException;
 import com.kirin.superservice.product.service.ProductService;
 import java.time.LocalDateTime;
@@ -41,8 +43,13 @@ class ProductControllerTest {
             """;
 
     private Product 물품(Long id, ProductStatus status) {
-        return new Product(id, status == ProductStatus.PREPARING ? null : 1L,
+        Product product = new Product(id, status == ProductStatus.PREPARING ? null : 1L,
                 "아이패드", 300000L, "상태 좋음", null, "원기", status, LocalDateTime.now());
+        if (status == ProductStatus.RESERVED) {
+            product.reserveLocker(1L, LocalDateTime.of(2026, 8, 25, 12, 0),
+                    LocalDateTime.of(2026, 8, 25, 16, 0));
+        }
+        return product;
     }
 
     @Test
@@ -115,5 +122,43 @@ class ProductControllerTest {
                 .andExpect(jsonPath("$.products[0].productId").value(1))
                 .andExpect(jsonPath("$.products[1].productId").value(2))
                 .andExpect(jsonPath("$.products[0].status").value("SELLING"));
+    }
+
+    @Test
+    void 사물함을_예약하면_200과_예약된_물품정보를_반환한다() throws Exception {
+        // given
+        given(productService.reserveLocker(any(Long.class), any(ReserveLockerRequest.class)))
+                .willReturn(물품(1L, ProductStatus.RESERVED));
+
+        // when & then
+        mockMvc.perform(post("/api/products/1/locker-reservation")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "lockerId": 1,
+                                  "sellerName": "원기"
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.productId").value(1))
+                .andExpect(jsonPath("$.lockerId").value(1))
+                .andExpect(jsonPath("$.status").value("RESERVED"));
+    }
+
+    @Test
+    void 예약을_취소하면_200과_준비중_물품정보를_반환한다() throws Exception {
+        // given
+        given(productService.cancelLockerReservation(any(Long.class),
+                any(CancelLockerReservationRequest.class)))
+                .willReturn(물품(1L, ProductStatus.PREPARING));
+
+        // when & then
+        mockMvc.perform(post("/api/products/1/locker-reservation/cancel")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{" + "\"sellerName\":\"원기\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.productId").value(1))
+                .andExpect(jsonPath("$.lockerId").value(nullValue()))
+                .andExpect(jsonPath("$.status").value("PREPARING"));
     }
 }

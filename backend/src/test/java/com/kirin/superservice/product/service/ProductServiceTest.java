@@ -5,18 +5,30 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 
+import com.kirin.superservice.locker.domain.Locker;
+import com.kirin.superservice.locker.domain.LockStatus;
+import com.kirin.superservice.locker.domain.UsageStatus;
+import com.kirin.superservice.locker.exception.LockerNotAvailableException;
+import com.kirin.superservice.locker.service.LockerService;
 import com.kirin.superservice.product.domain.Product;
 import com.kirin.superservice.product.domain.ProductStatus;
+import com.kirin.superservice.product.dto.request.CancelLockerReservationRequest;
 import com.kirin.superservice.product.dto.request.RegisterProductRequest;
+import com.kirin.superservice.product.dto.request.ReserveLockerRequest;
+import com.kirin.superservice.product.exception.SellerMismatchException;
 import com.kirin.superservice.product.exception.ProductNotFoundException;
 import com.kirin.superservice.product.repository.ProductRepository;
+import java.time.Clock;
+import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
@@ -24,6 +36,12 @@ class ProductServiceTest {
 
     @Mock
     ProductRepository productRepository;
+
+    @Mock
+    LockerService lockerService;
+
+    @Spy
+    Clock clock = Clock.fixed(Instant.parse("2026-08-25T03:00:00Z"), ZoneId.of("Asia/Seoul"));
 
     @InjectMocks
     ProductService productService;
@@ -72,5 +90,71 @@ class ProductServiceTest {
         // then
         assertThat(result).hasSize(2);
         assertThat(result).allMatch(Product::isSelling);
+    }
+
+    @Test
+    void 준비중인_물품과_사용가능한_사물함을_지정하면_4시간_예약된다() {
+        // given
+        Product product = 물품(1L, ProductStatus.PREPARING);
+        Locker locker = new Locker(1L, LockStatus.LOCKED, UsageStatus.AVAILABLE);
+        given(productRepository.findByIdForUpdate(1L)).willReturn(Optional.of(product));
+        given(lockerService.getLockerForUpdate(1L)).willReturn(locker);
+
+        // when
+        Product result = productService.reserveLocker(1L, new ReserveLockerRequest(1L, "원기"));
+
+        // then
+        assertThat(result.getStatus()).isEqualTo(ProductStatus.RESERVED);
+        assertThat(result.getLockerId()).isEqualTo(1L);
+        assertThat(result.getReservedAt()).isEqualTo(LocalDateTime.of(2026, 8, 25, 12, 0));
+        assertThat(result.getReservationExpiresAt()).isEqualTo(LocalDateTime.of(2026, 8, 25, 16, 0));
+        assertThat(locker.getUsageStatus()).isEqualTo(UsageStatus.RESERVED);
+        assertThat(locker.getLockStatus()).isEqualTo(LockStatus.LOCKED);
+    }
+
+    @Test
+    void 사용불가능한_사물함을_예약하면_예외가_발생한다() {
+        // given
+        Product product = 물품(1L, ProductStatus.PREPARING);
+        Locker locker = new Locker(1L, LockStatus.LOCKED, UsageStatus.OCCUPIED);
+        given(productRepository.findByIdForUpdate(1L)).willReturn(Optional.of(product));
+        given(lockerService.getLockerForUpdate(1L)).willReturn(locker);
+
+        // when & then
+        assertThatThrownBy(() -> productService.reserveLocker(1L, new ReserveLockerRequest(1L, "원기")))
+                .isInstanceOf(LockerNotAvailableException.class);
+    }
+
+    @Test
+    void 다른_판매자가_예약하면_예외가_발생한다() {
+        // given
+        Product product = 물품(1L, ProductStatus.PREPARING);
+        given(productRepository.findByIdForUpdate(1L)).willReturn(Optional.of(product));
+
+        // when & then
+        assertThatThrownBy(() -> productService.reserveLocker(1L, new ReserveLockerRequest(1L, "다른사람")))
+                .isInstanceOf(SellerMismatchException.class);
+    }
+
+    @Test
+    void 투입시작전_예약을_취소하면_물품과_사물함이_사용가능상태로_돌아간다() {
+        // given
+        Product product = 물품(1L, ProductStatus.PREPARING);
+        product.reserveLocker(1L, LocalDateTime.of(2026, 8, 25, 12, 0),
+                LocalDateTime.of(2026, 8, 25, 16, 0));
+        Locker locker = new Locker(1L, LockStatus.LOCKED, UsageStatus.RESERVED);
+        given(productRepository.findByIdForUpdate(1L)).willReturn(Optional.of(product));
+        given(lockerService.getLockerForUpdate(1L)).willReturn(locker);
+
+        // when
+        Product result = productService.cancelLockerReservation(1L,
+                new CancelLockerReservationRequest("원기"));
+
+        // then
+        assertThat(result.getStatus()).isEqualTo(ProductStatus.PREPARING);
+        assertThat(result.getLockerId()).isNull();
+        assertThat(result.getReservationExpiresAt()).isNull();
+        assertThat(locker.getUsageStatus()).isEqualTo(UsageStatus.AVAILABLE);
+        assertThat(locker.getLockStatus()).isEqualTo(LockStatus.LOCKED);
     }
 }

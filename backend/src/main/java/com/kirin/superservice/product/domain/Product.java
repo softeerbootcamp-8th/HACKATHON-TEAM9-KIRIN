@@ -88,6 +88,31 @@ public class Product {
         this.status = ProductStatus.SELLING;
     }
 
+    public void reserveLocker(Long lockerId, LocalDateTime reservedAt,
+            LocalDateTime reservationExpiresAt) {
+        this.lockerId = lockerId;
+        this.reservedAt = reservedAt;
+        this.reservationExpiresAt = reservationExpiresAt;
+        this.depositStartedAt = null;
+        this.status = ProductStatus.RESERVED;
+    }
+
+    public void cancelLockerReservation() {
+        this.lockerId = null;
+        this.reservedAt = null;
+        this.reservationExpiresAt = null;
+        this.depositStartedAt = null;
+        this.status = ProductStatus.PREPARING;
+    }
+
+    public boolean isSeller(String sellerName) {
+        return this.sellerName.equals(sellerName);
+    }
+
+    public boolean hasStartedDeposit() {
+        return this.depositStartedAt != null;
+    }
+
     public void markSold() {
         this.status = ProductStatus.SOLD;
     }
