@@ -10,7 +10,14 @@ public enum ErrorCode {
     RESOURCE_NOT_FOUND(404, "RESOURCE_NOT_FOUND", "요청한 리소스를 찾을 수 없습니다."),
     METHOD_NOT_ALLOWED(405, "METHOD_NOT_ALLOWED", "지원하지 않는 HTTP 메서드입니다."),
     UNSUPPORTED_MEDIA_TYPE(415, "UNSUPPORTED_MEDIA_TYPE", "지원하지 않는 Content-Type입니다."),
-    INTERNAL_SERVER_ERROR(500, "INTERNAL_SERVER_ERROR", "예상하지 못한 서버 오류가 발생했습니다.");
+    INTERNAL_SERVER_ERROR(500, "INTERNAL_SERVER_ERROR", "예상하지 못한 서버 오류가 발생했습니다."),
+
+    LOCKER_NOT_FOUND(404, "LOCKER_NOT_FOUND", "물품보관함을 찾을 수 없습니다."),
+    LOCKER_ALREADY_OCCUPIED(409, "LOCKER_ALREADY_OCCUPIED", "이미 사용 중인 물품보관함입니다."),
+    PAYMENT_CONFIRM_FAILED(400, "PAYMENT_CONFIRM_FAILED", "결제 승인에 실패했습니다."),
+    PRODUCT_NOT_FOUND(404, "PRODUCT_NOT_FOUND", "물품을 찾을 수 없습니다."),
+    PRODUCT_NOT_SELLING(409, "PRODUCT_NOT_SELLING", "판매 중인 물품이 아닙니다."),
+    INVALID_PRODUCT_STATUS(409, "INVALID_PRODUCT_STATUS", "현재 물품 상태에서는 처리할 수 없는 요청입니다.");
 
     private final int statusCode;
     private final String code;

@@ -13,8 +13,12 @@
 #   SPRING_DATASOURCE_URL
 #   SPRING_DATASOURCE_USERNAME
 #   SPRING_DATASOURCE_PASSWORD
-# Optional:
-#   SERVER_SERVLET_CONTEXT_PATH   (default: /api)
+#
+# NOTE: the app's own controllers already declare their "/api" prefix in
+# code (e.g. @RequestMapping("/api/lockers")), so we deliberately do NOT set
+# server.servlet.context-path here (that would double it up to /api/api/...).
+# Actuator is instead given its own base path so /api/actuator/health still
+# works for the health check and for nginx's /api/ passthrough proxy.
 #
 # Emits exactly one line matching ^RESULT=<marker>$ to stdout before exiting.
 # Markers: success | rolled_back | rollback_unverified | rollback_failed |
@@ -28,8 +32,7 @@ PREV_JAR="${APP_DIR}/app.jar.prev"
 ENV_FILE="${APP_DIR}/backend.env"
 LOCK_FILE="${APP_DIR}/deploy.lock"
 SERVICE_NAME="kirin-backend"
-CONTEXT_PATH="${SERVER_SERVLET_CONTEXT_PATH:-/api}"
-HEALTH_URL="http://127.0.0.1:8080${CONTEXT_PATH%/}/actuator/health"
+HEALTH_URL="http://127.0.0.1:8080/api/actuator/health"
 HEALTH_ATTEMPTS=30
 HEALTH_INTERVAL=3
 
@@ -68,7 +71,7 @@ cat > "$TMP_ENV_FILE" <<EOF
 SPRING_DATASOURCE_URL=${SPRING_DATASOURCE_URL}
 SPRING_DATASOURCE_USERNAME=${SPRING_DATASOURCE_USERNAME}
 SPRING_DATASOURCE_PASSWORD=${SPRING_DATASOURCE_PASSWORD}
-SERVER_SERVLET_CONTEXT_PATH=${CONTEXT_PATH}
+MANAGEMENT_ENDPOINTS_WEB_BASE_PATH=/api/actuator
 EOF
 mv "$TMP_ENV_FILE" "$ENV_FILE"
 chmod 600 "$ENV_FILE"

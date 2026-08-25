@@ -38,9 +38,9 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     @ExceptionHandler(BusinessException.class)
     public ResponseEntity<ErrorResponse> handleBusinessException(BusinessException e, HttpServletRequest request) {
         ErrorCode errorCode = e.getErrorCode();
-        log.warn("비즈니스 예외 발생 - code={}, message={}", errorCode.getCode(), errorCode.getMessage());
+        log.warn("비즈니스 예외 발생 - code={}, message={}", errorCode.getCode(), e.getMessage());
         return ResponseEntity.status(errorCode.getStatusCode())
-                .body(ErrorResponse.of(errorCode, request.getRequestURI()));
+                .body(ErrorResponse.of(errorCode.getStatusCode(), errorCode.getCode(), e.getMessage(), request.getRequestURI()));
     }
 
     @Override

@@ -41,7 +41,8 @@ allowed-tools: Bash(git status:*), Bash(git diff:*), Bash(git add:*), Bash(git c
 |---|---|
 | `backend/` 만 | `BE` |
 | `frontend/` 만 | `FE` |
-| 양쪽 또는 루트(`.github/`, `.claude/`, `README.md`) | `ALL` |
+| `esp32/` 만 | `EMBEDDED` |
+| 여러 영역 걸침 또는 루트(`.github/`, `.claude/`, `README.md`) | `ALL` |
 
 **타입** — `feat` / `fix` / `refactor` / `test` / `chore` / `docs` (`backend/CLAUDE.md` 11장 기준)
 

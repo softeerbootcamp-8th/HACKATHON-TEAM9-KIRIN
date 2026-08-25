@@ -6,6 +6,15 @@ spring:
     username: root
     password: ${DB_PASSWORD:1234}
     driver-class-name: com.mysql.cj.jdbc.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    open-in-view: false
+    defer-datasource-initialization: true
+  sql:
+    init:
+      mode: always
 
 async:
   slack-notification:
@@ -17,3 +26,8 @@ slack:
   enabled: ${SLACK_ENABLED:false}
   bot-token: ${SLACK_BOT_TOKEN:}
   channel: ${SLACK_CHANNEL:}
+
+toss:
+  payment:
+    base-url: ${TOSS_BASE_URL:https://api.tosspayments.com}
+    secret-key: ${TOSS_SECRET_KEY:test_dummy_secret_key_please_set_TOSS_SECRET_KEY}
