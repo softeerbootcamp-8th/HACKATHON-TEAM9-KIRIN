@@ -38,6 +38,9 @@ public class Product {
     @Column(name = "image_url", length = 500)
     private String imageUrl;
 
+    @Column(name = "seller_member_id", nullable = false)
+    private Long sellerMemberId;
+
     @Column(name = "seller_name", nullable = false, length = 50)
     private String sellerName;
 
@@ -67,20 +70,23 @@ public class Product {
     private LocalDateTime recoveryStartedAt;
 
     public Product(Long id, Long lockerId, String name, Long price, String description,
-            String imageUrl, String sellerName, ProductStatus status, LocalDateTime createdAt) {
+            String imageUrl, Long sellerMemberId, String sellerName, ProductStatus status,
+            LocalDateTime createdAt) {
         this.id = id;
         this.lockerId = lockerId;
         this.name = name;
         this.price = price;
         this.description = description;
         this.imageUrl = imageUrl;
+        this.sellerMemberId = sellerMemberId;
         this.sellerName = sellerName;
         this.status = status;
         this.createdAt = createdAt;
     }
 
-    public Product(String name, Long price, String description, String imageUrl, String sellerName) {
-        this(null, null, name, price, description, imageUrl, sellerName,
+    public Product(String name, Long price, String description, String imageUrl,
+            Long sellerMemberId, String sellerName) {
+        this(null, null, name, price, description, imageUrl, sellerMemberId, sellerName,
                 ProductStatus.PREPARING, LocalDateTime.now());
     }
 
@@ -101,8 +107,8 @@ public class Product {
         this.status = ProductStatus.PREPARING;
     }
 
-    public boolean isSeller(String sellerName) {
-        return this.sellerName.equals(sellerName);
+    public boolean isOwnedBy(Long sellerMemberId) {
+        return this.sellerMemberId.equals(sellerMemberId);
     }
 
     public boolean hasStartedDeposit() {

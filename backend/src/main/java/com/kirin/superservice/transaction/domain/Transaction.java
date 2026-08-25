@@ -32,6 +32,9 @@ public class Transaction {
     @Column(name = "locker_id", nullable = false)
     private Long lockerId;
 
+    @Column(name = "buyer_member_id", nullable = false)
+    private Long buyerMemberId;
+
     @Column(name = "buyer_name", nullable = false, length = 50)
     private String buyerName;
 
@@ -54,12 +57,13 @@ public class Transaction {
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
-    public Transaction(Long id, Long productId, Long lockerId, String buyerName, Long price,
-            String paymentKey, String orderId, String approvedAt, TransactionStatus status,
+    public Transaction(Long id, Long productId, Long lockerId, Long buyerMemberId, String buyerName,
+            Long price, String paymentKey, String orderId, String approvedAt, TransactionStatus status,
             LocalDateTime createdAt) {
         this.id = id;
         this.productId = productId;
         this.lockerId = lockerId;
+        this.buyerMemberId = buyerMemberId;
         this.buyerName = buyerName;
         this.price = price;
         this.paymentKey = paymentKey;
@@ -69,9 +73,9 @@ public class Transaction {
         this.createdAt = createdAt;
     }
 
-    public Transaction(Long productId, Long lockerId, String buyerName, Long price,
+    public Transaction(Long productId, Long lockerId, Long buyerMemberId, String buyerName, Long price,
             String paymentKey, String orderId, String approvedAt) {
-        this(null, productId, lockerId, buyerName, price, paymentKey, orderId, approvedAt,
+        this(null, productId, lockerId, buyerMemberId, buyerName, price, paymentKey, orderId, approvedAt,
                 TransactionStatus.PAID, LocalDateTime.now());
     }
 
@@ -81,5 +85,9 @@ public class Transaction {
 
     public boolean isDone() {
         return this.status == TransactionStatus.DONE;
+    }
+
+    public boolean isOwnedBy(Long buyerMemberId) {
+        return this.buyerMemberId.equals(buyerMemberId);
     }
 }

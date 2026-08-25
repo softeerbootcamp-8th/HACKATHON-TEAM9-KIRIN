@@ -3,6 +3,8 @@ package com.kirin.superservice.transaction.service;
 import com.kirin.superservice.locker.domain.Locker;
 import com.kirin.superservice.locker.domain.LockStatus;
 import com.kirin.superservice.locker.service.LockerService;
+import com.kirin.superservice.member.domain.Member;
+import com.kirin.superservice.member.service.MemberService;
 import com.kirin.superservice.payment.dto.response.PaymentConfirmResponse;
 import com.kirin.superservice.product.domain.Product;
 import com.kirin.superservice.product.exception.ProductNotSellingException;
@@ -11,6 +13,7 @@ import com.kirin.superservice.product.service.ProductService;
 import com.kirin.superservice.transaction.domain.Transaction;
 import com.kirin.superservice.transaction.dto.request.PurchaseProductRequest;
 import com.kirin.superservice.transaction.exception.PriceMismatchException;
+import com.kirin.superservice.transaction.exception.TransactionAccessDeniedException;
 import com.kirin.superservice.transaction.exception.TransactionNotFoundException;
 import com.kirin.superservice.transaction.repository.TransactionRepository;
 import java.time.Clock;
@@ -29,11 +32,19 @@ public class TransactionService {
     private final TransactionRepository transactionRepository;
     private final ProductService productService;
     private final LockerService lockerService;
+    private final MemberService memberService;
     private final Clock clock;
 
     public Transaction getTransaction(Long transactionId) {
         return transactionRepository.findById(transactionId)
                 .orElseThrow(() -> new TransactionNotFoundException(transactionId));
+    }
+
+    /** 본인이 구매한 거래인지 확인한 뒤 조회한다. */
+    public Transaction getTransaction(Long transactionId, Long buyerMemberId) {
+        Transaction transaction = getTransaction(transactionId);
+        validateBuyer(transaction, buyerMemberId);
+        return transaction;
     }
 
     /**
@@ -57,7 +68,8 @@ public class TransactionService {
      * 물품을 먼저 잠그고 보관함을 건드린다 — 잠금 순서를 뒤집지 않는다.
      */
     @Transactional
-    public Transaction completePurchase(PurchaseProductRequest request, PaymentConfirmResponse payment) {
+    public Transaction completePurchase(PurchaseProductRequest request, PaymentConfirmResponse payment,
+            Long buyerMemberId) {
         Product product = productService.getProductForUpdate(request.productId());
         if (!product.isSelling()) {
             throw new ProductNotSellingException(product.getId(), product.getStatus());
@@ -68,10 +80,12 @@ public class TransactionService {
         product.markSold();
         lockerService.getLocker(product.getLockerId()).changeLockStatus(LockStatus.UNLOCKED);
 
+        Member buyer = memberService.getById(buyerMemberId);
         Transaction transaction = transactionRepository.save(new Transaction(
                 product.getId(),
                 product.getLockerId(),
-                request.buyerName(),
+                buyerMemberId,
+                buyer.getNickname(),
                 request.amount(),
                 payment.paymentKey(),
                 payment.orderId(),
@@ -86,8 +100,8 @@ public class TransactionService {
      * 버튼을 두 번 눌러도 문제가 없도록 이미 수령완료면 그대로 둔다.
      */
     @Transactional
-    public Transaction completePickup(Long transactionId) {
-        Transaction transaction = getTransaction(transactionId);
+    public Transaction completePickup(Long transactionId, Long buyerMemberId) {
+        Transaction transaction = getTransaction(transactionId, buyerMemberId);
         if (transaction.isDone()) {
             return transaction;
         }
@@ -98,5 +112,11 @@ public class TransactionService {
         locker.release();
         log.info("물품 수령 완료 - transactionId={}, lockerId={}", transactionId, transaction.getLockerId());
         return transaction;
+    }
+
+    private void validateBuyer(Transaction transaction, Long buyerMemberId) {
+        if (!transaction.isOwnedBy(buyerMemberId)) {
+            throw new TransactionAccessDeniedException(transaction.getId());
+        }
     }
 }

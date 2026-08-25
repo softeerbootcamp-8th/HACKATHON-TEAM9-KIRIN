@@ -15,6 +15,7 @@ import com.kirin.superservice.product.exception.ProductNotSellingException;
 import com.kirin.superservice.transaction.domain.Transaction;
 import com.kirin.superservice.transaction.domain.TransactionStatus;
 import com.kirin.superservice.transaction.dto.request.PurchaseProductRequest;
+import com.kirin.superservice.transaction.exception.TransactionAccessDeniedException;
 import com.kirin.superservice.transaction.exception.TransactionNotFoundException;
 import com.kirin.superservice.transaction.service.PurchaseService;
 import com.kirin.superservice.transaction.service.TransactionService;
@@ -44,7 +45,6 @@ class TransactionControllerTest {
     private static final String 구매_요청_본문 = """
             {
               "productId": 1,
-              "buyerName": "지훈",
               "paymentKey": "payment_key_1",
               "orderId": "order_1",
               "amount": 300000
@@ -52,14 +52,14 @@ class TransactionControllerTest {
             """;
 
     private Transaction 거래(TransactionStatus status) {
-        return new Transaction(1L, 1L, 1L, "지훈", 300000L, "payment_key_1", "order_1",
+        return new Transaction(1L, 1L, 1L, 1L, "지훈", 300000L, "payment_key_1", "order_1",
                 "2026-08-25T12:00:00+09:00", status, LocalDateTime.now());
     }
 
     @Test
     void 유효한_구매정보로_구매하면_200과_거래정보를_반환한다() throws Exception {
         // given
-        given(purchaseService.purchaseProduct(any(PurchaseProductRequest.class)))
+        given(purchaseService.purchaseProduct(any(PurchaseProductRequest.class), any(Long.class)))
                 .willReturn(거래(TransactionStatus.PAID));
 
         // when & then
@@ -74,11 +74,20 @@ class TransactionControllerTest {
     }
 
     @Test
-    void 구매자명이_없으면_400을_반환한다() throws Exception {
+    void 로그인하지_않고_구매하면_401을_반환한다() throws Exception {
+        // when & then
+        mockMvc.perform(post("/api/transactions")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(구매_요청_본문))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("UNAUTHORIZED"));
+    }
+
+    @Test
+    void 물품ID가_없으면_400을_반환한다() throws Exception {
         // given
-        String 이름_없는_요청 = """
+        String 물품ID_없는_요청 = """
                 {
-                  "productId": 1,
                   "paymentKey": "payment_key_1",
                   "orderId": "order_1",
                   "amount": 300000
@@ -89,7 +98,7 @@ class TransactionControllerTest {
         mockMvc.perform(post("/api/transactions")
                         .contentType(MediaType.APPLICATION_JSON)
                         .sessionAttr(SessionConst.LOGIN_MEMBER_ID, 1L)
-                        .content(이름_없는_요청))
+                        .content(물품ID_없는_요청))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("INVALID_REQUEST"));
     }
@@ -97,7 +106,7 @@ class TransactionControllerTest {
     @Test
     void 결제_승인에_실패하면_400을_반환한다() throws Exception {
         // given
-        given(purchaseService.purchaseProduct(any(PurchaseProductRequest.class)))
+        given(purchaseService.purchaseProduct(any(PurchaseProductRequest.class), any(Long.class)))
                 .willThrow(new PaymentConfirmFailedException("order_1", "카드 한도 초과"));
 
         // when & then
@@ -112,7 +121,7 @@ class TransactionControllerTest {
     @Test
     void 판매중이_아닌_물품을_구매하면_409를_반환한다() throws Exception {
         // given
-        given(purchaseService.purchaseProduct(any(PurchaseProductRequest.class)))
+        given(purchaseService.purchaseProduct(any(PurchaseProductRequest.class), any(Long.class)))
                 .willThrow(new ProductNotSellingException(1L, ProductStatus.SOLD));
 
         // when & then
@@ -127,7 +136,7 @@ class TransactionControllerTest {
     @Test
     void 수령을_확인하면_200과_수령완료_거래를_반환한다() throws Exception {
         // given
-        given(transactionService.completePickup(1L)).willReturn(거래(TransactionStatus.DONE));
+        given(transactionService.completePickup(1L, 1L)).willReturn(거래(TransactionStatus.DONE));
 
         // when & then
         mockMvc.perform(post("/api/transactions/1/pickup-complete")
@@ -138,9 +147,22 @@ class TransactionControllerTest {
     }
 
     @Test
+    void 다른_회원의_거래를_수령완료하면_403을_반환한다() throws Exception {
+        // given
+        given(transactionService.completePickup(1L, 2L))
+                .willThrow(new TransactionAccessDeniedException(1L));
+
+        // when & then
+        mockMvc.perform(post("/api/transactions/1/pickup-complete")
+                        .sessionAttr(SessionConst.LOGIN_MEMBER_ID, 2L))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("TRANSACTION_ACCESS_DENIED"));
+    }
+
+    @Test
     void 존재하지_않는_거래를_조회하면_404를_반환한다() throws Exception {
         // given
-        given(transactionService.getTransaction(999L))
+        given(transactionService.getTransaction(999L, 1L))
                 .willThrow(new TransactionNotFoundException(999L));
 
         // when & then
@@ -148,5 +170,18 @@ class TransactionControllerTest {
                         .sessionAttr(SessionConst.LOGIN_MEMBER_ID, 1L))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.code").value("TRANSACTION_NOT_FOUND"));
+    }
+
+    @Test
+    void 다른_회원의_거래를_조회하면_403을_반환한다() throws Exception {
+        // given
+        given(transactionService.getTransaction(1L, 2L))
+                .willThrow(new TransactionAccessDeniedException(1L));
+
+        // when & then
+        mockMvc.perform(get("/api/transactions/1")
+                        .sessionAttr(SessionConst.LOGIN_MEMBER_ID, 2L))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("TRANSACTION_ACCESS_DENIED"));
     }
 }

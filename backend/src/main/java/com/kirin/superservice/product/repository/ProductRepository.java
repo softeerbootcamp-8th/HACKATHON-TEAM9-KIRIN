@@ -15,16 +15,18 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
 
     List<Product> findAllByStatusOrderByCreatedAtDescIdDesc(ProductStatus status);
 
-    List<Product> findAllBySellerNameOrderByCreatedAtDescIdDesc(String sellerName);
+    List<Product> findAllBySellerMemberIdOrderByCreatedAtDescIdDesc(Long sellerMemberId);
 
-    List<Product> findAllBySellerNameAndStatusOrderByCreatedAtDescIdDesc(
-            String sellerName, ProductStatus status);
+    List<Product> findAllBySellerMemberIdAndStatusOrderByCreatedAtDescIdDesc(
+            Long sellerMemberId, ProductStatus status);
 
     List<Product> findAllByStatusAndReservationExpiresAtLessThanEqual(
             ProductStatus status, LocalDateTime reservationExpiresAt);
 
     List<Product> findAllByStatusAndSellingExpiresAtLessThanEqual(
             ProductStatus status, LocalDateTime sellingExpiresAt);
+
+    Optional<Product> findByLockerId(Long lockerId);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select p from Product p where p.id = :productId")

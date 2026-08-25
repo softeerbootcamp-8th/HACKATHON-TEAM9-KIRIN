@@ -1,5 +1,6 @@
 package com.kirin.superservice.transaction.controller;
 
+import com.kirin.superservice.global.auth.LoginMember;
 import com.kirin.superservice.transaction.domain.Transaction;
 import com.kirin.superservice.transaction.dto.request.PurchaseProductRequest;
 import com.kirin.superservice.transaction.dto.response.TransactionResponse;
@@ -23,20 +24,26 @@ public class TransactionController {
     private final TransactionService transactionService;
 
     @PostMapping
-    public TransactionResponse purchaseProduct(@RequestBody @Valid PurchaseProductRequest request) {
-        Transaction transaction = purchaseService.purchaseProduct(request);
+    public TransactionResponse purchaseProduct(
+            @LoginMember Long memberId,
+            @RequestBody @Valid PurchaseProductRequest request) {
+        Transaction transaction = purchaseService.purchaseProduct(request, memberId);
         return TransactionResponse.fromEntity(transaction);
     }
 
     @GetMapping("/{transactionId}")
-    public TransactionResponse getTransaction(@PathVariable Long transactionId) {
-        Transaction transaction = transactionService.getTransaction(transactionId);
+    public TransactionResponse getTransaction(
+            @LoginMember Long memberId,
+            @PathVariable Long transactionId) {
+        Transaction transaction = transactionService.getTransaction(transactionId, memberId);
         return TransactionResponse.fromEntity(transaction);
     }
 
     @PostMapping("/{transactionId}/pickup-complete")
-    public TransactionResponse completePickup(@PathVariable Long transactionId) {
-        Transaction transaction = transactionService.completePickup(transactionId);
+    public TransactionResponse completePickup(
+            @LoginMember Long memberId,
+            @PathVariable Long transactionId) {
+        Transaction transaction = transactionService.completePickup(transactionId, memberId);
         return TransactionResponse.fromEntity(transaction);
     }
 }
