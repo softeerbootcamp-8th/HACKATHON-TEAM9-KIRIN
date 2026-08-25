@@ -35,6 +35,16 @@ public class ProductService {
     }
 
     /**
+     * 물품 행을 잠근 채로 조회한다. 구매자 둘이 같은 물품을 동시에 사는 것을 막기 위한 것이라
+     * 반드시 호출자의 쓰기 트랜잭션 안에서 사용한다.
+     */
+    @Transactional
+    public Product getProductForUpdate(Long productId) {
+        return productRepository.findByIdForUpdate(productId)
+                .orElseThrow(() -> new ProductNotFoundException(productId));
+    }
+
+    /**
      * 물품을 등록하고 보관함을 점유한 뒤 문을 연다. 판매자 둘이 같은 보관함을 동시에 고를 수 있어
      * 보관함 행을 잠근 채로 사용 여부를 확인한다.
      */
