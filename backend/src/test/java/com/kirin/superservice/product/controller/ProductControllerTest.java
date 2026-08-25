@@ -8,6 +8,8 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.kirin.superservice.global.auth.SessionConst;
+import com.kirin.superservice.global.slack.SlackErrorNotifier;
 import com.kirin.superservice.product.domain.Product;
 import com.kirin.superservice.product.domain.ProductStatus;
 import com.kirin.superservice.product.dto.request.CancelLockerReservationRequest;
@@ -37,6 +39,9 @@ class ProductControllerTest {
     @MockitoBean
     ProductService productService;
 
+    @MockitoBean
+    SlackErrorNotifier slackErrorNotifier;
+
     private static final String 등록_요청_본문 = """
             {
               "name": "아이패드",
@@ -65,6 +70,7 @@ class ProductControllerTest {
         // when & then
         mockMvc.perform(post("/api/products")
                         .contentType(MediaType.APPLICATION_JSON)
+                        .sessionAttr(SessionConst.LOGIN_MEMBER_ID, 1L)
                         .content(등록_요청_본문))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.productId").value(1))
@@ -85,6 +91,7 @@ class ProductControllerTest {
         // when & then
         mockMvc.perform(post("/api/products")
                         .contentType(MediaType.APPLICATION_JSON)
+                        .sessionAttr(SessionConst.LOGIN_MEMBER_ID, 1L)
                         .content(이름_없는_요청))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("INVALID_REQUEST"));
@@ -96,7 +103,8 @@ class ProductControllerTest {
         given(productService.getProduct(1L)).willReturn(물품(1L, ProductStatus.SELLING));
 
         // when & then
-        mockMvc.perform(get("/api/products/1"))
+        mockMvc.perform(get("/api/products/1")
+                        .sessionAttr(SessionConst.LOGIN_MEMBER_ID, 1L))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.productId").value(1))
                 .andExpect(jsonPath("$.name").value("아이패드"))
@@ -109,7 +117,8 @@ class ProductControllerTest {
         given(productService.getProduct(999L)).willThrow(new ProductNotFoundException(999L));
 
         // when & then
-        mockMvc.perform(get("/api/products/999"))
+        mockMvc.perform(get("/api/products/999")
+                        .sessionAttr(SessionConst.LOGIN_MEMBER_ID, 1L))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.code").value("PRODUCT_NOT_FOUND"));
     }
@@ -121,7 +130,8 @@ class ProductControllerTest {
                 .willReturn(List.of(물품(1L, ProductStatus.SELLING), 물품(2L, ProductStatus.SELLING)));
 
         // when & then
-        mockMvc.perform(get("/api/products"))
+        mockMvc.perform(get("/api/products")
+                        .sessionAttr(SessionConst.LOGIN_MEMBER_ID, 1L))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.products[0].productId").value(1))
                 .andExpect(jsonPath("$.products[1].productId").value(2))
@@ -135,7 +145,8 @@ class ProductControllerTest {
                 .willReturn(List.of(물품(2L, ProductStatus.PREPARING), 물품(1L, ProductStatus.SOLD)));
 
         // when & then
-        mockMvc.perform(get("/api/products/sellers/원기"))
+        mockMvc.perform(get("/api/products/sellers/원기")
+                        .sessionAttr(SessionConst.LOGIN_MEMBER_ID, 1L))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.products[0].productId").value(2))
                 .andExpect(jsonPath("$.products[1].productId").value(1));
@@ -148,7 +159,9 @@ class ProductControllerTest {
                 .willReturn(List.of(물품(1L, ProductStatus.RESERVED)));
 
         // when & then
-        mockMvc.perform(get("/api/products/sellers/원기").param("status", "RESERVED"))
+        mockMvc.perform(get("/api/products/sellers/원기")
+                        .param("status", "RESERVED")
+                        .sessionAttr(SessionConst.LOGIN_MEMBER_ID, 1L))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.products[0].productId").value(1))
                 .andExpect(jsonPath("$.products[0].status").value("RESERVED"));
@@ -163,6 +176,7 @@ class ProductControllerTest {
         // when & then
         mockMvc.perform(post("/api/products/1/locker-reservation")
                         .contentType(MediaType.APPLICATION_JSON)
+                        .sessionAttr(SessionConst.LOGIN_MEMBER_ID, 1L)
                         .content("""
                                 {
                                   "lockerId": 1,
@@ -185,6 +199,7 @@ class ProductControllerTest {
         // when & then
         mockMvc.perform(post("/api/products/1/locker-reservation/cancel")
                         .contentType(MediaType.APPLICATION_JSON)
+                        .sessionAttr(SessionConst.LOGIN_MEMBER_ID, 1L)
                         .content("{" + "\"sellerName\":\"원기\"}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.productId").value(1))
@@ -203,6 +218,7 @@ class ProductControllerTest {
         // when & then
         mockMvc.perform(post("/api/products/1/deposit-start")
                         .contentType(MediaType.APPLICATION_JSON)
+                        .sessionAttr(SessionConst.LOGIN_MEMBER_ID, 1L)
                         .content("{" + "\"sellerName\":\"원기\"}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.productId").value(1))
@@ -222,6 +238,7 @@ class ProductControllerTest {
         // when & then
         mockMvc.perform(post("/api/products/1/deposit-complete")
                         .contentType(MediaType.APPLICATION_JSON)
+                        .sessionAttr(SessionConst.LOGIN_MEMBER_ID, 1L)
                         .content("{" + "\"sellerName\":\"원기\"}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.productId").value(1))
@@ -239,6 +256,7 @@ class ProductControllerTest {
         // when & then
         mockMvc.perform(post("/api/products/1/recovery-start")
                         .contentType(MediaType.APPLICATION_JSON)
+                        .sessionAttr(SessionConst.LOGIN_MEMBER_ID, 1L)
                         .content("{" + "\"sellerName\":\"원기\"}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.productId").value(1))
@@ -254,6 +272,7 @@ class ProductControllerTest {
         // when & then
         mockMvc.perform(post("/api/products/1/recovery-complete")
                         .contentType(MediaType.APPLICATION_JSON)
+                        .sessionAttr(SessionConst.LOGIN_MEMBER_ID, 1L)
                         .content("{" + "\"sellerName\":\"원기\"}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.productId").value(1))
