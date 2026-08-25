@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { createFileRoute, useRouter, Link } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -105,6 +105,13 @@ function HomePage() {
   const { data: lockersData, isLoading: isLockersLoading } = useGetLockers();
   const { data: myProductsData } = useGetMyProducts({});
 
+  // 예약중 셀의 남은 시간을 초 단위로 실시간으로 보여주기 위한 틱.
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    const timer = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
   const lockers: HomeLocker[] = useMemo(() => {
     const myProductByLockerId = new Map(
       (myProductsData?.products ?? [])
@@ -122,12 +129,12 @@ function HomePage() {
       } else if (locker.usageStatus === "RESERVED") {
         status = "reserved";
         detail = locker.reservationExpiresAt
-          ? formatCountdown(locker.reservationExpiresAt)
+          ? formatCountdown(locker.reservationExpiresAt, now)
           : undefined;
       } else if (locker.isMine) {
         status = "selling";
         detail = locker.sellingExpiresAt
-          ? formatDday(locker.sellingExpiresAt)
+          ? formatDday(locker.sellingExpiresAt, now)
           : undefined;
       } else {
         status = "occupied";
@@ -140,7 +147,7 @@ function HomePage() {
         productId: myProductByLockerId.get(locker.lockerId)?.productId,
       };
     });
-  }, [lockersData, myProductsData]);
+  }, [lockersData, myProductsData, now]);
 
   const selectedProductId =
     sheet?.type === "reserved" || sheet?.type === "selling"
