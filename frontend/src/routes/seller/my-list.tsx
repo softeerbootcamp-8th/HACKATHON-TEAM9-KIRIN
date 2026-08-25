@@ -108,6 +108,7 @@ function MyListPage() {
                     : "사물함 미지정"
                 }
                 badge={STATUS_BADGE[product.status]}
+                thumbnailUrl={product.imageUrl ?? undefined}
               />
             ))
           )}
