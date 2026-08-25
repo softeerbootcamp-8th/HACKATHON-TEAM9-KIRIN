@@ -503,7 +503,7 @@ class ProductServiceTest {
         Product product = 만료된물품();
         product.startRecovery(LocalDateTime.of(2026, 8, 25, 11, 59));
         Locker locker = new Locker(1L, LockStatus.LOCKED, UsageStatus.OCCUPIED);
-        given(productRepository.findByLockerId(1L)).willReturn(Optional.of(product));
+        given(productRepository.findFirstByLockerIdOrderByCreatedAtDescIdDesc(1L)).willReturn(Optional.of(product));
         given(productRepository.findByIdForUpdate(1L)).willReturn(Optional.of(product));
         given(lockerService.getLockerForUpdate(1L)).willReturn(locker);
 
@@ -519,7 +519,7 @@ class ProductServiceTest {
     @Test
     void 데모_잠금_대상_사물함에_회수시작된_물품이_없으면_아무일도_일어나지_않는다() {
         // given
-        given(productRepository.findByLockerId(1L)).willReturn(Optional.empty());
+        given(productRepository.findFirstByLockerIdOrderByCreatedAtDescIdDesc(1L)).willReturn(Optional.empty());
 
         // when & then
         productService.completeRecoveryForDemo(1L);
@@ -529,7 +529,7 @@ class ProductServiceTest {
     void 데모_잠금_대상_사물함의_물품이_아직_회수시작_전이면_아무일도_일어나지_않는다() {
         // given
         Product product = 만료된물품();
-        given(productRepository.findByLockerId(1L)).willReturn(Optional.of(product));
+        given(productRepository.findFirstByLockerIdOrderByCreatedAtDescIdDesc(1L)).willReturn(Optional.of(product));
 
         // when
         productService.completeRecoveryForDemo(1L);

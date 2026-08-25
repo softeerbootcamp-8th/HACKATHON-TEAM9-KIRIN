@@ -293,7 +293,7 @@ public class ProductService {
      */
     @Transactional
     public void completeRecoveryForDemo(Long lockerId) {
-        productRepository.findByLockerId(lockerId).ifPresent(found -> {
+        productRepository.findFirstByLockerIdOrderByCreatedAtDescIdDesc(lockerId).ifPresent(found -> {
             if (!found.isExpired() || !found.hasStartedRecovery()) {
                 return;
             }
