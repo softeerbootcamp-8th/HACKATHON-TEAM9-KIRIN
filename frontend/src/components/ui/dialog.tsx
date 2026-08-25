@@ -44,7 +44,10 @@ function DialogContent({
         {...props}
       >
         {children}
-        <DialogPrimitive.Close className="absolute top-4 right-4 rounded-sm text-[var(--color-text-muted)] opacity-80 transition-opacity hover:opacity-100 focus:outline-none">
+        <DialogPrimitive.Close
+          data-slot="dialog-close"
+          className="absolute top-4 right-4 rounded-sm text-[var(--color-text-muted)] opacity-80 transition-opacity hover:opacity-100 focus:outline-none"
+        >
           <X className="size-5" />
           <span className="sr-only">닫기</span>
         </DialogPrimitive.Close>

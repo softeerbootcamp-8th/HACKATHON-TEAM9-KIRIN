@@ -7,7 +7,8 @@ class ResizeObserverStub {
   unobserve() {}
   disconnect() {}
 }
-globalThis.ResizeObserver ??= ResizeObserverStub as unknown as typeof ResizeObserver;
+globalThis.ResizeObserver ??=
+  ResizeObserverStub as unknown as typeof ResizeObserver;
 
 Object.defineProperty(URL, "createObjectURL", {
   writable: true,

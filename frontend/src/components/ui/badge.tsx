@@ -14,8 +14,10 @@ const badgeVariants = cva(
           "bg-[color-mix(in_srgb,var(--color-warning)_18%,transparent)] text-[var(--color-warning)]",
         success:
           "bg-[color-mix(in_srgb,var(--color-success)_18%,transparent)] text-[var(--color-success)]",
-        danger:
-          "bg-[color-mix(in_srgb,var(--color-danger)_18%,transparent)] text-[var(--color-danger)]",
+        // 판매중 배지 등 (Figma `Badge/판매중`, DESIGN.md §3.1)
+        danger: "bg-[var(--color-danger-bg)] text-[var(--color-danger)]",
+        // 예약중 사물함 등 (Figma "Locker/reserved")
+        info: "bg-[var(--color-info-bg)] text-[var(--color-info)]",
         muted: "bg-[var(--color-surface-2)] text-[var(--color-text-muted)]",
       },
     },
