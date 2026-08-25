@@ -234,6 +234,25 @@ public class ProductService {
         validateSeller(product, sellerMemberId);
     }
 
+    /**
+     * 데모용: 사물함 잠금 버튼만으로 예약 중인 물품의 투입 시작·완료를 한 번에 흉내 낸다.
+     * 로그인·판매자 검증·투입 시작 여부와 무관하게, 예약된 물품이면 바로 판매중으로 전환한다.
+     */
+    @Transactional
+    public void completeDepositForDemo(Long lockerId) {
+        productRepository.findByLockerId(lockerId).ifPresent(found -> {
+            if (!found.isReserved()) {
+                return;
+            }
+            Product product = getProductForUpdate(found.getId());
+            Locker locker = lockerService.getLockerForUpdate(lockerId);
+            LocalDateTime now = LocalDateTime.now(clock);
+            product.completeDeposit(now, now.plusDays(SELLING_DAYS));
+            locker.occupy();
+            log.info("데모용 사물함 잠금으로 판매 시작 - productId={}, lockerId={}", product.getId(), lockerId);
+        });
+    }
+
     private void validateSeller(Product product, Long sellerMemberId) {
         if (!product.isOwnedBy(sellerMemberId)) {
             throw new SellerMismatchException(product.getId());
