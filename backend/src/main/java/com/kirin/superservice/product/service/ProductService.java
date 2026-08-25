@@ -19,6 +19,8 @@ import com.kirin.superservice.product.repository.ProductRepository;
 import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -225,6 +227,12 @@ public class ProductService {
         product.expireSelling();
         locker.occupy();
         locker.changeLockStatus(LockStatus.LOCKED);
+    }
+
+    /** 물품보관함 현황 조회용으로, 사물함을 점유 중인 물품을 lockerId로 매핑해 조회한다. */
+    public Map<Long, Product> findAllProductsByLockerId() {
+        return productRepository.findAllByLockerIdIsNotNull().stream()
+                .collect(Collectors.toMap(Product::getLockerId, product -> product));
     }
 
     /** 물품보관함을 지금 사용 중인 물품의 판매자인지 확인한다. 사물함 잠금 상태를 직접 조작할 때 사용한다. */

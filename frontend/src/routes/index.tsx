@@ -19,7 +19,13 @@ import {
   BottomSheetBody,
 } from "@/components/ui/bottom-sheet";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
-import { formatDateTime, formatPrice, formatRemaining } from "@/lib/format";
+import {
+  formatCountdown,
+  formatDateTime,
+  formatDday,
+  formatPrice,
+  formatRemaining,
+} from "@/lib/format";
 import {
   useGetLockers,
   getGetLockersQueryKey,
@@ -40,8 +46,6 @@ export const Route = createFileRoute("/")({
 });
 
 type HomeLocker = LockerGridItem & {
-  /** 본인이 예약/판매 중인 사물함인지 — 아니면 08-1 안내 모달 또는 토스트만 노출 */
-  isMine: boolean;
   productId?: number;
 };
 
@@ -85,9 +89,10 @@ function InfoBox({
  * "08-1 예약중입니다"). 로그인 게이트는 두지 않는다 — SessionProvider가
  * 부팅 시 게스트 세션을 조용히 만들어 둔다.
  *
- * `GET /lockers`(상태)와 `GET /products/me`(내 상품 요약, 소유권 판별용)를
- * lockerId로 합성해서 그리드를 만든다. 바텀시트를 열 때만 해당 상품의
- * 상세(`GET /products/{id}`)를 조회해 날짜 등 상세 정보를 채운다.
+ * `GET /lockers`가 소유 여부(isMine)와 남은 예약 시간/판매 일수를 이미 담아
+ * 주므로 그리드 표시는 그 응답만으로 만든다. 본인 소유 사물함을 눌러 바텀
+ * 시트를 열 때만 `GET /products/me`로 productId를 찾고, 이어서
+ * `GET /products/{id}`로 이름·가격 등 상세 정보를 채운다.
  */
 function HomePage() {
   const router = useRouter();
@@ -108,19 +113,31 @@ function HomePage() {
     );
 
     return (lockersData?.lockers ?? []).map((locker) => {
-      const myProduct = myProductByLockerId.get(locker.lockerId);
-      const status: LockerGridItem["status"] =
-        locker.usageStatus === "AVAILABLE"
-          ? "empty"
-          : locker.usageStatus === "RESERVED"
-            ? "reserved"
-            : "selling";
+      // 타인 소유(비로그인 포함)면 백엔드가 RESERVED/OCCUPIED를 구분 없이
+      // 전부 OCCUPIED로 내려주므로, 표시 상태는 usageStatus + isMine만으로 정해진다.
+      let status: LockerGridItem["status"];
+      let detail: string | undefined;
+      if (locker.usageStatus === "AVAILABLE") {
+        status = "empty";
+      } else if (locker.usageStatus === "RESERVED") {
+        status = "reserved";
+        detail = locker.reservationExpiresAt
+          ? formatCountdown(locker.reservationExpiresAt)
+          : undefined;
+      } else if (locker.isMine) {
+        status = "selling";
+        detail = locker.sellingExpiresAt
+          ? formatDday(locker.sellingExpiresAt)
+          : undefined;
+      } else {
+        status = "occupied";
+      }
 
       return {
         number: locker.lockerId,
         status,
-        isMine: myProduct != null,
-        productId: myProduct?.productId,
+        detail,
+        productId: myProductByLockerId.get(locker.lockerId)?.productId,
       };
     });
   }, [lockersData, myProductsData]);
@@ -149,18 +166,20 @@ function HomePage() {
     const locker = lockers.find((item) => item.number === number);
     if (!locker) return;
 
-    if (locker.status === "empty") {
-      setSheet({ type: "empty", locker });
-      return;
+    switch (locker.status) {
+      case "empty":
+        setSheet({ type: "empty", locker });
+        return;
+      case "reserved":
+        setSheet({ type: "reserved", locker });
+        return;
+      case "selling":
+        setSheet({ type: "selling", locker });
+        return;
+      case "occupied":
+        // 타인이 예약/판매 중인 사물함 — 어느 쪽인지는 구분하지 않고 안내만 띄운다.
+        setInfoModalLocker(locker);
     }
-    if (locker.status === "reserved") {
-      if (locker.isMine) setSheet({ type: "reserved", locker });
-      else setInfoModalLocker(locker);
-      return;
-    }
-    // selling
-    if (locker.isMine) setSheet({ type: "selling", locker });
-    else toast.info("판매 중인 사물함입니다.");
   };
 
   const handleCancelReservation = (locker: HomeLocker) => {
@@ -244,15 +263,15 @@ function HomePage() {
       <ul className="flex items-center gap-3.5 px-4 pt-4 text-xs text-[var(--color-text-muted)]">
         <li className="flex items-center gap-1">
           <span className="size-2 rounded-full bg-[var(--color-border)]" />
+          사용중
+        </li>
+        <li className="flex items-center gap-1">
+          <span className="size-2 rounded-full bg-[var(--color-mine)]" />
+          내 상품
+        </li>
+        <li className="flex items-center gap-1">
+          <span className="size-2 rounded-full bg-[var(--color-primary)]" />
           비어있음
-        </li>
-        <li className="flex items-center gap-1">
-          <span className="size-2 rounded-full bg-[var(--color-info)]" />
-          예약중
-        </li>
-        <li className="flex items-center gap-1">
-          <span className="size-2 rounded-full bg-[var(--color-danger)]" />
-          판매중
         </li>
       </ul>
 
@@ -334,11 +353,11 @@ function HomePage() {
       >
         <DialogContent className="max-w-[313px] gap-3.5 rounded-[16px] p-5">
           <DialogTitle className="text-center text-[17px]">
-            예약중인 사물함이에요
+            사용 중인 사물함이에요
           </DialogTitle>
           <ul className="flex flex-col gap-2 text-[13px] text-[var(--color-text-muted)]">
-            <li>· 다른 사용자가 예약한 사물함이에요.</li>
-            <li>· 판매 등록이 완료되면 상품 정보를 확인할 수 있어요.</li>
+            <li>· 다른 사용자가 예약 또는 판매 중인 사물함이에요.</li>
+            <li>· 이용이 끝나면 다시 예약할 수 있어요.</li>
           </ul>
           <Button fullWidth size="lg" onClick={() => setInfoModalLocker(null)}>
             확인

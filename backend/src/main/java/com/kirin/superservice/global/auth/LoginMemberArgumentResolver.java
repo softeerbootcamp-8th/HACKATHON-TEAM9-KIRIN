@@ -27,12 +27,12 @@ public class LoginMemberArgumentResolver implements HandlerMethodArgumentResolve
                                    NativeWebRequest webRequest, WebDataBinderFactory binderFactory) {
         HttpServletRequest request = (HttpServletRequest) webRequest.getNativeRequest();
         HttpSession session = request.getSession(false);
-        if (session == null) {
-            throw new BusinessException(ErrorCode.UNAUTHORIZED);
-        }
+        Long memberId = session == null
+                ? null
+                : (Long) session.getAttribute(SessionConst.LOGIN_MEMBER_ID);
 
-        Long memberId = (Long) session.getAttribute(SessionConst.LOGIN_MEMBER_ID);
-        if (memberId == null) {
+        boolean required = parameter.getParameterAnnotation(LoginMember.class).required();
+        if (memberId == null && required) {
             throw new BusinessException(ErrorCode.UNAUTHORIZED);
         }
 

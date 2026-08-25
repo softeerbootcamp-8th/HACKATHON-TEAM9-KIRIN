@@ -715,7 +715,15 @@ components:
 
     LockerSummaryResponse:
       type: object
-      required: [lockerId, lockStatus, usageStatus]
+      required:
+        [
+          lockerId,
+          lockStatus,
+          usageStatus,
+          isMine,
+          reservationExpiresAt,
+          sellingExpiresAt,
+        ]
       properties:
         lockerId:
           type: integer
@@ -724,6 +732,22 @@ components:
           $ref: "#/components/schemas/LockStatus"
         usageStatus:
           $ref: "#/components/schemas/UsageStatus"
+        isMine:
+          type: boolean
+          description: >-
+            로그인한 회원이 이 사물함을 점유 중인 물품의 판매자인지 여부.
+            false면(비로그인 포함) usageStatus는 RESERVED/OCCUPIED를
+            구분하지 않고 전부 OCCUPIED로 표시된다.
+        reservationExpiresAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: isMine && usageStatus=RESERVED일 때만 값이 있다.
+        sellingExpiresAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: isMine && 판매중(usageStatus=OCCUPIED)일 때만 값이 있다.
 
     LockerListResponse:
       type: object

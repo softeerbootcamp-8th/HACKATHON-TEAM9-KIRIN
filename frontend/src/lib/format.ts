@@ -36,3 +36,33 @@ export function formatRemaining(
   if (diffHours >= 1) return `${diffHours}시간 남음`;
   return `${Math.max(diffMinutes, 1)}분 남음`;
 }
+
+/**
+ * 만료 시각까지 남은 시간을 "1:23"(시:분) 형태로 표시한다.
+ * 사물함 현황 그리드의 예약중 셀처럼 좁은 공간에 쓴다 (Figma "01 홈 · 사물함 현황").
+ */
+export function formatCountdown(
+  expiresAtIso: string,
+  now: Date = new Date(),
+): string {
+  const diffMs = new Date(expiresAtIso).getTime() - now.getTime();
+  if (diffMs <= 0) return "0:00";
+
+  const totalMinutes = Math.floor(diffMs / (60 * 1000));
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  return `${hours}:${String(minutes).padStart(2, "0")}`;
+}
+
+/**
+ * 만료 시각까지 남은 날짜를 "D-3" / 오늘 만료면 "D-Day" 형태로 표시한다.
+ * 사물함 현황 그리드의 판매중 셀에 쓴다 (Figma "01 홈 · 사물함 현황").
+ */
+export function formatDday(
+  expiresAtIso: string,
+  now: Date = new Date(),
+): string {
+  const diffMs = new Date(expiresAtIso).getTime() - now.getTime();
+  const diffDays = Math.ceil(diffMs / (24 * 60 * 60 * 1000));
+  return diffDays <= 0 ? "D-Day" : `D-${diffDays}`;
+}

@@ -16,9 +16,12 @@ import com.kirin.superservice.global.slack.SlackErrorNotifier;
 import com.kirin.superservice.locker.exception.LockerAccessDeniedException;
 import com.kirin.superservice.locker.exception.LockerNotFoundException;
 import com.kirin.superservice.locker.service.LockerService;
+import com.kirin.superservice.product.domain.Product;
 import com.kirin.superservice.product.exception.SellerMismatchException;
 import com.kirin.superservice.product.service.ProductService;
+import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
@@ -42,19 +45,100 @@ class LockerControllerTest {
     SlackErrorNotifier slackErrorNotifier;
 
     @Test
-    void 보관함_목록을_조회하면_200과_잠금상태와_사용상태를_반환한다() throws Exception {
+    void 비어있는_보관함을_조회하면_200과_잠금상태와_사용상태를_반환한다() throws Exception {
         // given
         given(lockerService.findAllLockers()).willReturn(List.of(
-                new Locker(1L, LockStatus.LOCKED, UsageStatus.AVAILABLE),
-                new Locker(2L, LockStatus.UNLOCKED, UsageStatus.OCCUPIED)));
+                new Locker(1L, LockStatus.LOCKED, UsageStatus.AVAILABLE)));
+        given(productService.findAllProductsByLockerId()).willReturn(Map.of());
 
         // when & then
         mockMvc.perform(get("/api/lockers"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.lockers[0].lockerId").value(1))
+                .andExpect(jsonPath("$.lockers[0].lockStatus").value("LOCKED"))
                 .andExpect(jsonPath("$.lockers[0].usageStatus").value("AVAILABLE"))
-                .andExpect(jsonPath("$.lockers[1].lockStatus").value("UNLOCKED"))
-                .andExpect(jsonPath("$.lockers[1].usageStatus").value("OCCUPIED"));
+                .andExpect(jsonPath("$.lockers[0].isMine").value(false));
+    }
+
+    @Test
+    void 본인이_예약중인_보관함을_조회하면_예약상태와_남은_예약시간을_반환한다() throws Exception {
+        // given
+        LocalDateTime reservedAt = LocalDateTime.now();
+        Product product = new Product("item", 1000L, "설명", null, 1L, "seller");
+        product.reserveLocker(1L, reservedAt, reservedAt.plusHours(4));
+        given(lockerService.findAllLockers()).willReturn(List.of(
+                new Locker(1L, LockStatus.LOCKED, UsageStatus.RESERVED)));
+        given(productService.findAllProductsByLockerId()).willReturn(Map.of(1L, product));
+
+        // when & then
+        mockMvc.perform(get("/api/lockers")
+                        .sessionAttr(SessionConst.LOGIN_MEMBER_ID, 1L))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.lockers[0].isMine").value(true))
+                .andExpect(jsonPath("$.lockers[0].usageStatus").value("RESERVED"))
+                .andExpect(jsonPath("$.lockers[0].reservationExpiresAt").exists())
+                .andExpect(jsonPath("$.lockers[0].sellingExpiresAt").doesNotExist());
+    }
+
+    @Test
+    void 본인이_판매중인_보관함을_조회하면_판매상태와_남은_판매기간을_반환한다() throws Exception {
+        // given
+        LocalDateTime now = LocalDateTime.now();
+        Product product = new Product("item", 1000L, "설명", null, 1L, "seller");
+        product.reserveLocker(1L, now, now.plusHours(4));
+        product.startDeposit(now);
+        product.completeDeposit(now, now.plusDays(7));
+        given(lockerService.findAllLockers()).willReturn(List.of(
+                new Locker(1L, LockStatus.LOCKED, UsageStatus.OCCUPIED)));
+        given(productService.findAllProductsByLockerId()).willReturn(Map.of(1L, product));
+
+        // when & then
+        mockMvc.perform(get("/api/lockers")
+                        .sessionAttr(SessionConst.LOGIN_MEMBER_ID, 1L))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.lockers[0].isMine").value(true))
+                .andExpect(jsonPath("$.lockers[0].usageStatus").value("OCCUPIED"))
+                .andExpect(jsonPath("$.lockers[0].sellingExpiresAt").exists())
+                .andExpect(jsonPath("$.lockers[0].reservationExpiresAt").doesNotExist());
+    }
+
+    @Test
+    void 타인이_예약중인_보관함을_조회하면_예약여부_없이_사용중으로만_반환한다() throws Exception {
+        // given
+        LocalDateTime reservedAt = LocalDateTime.now();
+        Product product = new Product("item", 1000L, "설명", null, 1L, "seller");
+        product.reserveLocker(1L, reservedAt, reservedAt.plusHours(4));
+        given(lockerService.findAllLockers()).willReturn(List.of(
+                new Locker(1L, LockStatus.LOCKED, UsageStatus.RESERVED)));
+        given(productService.findAllProductsByLockerId()).willReturn(Map.of(1L, product));
+
+        // when & then
+        mockMvc.perform(get("/api/lockers")
+                        .sessionAttr(SessionConst.LOGIN_MEMBER_ID, 2L))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.lockers[0].isMine").value(false))
+                .andExpect(jsonPath("$.lockers[0].usageStatus").value("OCCUPIED"))
+                .andExpect(jsonPath("$.lockers[0].reservationExpiresAt").doesNotExist());
+    }
+
+    @Test
+    void 로그인하지_않고_판매중인_보관함을_조회하면_사용중으로만_반환한다() throws Exception {
+        // given
+        LocalDateTime now = LocalDateTime.now();
+        Product product = new Product("item", 1000L, "설명", null, 1L, "seller");
+        product.reserveLocker(1L, now, now.plusHours(4));
+        product.startDeposit(now);
+        product.completeDeposit(now, now.plusDays(7));
+        given(lockerService.findAllLockers()).willReturn(List.of(
+                new Locker(1L, LockStatus.LOCKED, UsageStatus.OCCUPIED)));
+        given(productService.findAllProductsByLockerId()).willReturn(Map.of(1L, product));
+
+        // when & then
+        mockMvc.perform(get("/api/lockers"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.lockers[0].isMine").value(false))
+                .andExpect(jsonPath("$.lockers[0].usageStatus").value("OCCUPIED"))
+                .andExpect(jsonPath("$.lockers[0].sellingExpiresAt").doesNotExist());
     }
 
     @Test
