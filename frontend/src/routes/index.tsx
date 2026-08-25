@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { createFileRoute, useRouter, Link } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { PageContainer } from "@/components/layout/page";
@@ -19,9 +19,84 @@ import {
 } from "@/components/ui/bottom-sheet";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 
+/**
+ * "05 사물함 예약 · 상품 선택" 에서 "자리 예약"/"바로 팔기" 를 누르면 해당 사물함
+ * 번호와 상품 정보를 쿼리 파라미터로 들고 홈으로 돌아온다 — 홈은 이 값을 읽어
+ * 사물함 상태를 갱신하고(예약의 경우) 바텀시트를 바로 띄운다.
+ */
+type HomeSearch = {
+  justReserved?: number;
+  justSold?: number;
+  product?: string;
+  price?: string;
+};
+
 export const Route = createFileRoute("/")({
+  validateSearch: (search: Record<string, unknown>): HomeSearch => ({
+    justReserved:
+      search.justReserved != null ? Number(search.justReserved) : undefined,
+    justSold: search.justSold != null ? Number(search.justSold) : undefined,
+    product: typeof search.product === "string" ? search.product : undefined,
+    price: typeof search.price === "string" ? search.price : undefined,
+  }),
   component: HomePage,
 });
+
+const WEEKDAY_KO = ["일", "월", "화", "수", "목", "금", "토"];
+// 예약 후 자동 취소되기까지의 시간 — 아래 안내 문구("최대 4시간")와 맞춘다.
+const RESERVATION_WINDOW_HOURS = 4;
+
+function formatDateTime(date: Date) {
+  const hh = String(date.getHours()).padStart(2, "0");
+  const mm = String(date.getMinutes()).padStart(2, "0");
+  return `${date.getMonth() + 1}/${date.getDate()}(${WEEKDAY_KO[date.getDay()]}) ${hh}:${mm}`;
+}
+
+/**
+ * 방금 예약/판매를 마치고 돌아온 경우 쿼리 파라미터를 사물함 목록에 반영한다.
+ * 컴포넌트 state의 지연 초기값(lazy initial state)으로만 쓰인다 — 마운트 이후
+ * search 가 바뀌어도 다시 계산하지 않는다.
+ */
+function applyHomeSearch(
+  base: HomeLocker[],
+  search: HomeSearch,
+): HomeLocker[] {
+  if (search.justReserved == null && search.justSold == null) return base;
+
+  const now = new Date();
+
+  if (search.justReserved != null) {
+    const end = new Date(
+      now.getTime() + RESERVATION_WINDOW_HOURS * 60 * 60 * 1000,
+    );
+    const reservedInfo = {
+      product: search.product ?? "선택한 상품",
+      period: `${formatDateTime(now)} ~ ${formatDateTime(end)}`,
+      remaining: `${RESERVATION_WINDOW_HOURS}시간`,
+    };
+    return base.map((item) =>
+      item.number === search.justReserved
+        ? { ...item, status: "reserved", isMine: true, reservedInfo }
+        : item,
+    );
+  }
+
+  const expiry = new Date(
+    now.getTime() + DEFAULT_MAX_OCCUPANCY_DAYS * 24 * 60 * 60 * 1000,
+  );
+  const sellingInfo = {
+    product: search.product ?? "선택한 상품",
+    price: search.price ?? "-",
+    start: formatDateTime(now),
+    expiry: formatDateTime(expiry),
+    remaining: `${DEFAULT_MAX_OCCUPANCY_DAYS}일 남음`,
+  };
+  return base.map((item) =>
+    item.number === search.justSold
+      ? { ...item, status: "selling", isMine: true, sellingInfo }
+      : item,
+  );
+}
 
 type HomeLocker = LockerGridItem & {
   /** 본인이 예약/판매 중인 사물함인지 — 아니면 08-1 안내 모달 또는 토스트만 노출 */
@@ -123,15 +198,36 @@ function InfoBox({
  */
 function HomePage() {
   const router = useRouter();
-  const [sheet, setSheet] = useState<SheetState | null>(null);
+  const search = Route.useSearch();
+  // search 는 최초 마운트 시 한 번만 반영한다 — 지연 초기값(lazy initial state)으로
+  // 계산하고, 아래 effect 에서 쿼리 파라미터만 정리해 새로고침 시 재적용을 막는다.
+  const [lockers, setLockers] = useState<HomeLocker[]>(() =>
+    applyHomeSearch(LOCKERS, search),
+  );
+  const [sheet, setSheet] = useState<SheetState | null>(() => {
+    if (search.justReserved == null) return null;
+    const locker = applyHomeSearch(LOCKERS, search).find(
+      (item) => item.number === search.justReserved,
+    );
+    return locker ? { type: "reserved", locker } : null;
+  });
   const [infoModalLocker, setInfoModalLocker] = useState<HomeLocker | null>(
     null,
   );
+  // "진열함 열기" 확인 모달 — 확인하면 예약중 → 판매중으로 전환된다.
+  const [openingLocker, setOpeningLocker] = useState<HomeLocker | null>(null);
 
   const closeSheet = () => setSheet(null);
 
+  // 사물함 예약 · 상품 선택 페이지에서 돌아온 직후라면 쿼리 파라미터를 지워
+  // 새로고침/뒤로가기 시 같은 예약·판매 처리가 반복되지 않게 한다.
+  useEffect(() => {
+    if (search.justReserved == null && search.justSold == null) return;
+    router.navigate({ to: "/", search: {}, replace: true });
+  }, [search, router]);
+
   const handleSelect = (number: number) => {
-    const locker = LOCKERS.find((item) => item.number === number);
+    const locker = lockers.find((item) => item.number === number);
     if (!locker) return;
 
     if (locker.status === "empty") {
@@ -146,6 +242,36 @@ function HomePage() {
     // selling
     if (locker.isMine) setSheet({ type: "selling", locker });
     else toast.info("판매 중인 사물함입니다.");
+  };
+
+  // "진열함 열기" 확인 — 예약중이던 사물함을 실제로 열어 판매중으로 전환한다.
+  const confirmOpenLocker = () => {
+    if (openingLocker) {
+      const now = new Date();
+      const expiry = new Date(
+        now.getTime() + DEFAULT_MAX_OCCUPANCY_DAYS * 24 * 60 * 60 * 1000,
+      );
+      setLockers((prev) =>
+        prev.map((item) =>
+          item.number === openingLocker.number
+            ? {
+                ...item,
+                status: "selling",
+                isMine: true,
+                reservedInfo: undefined,
+                sellingInfo: {
+                  product: openingLocker.reservedInfo?.product ?? "상품",
+                  price: "-",
+                  start: formatDateTime(now),
+                  expiry: formatDateTime(expiry),
+                  remaining: `${DEFAULT_MAX_OCCUPANCY_DAYS}일 남음`,
+                },
+              }
+            : item,
+        ),
+      );
+    }
+    setOpeningLocker(null);
   };
 
   return (
@@ -181,7 +307,7 @@ function HomePage() {
       </ul>
 
       <LockerGrid
-        lockers={LOCKERS}
+        lockers={lockers}
         onSelect={handleSelect}
         className="px-4 pt-4"
       />
@@ -269,11 +395,11 @@ function HomePage() {
                     size="lg"
                     className="flex-1"
                     onClick={() => {
-                      toast.success("사물함이 열렸어요.");
+                      setOpeningLocker(sheet.locker);
                       closeSheet();
                     }}
                   >
-                    사물함 열기
+                    진열함 열기
                   </Button>
                 </div>
               </BottomSheetBody>
@@ -344,6 +470,42 @@ function HomePage() {
             <li>· 판매 등록이 완료되면 상품 정보를 확인할 수 있어요.</li>
           </ul>
           <Button fullWidth size="lg" onClick={() => setInfoModalLocker(null)}>
+            확인
+          </Button>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={openingLocker !== null}
+        onOpenChange={(open) => !open && confirmOpenLocker()}
+      >
+        <DialogContent className="max-w-[313px] gap-3.5 rounded-[16px] p-5">
+          <DialogTitle className="text-center text-[17px]">
+            {openingLocker?.number}번 진열함이 열렸어요
+          </DialogTitle>
+
+          <ul className="flex flex-col gap-2 text-[13px] text-[var(--color-text-muted)]">
+            <li>· 상품을 넣은 뒤 문을 닫으면 자동으로 잠겨요.</li>
+            <li>
+              · 점유 기간은 최대{" "}
+              {openingLocker?.maxOccupancyDays ?? DEFAULT_MAX_OCCUPANCY_DAYS}
+              일이에요.
+            </li>
+            <li>
+              · 기간이 끝나기 전까지 판매되지 않으면 상품을 회수해 주세요.
+            </li>
+          </ul>
+
+          <div className="flex gap-1.5 rounded-[var(--radius-sm)] bg-[var(--color-primary-weak)] p-3 text-[var(--color-primary)]">
+            <span className="text-[13px] font-bold">!</span>
+            <p className="text-xs font-medium">
+              문이 완전히 닫혔는지 반드시 확인해 주세요.
+              <br />
+              열린 채로 두면 분실 책임이 판매자에게 있어요.
+            </p>
+          </div>
+
+          <Button fullWidth size="lg" onClick={confirmOpenLocker}>
             확인
           </Button>
         </DialogContent>

@@ -30,7 +30,9 @@ const MY_UNPLACED_PRODUCTS = [
 
 /**
  * 사물함 예약 · 상품 선택 (Figma "05 사물함 예약 · 상품 선택").
- * 예약 확정 시 "08 모달 · 사물함 잠금 해제" 를 띄우고, 확인하면 홈으로 돌아간다.
+ * "자리 예약"은 사물함을 열지 않고 홈의 "03 홈 · 바텀시트(예약중·본인)" 로 바로
+ * 이동하고, "바로 팔기"는 "08 모달 · 사물함 잠금 해제" 를 띄운 뒤 확인하면
+ * 홈으로 돌아간다.
  */
 function ReservePage() {
   const { number } = Route.useParams();
@@ -39,7 +41,33 @@ function ReservePage() {
   const [selectedId, setSelectedId] = useState<string | null>(
     MY_UNPLACED_PRODUCTS[0].id,
   );
-  const [unlocked, setUnlocked] = useState(false);
+  const [sellDialogOpen, setSellDialogOpen] = useState(false);
+
+  const selectedProduct =
+    MY_UNPLACED_PRODUCTS.find((product) => product.id === selectedId) ?? null;
+
+  const handleReserveSpot = () => {
+    if (!selectedProduct) return;
+    router.navigate({
+      to: "/",
+      search: { justReserved: Number(number), product: selectedProduct.title },
+    });
+  };
+
+  const confirmSell = () => {
+    if (!selectedProduct) {
+      router.navigate({ to: "/" });
+      return;
+    }
+    router.navigate({
+      to: "/",
+      search: {
+        justSold: Number(number),
+        product: selectedProduct.title,
+        price: selectedProduct.place,
+      },
+    });
+  };
 
   return (
     <PageContainer>
@@ -77,30 +105,39 @@ function ReservePage() {
         </div>
 
         <p className="text-xs text-[var(--color-text-muted)]">
-          선택한 상품은 예약 확정 후 {number}번 사물함에 등록돼요.
+          선택한 상품은 예약 확정 후 {number}번 진열함에 등록돼요.
         </p>
       </div>
 
-      <div className="mt-auto flex flex-col border-t border-[var(--color-border)] px-4 py-3">
+      <div className="mt-auto flex gap-4 border-t border-[var(--color-border)] px-4 py-3">
         <Button
-          fullWidth
+          variant="secondary"
           size="lg"
-          disabled={!selectedId}
-          onClick={() => setUnlocked(true)}
+          className="flex-1"
+          disabled={!selectedProduct}
+          onClick={handleReserveSpot}
         >
-          예약 확정하기
+          자리 예약
+        </Button>
+        <Button
+          size="lg"
+          className="flex-1"
+          disabled={!selectedProduct}
+          onClick={() => setSellDialogOpen(true)}
+        >
+          바로 팔기
         </Button>
       </div>
 
       <Dialog
-        open={unlocked}
+        open={sellDialogOpen}
         onOpenChange={(open) => {
-          if (!open) router.navigate({ to: "/" });
+          if (!open) confirmSell();
         }}
       >
         <DialogContent className="max-w-[313px] gap-3.5 rounded-[16px] p-5">
           <DialogTitle className="text-center text-[17px]">
-            {number}번 사물함이 열렸어요
+            {number}번 진열함이 열렸어요
           </DialogTitle>
 
           <ul className="flex flex-col gap-2 text-[13px] text-[var(--color-text-muted)]">
@@ -126,11 +163,7 @@ function ReservePage() {
             </p>
           </div>
 
-          <Button
-            fullWidth
-            size="lg"
-            onClick={() => router.navigate({ to: "/" })}
-          >
+          <Button fullWidth size="lg" onClick={confirmSell}>
             확인
           </Button>
         </DialogContent>
