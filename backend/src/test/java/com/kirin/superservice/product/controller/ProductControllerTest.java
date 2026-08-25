@@ -7,6 +7,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.kirin.superservice.global.slack.SlackErrorNotifier;
 import com.kirin.superservice.locker.exception.LockerAlreadyOccupiedException;
 import com.kirin.superservice.product.domain.Product;
 import com.kirin.superservice.product.domain.ProductStatus;
@@ -30,6 +31,9 @@ class ProductControllerTest {
 
     @MockitoBean
     ProductService productService;
+
+    @MockitoBean
+    SlackErrorNotifier slackErrorNotifier;
 
     private static final String 등록_요청_본문 = """
             {

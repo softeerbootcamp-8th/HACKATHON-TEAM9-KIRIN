@@ -5,6 +5,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.kirin.superservice.global.slack.SlackErrorNotifier;
 import com.kirin.superservice.payment.dto.request.PaymentConfirmRequest;
 import com.kirin.superservice.payment.dto.response.PaymentConfirmResponse;
 import com.kirin.superservice.payment.exception.PaymentConfirmFailedException;
@@ -24,6 +25,9 @@ class PaymentControllerTest {
 
     @MockitoBean
     PaymentService paymentService;
+
+    @MockitoBean
+    SlackErrorNotifier slackErrorNotifier;
 
     @Test
     void 유효한_결제정보로_승인을_요청하면_200과_승인결과를_반환한다() throws Exception {

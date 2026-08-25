@@ -7,6 +7,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.kirin.superservice.global.slack.SlackErrorNotifier;
 import com.kirin.superservice.payment.exception.PaymentConfirmFailedException;
 import com.kirin.superservice.product.domain.ProductStatus;
 import com.kirin.superservice.product.exception.ProductNotSellingException;
@@ -35,6 +36,9 @@ class TransactionControllerTest {
 
     @MockitoBean
     TransactionService transactionService;
+
+    @MockitoBean
+    SlackErrorNotifier slackErrorNotifier;
 
     private static final String 구매_요청_본문 = """
             {

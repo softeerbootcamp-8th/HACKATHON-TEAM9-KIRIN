@@ -9,6 +9,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.kirin.superservice.locker.domain.Locker;
 import com.kirin.superservice.locker.domain.LockStatus;
 import com.kirin.superservice.locker.domain.UsageStatus;
+import com.kirin.superservice.global.slack.SlackErrorNotifier;
 import com.kirin.superservice.locker.exception.LockerNotFoundException;
 import com.kirin.superservice.locker.service.LockerService;
 import java.util.List;
@@ -27,6 +28,9 @@ class LockerControllerTest {
 
     @MockitoBean
     LockerService lockerService;
+
+    @MockitoBean
+    SlackErrorNotifier slackErrorNotifier;
 
     @Test
     void 보관함_목록을_조회하면_200과_잠금상태와_사용상태를_반환한다() throws Exception {
