@@ -5,6 +5,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.kirin.superservice.global.auth.SessionConst;
 import com.kirin.superservice.global.slack.SlackErrorNotifier;
 import com.kirin.superservice.payment.dto.request.PaymentConfirmRequest;
 import com.kirin.superservice.payment.dto.response.PaymentConfirmResponse;
@@ -40,6 +41,7 @@ class PaymentControllerTest {
         // when & then
         mockMvc.perform(post("/api/payments/confirm")
                         .contentType(MediaType.APPLICATION_JSON)
+                        .sessionAttr(SessionConst.LOGIN_MEMBER_ID, 1L)
                         .content("""
                                 {"paymentKey":"paymentKey","orderId":"orderId","amount":1000}
                                 """))
@@ -58,6 +60,7 @@ class PaymentControllerTest {
         // when & then
         mockMvc.perform(post("/api/payments/confirm")
                         .contentType(MediaType.APPLICATION_JSON)
+                        .sessionAttr(SessionConst.LOGIN_MEMBER_ID, 1L)
                         .content("""
                                 {"paymentKey":"paymentKey","orderId":"orderId","amount":1000}
                                 """))
@@ -70,6 +73,7 @@ class PaymentControllerTest {
         // when & then
         mockMvc.perform(post("/api/payments/confirm")
                         .contentType(MediaType.APPLICATION_JSON)
+                        .sessionAttr(SessionConst.LOGIN_MEMBER_ID, 1L)
                         .content("""
                                 {"paymentKey":"","orderId":"orderId","amount":1000}
                                 """))

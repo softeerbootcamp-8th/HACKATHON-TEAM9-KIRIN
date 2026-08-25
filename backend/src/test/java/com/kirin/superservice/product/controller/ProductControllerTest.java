@@ -7,6 +7,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.kirin.superservice.global.auth.SessionConst;
 import com.kirin.superservice.global.slack.SlackErrorNotifier;
 import com.kirin.superservice.locker.exception.LockerAlreadyOccupiedException;
 import com.kirin.superservice.product.domain.Product;
@@ -59,6 +60,7 @@ class ProductControllerTest {
         // when & then
         mockMvc.perform(post("/api/products")
                         .contentType(MediaType.APPLICATION_JSON)
+                        .sessionAttr(SessionConst.LOGIN_MEMBER_ID, 1L)
                         .content(등록_요청_본문))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.productId").value(1))
@@ -80,6 +82,7 @@ class ProductControllerTest {
         // when & then
         mockMvc.perform(post("/api/products")
                         .contentType(MediaType.APPLICATION_JSON)
+                        .sessionAttr(SessionConst.LOGIN_MEMBER_ID, 1L)
                         .content(이름_없는_요청))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("INVALID_REQUEST"));
@@ -94,6 +97,7 @@ class ProductControllerTest {
         // when & then
         mockMvc.perform(post("/api/products")
                         .contentType(MediaType.APPLICATION_JSON)
+                        .sessionAttr(SessionConst.LOGIN_MEMBER_ID, 1L)
                         .content(등록_요청_본문))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.code").value("LOCKER_ALREADY_OCCUPIED"));
@@ -105,7 +109,8 @@ class ProductControllerTest {
         given(productService.getProduct(1L)).willReturn(물품(1L, ProductStatus.SELLING));
 
         // when & then
-        mockMvc.perform(get("/api/products/1"))
+        mockMvc.perform(get("/api/products/1")
+                        .sessionAttr(SessionConst.LOGIN_MEMBER_ID, 1L))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.productId").value(1))
                 .andExpect(jsonPath("$.name").value("아이패드"))
@@ -118,7 +123,8 @@ class ProductControllerTest {
         given(productService.getProduct(999L)).willThrow(new ProductNotFoundException(999L));
 
         // when & then
-        mockMvc.perform(get("/api/products/999"))
+        mockMvc.perform(get("/api/products/999")
+                        .sessionAttr(SessionConst.LOGIN_MEMBER_ID, 1L))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.code").value("PRODUCT_NOT_FOUND"));
     }
@@ -130,7 +136,8 @@ class ProductControllerTest {
                 .willReturn(List.of(물품(1L, ProductStatus.SELLING), 물품(2L, ProductStatus.SELLING)));
 
         // when & then
-        mockMvc.perform(get("/api/products"))
+        mockMvc.perform(get("/api/products")
+                        .sessionAttr(SessionConst.LOGIN_MEMBER_ID, 1L))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.products[0].productId").value(1))
                 .andExpect(jsonPath("$.products[1].productId").value(2))
@@ -143,7 +150,8 @@ class ProductControllerTest {
         given(productService.completeRegistration(1L)).willReturn(물품(1L, ProductStatus.SELLING));
 
         // when & then
-        mockMvc.perform(post("/api/products/1/registration-complete"))
+        mockMvc.perform(post("/api/products/1/registration-complete")
+                        .sessionAttr(SessionConst.LOGIN_MEMBER_ID, 1L))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.productId").value(1))
                 .andExpect(jsonPath("$.status").value("SELLING"));

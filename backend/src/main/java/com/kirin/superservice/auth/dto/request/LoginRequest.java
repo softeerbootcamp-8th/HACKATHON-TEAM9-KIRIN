@@ -1,0 +1,18 @@
+package com.kirin.superservice.auth.dto.request;
+
+import com.kirin.superservice.member.service.LoginCommand;
+
+import jakarta.validation.constraints.NotBlank;
+
+public record LoginRequest(
+
+        @NotBlank(message = "로그인 아이디는 필수입니다.")
+        String loginId,
+
+        @NotBlank(message = "비밀번호는 필수입니다.")
+        String password
+) {
+    public LoginCommand toCommand() {
+        return new LoginCommand(loginId, password);
+    }
+}
