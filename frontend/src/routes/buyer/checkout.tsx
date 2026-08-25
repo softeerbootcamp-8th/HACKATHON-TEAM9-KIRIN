@@ -1,67 +1,97 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createFileRoute, useRouter } from "@tanstack/react-router";
-import { Circle, CircleDot } from "lucide-react";
-import { cn } from "@/lib/utils";
+import {
+  ANONYMOUS,
+  loadTossPayments,
+  type TossPaymentsWidgets,
+} from "@tosspayments/tosspayments-sdk";
+import { toast } from "sonner";
 import { PageContainer } from "@/components/layout/page";
 import { Header } from "@/components/layout/header";
 import { ItemRow } from "@/components/domain/item-row";
 import { Button } from "@/components/ui/button";
+import { formatPrice } from "@/lib/format";
+import { useGetProduct } from "@/api/generated/products/products";
+
+type CheckoutSearch = { productId: number };
 
 export const Route = createFileRoute("/buyer/checkout")({
+  validateSearch: (search: Record<string, unknown>): CheckoutSearch => ({
+    productId: Number(search.productId),
+  }),
   component: CheckoutPage,
 });
 
-// 구매 대상 상품 — 실제로는 상품 상세에서 넘어온 값(또는 조회 쿼리)으로 채운다.
-const ORDER = {
-  productName: "골프채",
-  price: 600_000,
-  location: "에테르노 청담 · 16번 사물함",
-};
-const SERVICE_FEE = 3_000;
+const PAYMENT_METHOD_SELECTOR = "#toss-payment-method";
+const AGREEMENT_SELECTOR = "#toss-agreement";
 
-const PAYMENT_METHODS = [
-  { id: "kakaopay", label: "카카오페이" },
-  { id: "card", label: "신용 · 체크카드" },
-  { id: "transfer", label: "계좌이체" },
-] as const;
-
-/** Method/* — 결제 수단 선택 라디오 행 (Figma "10 결제") */
-function PaymentMethodOption({
-  label,
-  selected,
-  onSelect,
-}: {
-  label: string;
-  selected: boolean;
-  onSelect: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onSelect}
-      className={cn(
-        "flex w-full items-center gap-2.5 rounded-[var(--radius-sm)] border p-3.5 text-sm",
-        selected
-          ? "border-[var(--color-primary)] bg-[var(--color-primary-weak)] font-medium text-[var(--color-text-sub)]"
-          : "border-[var(--color-border)] bg-[var(--color-bg)] text-[var(--color-text-muted)]",
-      )}
-    >
-      {selected ? (
-        <CircleDot className="size-5 text-[var(--color-primary)]" />
-      ) : (
-        <Circle className="size-5 text-[var(--color-border)]" />
-      )}
-      {label}
-    </button>
-  );
-}
-
-/** 결제 (Figma "10 결제") */
+/**
+ * 결제 (Figma "10 결제"). 결제수단은 커스텀 버튼 대신 토스페이먼츠
+ * 결제위젯(`widgets()` API)이 렌더링하는 UI를 그대로 쓴다 — `payment()` API의
+ * `method` 파라미터로는 카카오페이를 직접 지정할 방법이 문서화되어 있지 않다.
+ */
 function CheckoutPage() {
   const router = useRouter();
-  const [method, setMethod] =
-    useState<(typeof PAYMENT_METHODS)[number]["id"]>("kakaopay");
-  const total = ORDER.price + SERVICE_FEE;
+  const { productId } = Route.useSearch();
+  const { data: product, isLoading } = useGetProduct(productId);
+
+  const [widgets, setWidgets] = useState<TossPaymentsWidgets | null>(null);
+  const [isPaying, setIsPaying] = useState(false);
+  const orderIdRef = useRef(`order-${crypto.randomUUID()}`);
+
+  const clientKey = import.meta.env.VITE_TOSS_CLIENT_KEY;
+
+  useEffect(() => {
+    if (!product || !clientKey) return;
+    let active = true;
+
+    (async () => {
+      const tossPayments = await loadTossPayments(clientKey);
+      const instance = tossPayments.widgets({ customerKey: ANONYMOUS });
+      await instance.setAmount({ currency: "KRW", value: product.price });
+      await Promise.all([
+        instance.renderPaymentMethods({ selector: PAYMENT_METHOD_SELECTOR }),
+        instance.renderAgreement({ selector: AGREEMENT_SELECTOR }),
+      ]);
+      if (active) setWidgets(instance);
+    })();
+
+    return () => {
+      active = false;
+      document.querySelector(PAYMENT_METHOD_SELECTOR)?.replaceChildren();
+      document.querySelector(AGREEMENT_SELECTOR)?.replaceChildren();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [product?.productId, clientKey]);
+
+  const handlePay = async () => {
+    if (!widgets || !product || isPaying) return;
+    setIsPaying(true);
+    try {
+      await widgets.requestPayment({
+        orderId: orderIdRef.current,
+        orderName: product.name,
+        successUrl: `${window.location.origin}/buyer/payments/success?productId=${product.productId}`,
+        failUrl: `${window.location.origin}/buyer/payments/fail?productId=${product.productId}`,
+      });
+    } catch (error) {
+      if (error instanceof Error && error.name === "UserCancelError") return;
+      toast.error("결제창을 여는 데 실패했어요.");
+    } finally {
+      setIsPaying(false);
+    }
+  };
+
+  if (isLoading || !product) {
+    return (
+      <PageContainer>
+        <Header title="결제" onBack={() => router.history.back()} />
+        <p className="px-4 pt-10 text-center text-sm text-[var(--color-text-muted)]">
+          불러오는 중...
+        </p>
+      </PageContainer>
+    );
+  }
 
   return (
     <PageContainer>
@@ -73,9 +103,14 @@ function CheckoutPage() {
             주문 상품
           </h2>
           <ItemRow
-            title={ORDER.productName}
-            place={`${ORDER.price.toLocaleString()}원`}
-            address={ORDER.location}
+            title={product.name}
+            place={formatPrice(product.price)}
+            address={
+              product.lockerId != null
+                ? `${product.lockerId}번 사물함`
+                : "사물함 미배치"
+            }
+            thumbnailUrl={product.imageUrl ?? undefined}
           />
         </section>
 
@@ -83,45 +118,13 @@ function CheckoutPage() {
           <h2 className="text-[15px] font-bold text-[var(--color-text-sub)]">
             결제 수단
           </h2>
-          {PAYMENT_METHODS.map((option) => (
-            <PaymentMethodOption
-              key={option.id}
-              label={option.label}
-              selected={method === option.id}
-              onSelect={() => setMethod(option.id)}
-            />
-          ))}
-        </section>
-
-        <section className="flex flex-col gap-2">
-          <h2 className="text-[15px] font-bold text-[var(--color-text-sub)]">
-            결제 금액
-          </h2>
-          <div className="flex flex-col gap-2.5 rounded-[var(--radius-sm)] border border-[var(--color-border)] bg-[var(--color-surface-2)] p-3.5 text-[13px]">
-            <div className="flex items-center justify-between">
-              <span className="text-[var(--color-text-muted)]">상품 금액</span>
-              <span className="font-medium text-[var(--color-text-sub)]">
-                {ORDER.price.toLocaleString()}원
-              </span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-[var(--color-text-muted)]">
-                서비스 수수료
-              </span>
-              <span className="font-medium text-[var(--color-text-sub)]">
-                {SERVICE_FEE.toLocaleString()}원
-              </span>
-            </div>
-            <div className="h-px w-full bg-[var(--color-border)]" />
-            <div className="flex items-center justify-between font-bold">
-              <span className="text-sm text-[var(--color-text-sub)]">
-                총 결제 금액
-              </span>
-              <span className="text-base text-[var(--color-primary)]">
-                {total.toLocaleString()}원
-              </span>
-            </div>
-          </div>
+          <div id="toss-payment-method" />
+          <div id="toss-agreement" />
+          {!widgets && (
+            <p className="py-6 text-center text-sm text-[var(--color-text-muted)]">
+              결제 수단을 불러오는 중...
+            </p>
+          )}
         </section>
 
         <p className="text-xs text-[var(--color-text-muted)]">
@@ -134,9 +137,10 @@ function CheckoutPage() {
         <Button
           fullWidth
           size="lg"
-          onClick={() => router.navigate({ to: "/buyer/checkout-complete" })}
+          disabled={!widgets || isPaying}
+          onClick={handlePay}
         >
-          {total.toLocaleString()}원 결제하기
+          {formatPrice(product.price)} 결제하기
         </Button>
       </div>
     </PageContainer>
