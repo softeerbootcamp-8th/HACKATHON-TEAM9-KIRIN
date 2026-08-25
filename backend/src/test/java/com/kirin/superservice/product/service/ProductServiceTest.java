@@ -18,6 +18,7 @@ import com.kirin.superservice.product.domain.Product;
 import com.kirin.superservice.product.domain.ProductStatus;
 import com.kirin.superservice.product.dto.request.RegisterProductRequest;
 import com.kirin.superservice.product.dto.request.ReserveLockerRequest;
+import com.kirin.superservice.product.exception.InvalidProductStatusException;
 import com.kirin.superservice.product.exception.SellerMismatchException;
 import com.kirin.superservice.product.exception.ProductNotFoundException;
 import com.kirin.superservice.product.exception.ReservationExpiredException;
@@ -341,6 +342,34 @@ class ProductServiceTest {
         // then
         assertThat(result.getRecoveryStartedAt()).isEqualTo(LocalDateTime.of(2026, 8, 25, 12, 0));
         assertThat(locker.getLockStatus()).isEqualTo(LockStatus.UNLOCKED);
+    }
+
+    @Test
+    void 판매기간이_남은_물품도_회수를_시작하면_즉시_만료처리되고_사물함이_열린다() {
+        // given
+        Product product = 판매중물품();
+        Locker locker = new Locker(1L, LockStatus.LOCKED, UsageStatus.OCCUPIED);
+        given(productRepository.findByIdForUpdate(1L)).willReturn(Optional.of(product));
+        given(lockerService.getLockerForUpdate(1L)).willReturn(locker);
+
+        // when
+        Product result = productService.startRecovery(1L, 판매자_ID);
+
+        // then
+        assertThat(result.getStatus()).isEqualTo(ProductStatus.EXPIRED);
+        assertThat(result.getRecoveryStartedAt()).isEqualTo(LocalDateTime.of(2026, 8, 25, 12, 0));
+        assertThat(locker.getLockStatus()).isEqualTo(LockStatus.UNLOCKED);
+    }
+
+    @Test
+    void 예약중이거나_준비중인_물품의_회수를_시작하면_예외가_발생한다() {
+        // given
+        Product product = 예약된물품();
+        given(productRepository.findByIdForUpdate(1L)).willReturn(Optional.of(product));
+
+        // when & then
+        assertThatThrownBy(() -> productService.startRecovery(1L, 판매자_ID))
+                .isInstanceOf(InvalidProductStatusException.class);
     }
 
     @Test
