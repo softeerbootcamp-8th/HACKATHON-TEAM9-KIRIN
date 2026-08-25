@@ -371,6 +371,24 @@ paths:
         default:
           $ref: "#/components/responses/Error"
 
+  /lockers/{lockerId}/reset:
+    post:
+      operationId: resetLocker
+      tags:
+        - lockers
+      summary: 사물함 초기화 (관리자용, 잠김+비어있음으로 강제 복구)
+      parameters:
+        - $ref: "#/components/parameters/LockerId"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LockerSummaryResponse"
+        default:
+          $ref: "#/components/responses/Error"
+
   /transactions:
     post:
       operationId: purchaseProduct
