@@ -12,7 +12,15 @@ unsigned long lastPollAt = 0;
 void connectWiFi() {
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
   Serial.print("WiFi 연결 중");
+
+  unsigned long startedAt = millis();
   while (WiFi.status() != WL_CONNECTED) {
+    if (millis() - startedAt > WIFI_CONNECT_TIMEOUT_MS) {
+      Serial.println();
+      Serial.println("WiFi 재연결 실패 - 재부팅합니다");
+      delay(200);
+      ESP.restart();
+    }
     delay(300);
     Serial.print(".");
   }

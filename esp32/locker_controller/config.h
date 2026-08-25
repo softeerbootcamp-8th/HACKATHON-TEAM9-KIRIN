@@ -15,6 +15,9 @@
 // HTTP 요청 타임아웃 (ms)
 #define HTTP_TIMEOUT_MS 500
 
+// WiFi 재연결 제한 시간 (ms) - 이 시간 안에 재연결 못하면 재부팅
+#define WIFI_CONNECT_TIMEOUT_MS 15000
+
 // 관리할 보관함 개수와 매핑
 #define LOCKER_COUNT 2
 
