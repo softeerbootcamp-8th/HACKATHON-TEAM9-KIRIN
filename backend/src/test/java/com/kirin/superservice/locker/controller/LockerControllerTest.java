@@ -15,6 +15,7 @@ import com.kirin.superservice.global.slack.SlackErrorNotifier;
 import com.kirin.superservice.locker.exception.LockerNotFoundException;
 import com.kirin.superservice.locker.service.LockerService;
 import com.kirin.superservice.product.service.ProductService;
+import com.kirin.superservice.transaction.service.TransactionService;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -34,6 +35,9 @@ class LockerControllerTest {
 
     @MockitoBean
     ProductService productService;
+
+    @MockitoBean
+    TransactionService transactionService;
 
     @MockitoBean
     SlackErrorNotifier slackErrorNotifier;
@@ -93,6 +97,7 @@ class LockerControllerTest {
                 .andExpect(jsonPath("$.lockStatus").value("UNLOCKED"));
 
         then(productService).should(never()).completeDepositForDemo(1L);
+        then(transactionService).should(never()).completePickupForDemo(1L);
     }
 
     @Test
@@ -110,6 +115,7 @@ class LockerControllerTest {
                 .andExpect(jsonPath("$.lockStatus").value("LOCKED"));
 
         then(productService).should().completeDepositForDemo(1L);
+        then(transactionService).should().completePickupForDemo(1L);
     }
 
     @Test

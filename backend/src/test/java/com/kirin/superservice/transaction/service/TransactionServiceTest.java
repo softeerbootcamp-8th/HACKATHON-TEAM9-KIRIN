@@ -222,6 +222,32 @@ class TransactionServiceTest {
     }
 
     @Test
+    void 데모_잠금으로_결제완료된_거래는_구매자_확인_없이_바로_수령완료된다() {
+        // given
+        Locker locker = new Locker(1L, LockStatus.UNLOCKED, UsageStatus.OCCUPIED);
+        given(transactionRepository.findByLockerIdAndStatus(1L, TransactionStatus.PAID))
+                .willReturn(Optional.of(거래(TransactionStatus.PAID)));
+        given(lockerService.getLockerForUpdate(1L)).willReturn(locker);
+
+        // when
+        transactionService.completePickupForDemo(1L);
+
+        // then
+        assertThat(locker.getLockStatus()).isEqualTo(LockStatus.LOCKED);
+        assertThat(locker.getUsageStatus()).isEqualTo(UsageStatus.AVAILABLE);
+    }
+
+    @Test
+    void 데모_잠금_대상_사물함에_결제완료된_거래가_없으면_아무일도_일어나지_않는다() {
+        // given
+        given(transactionRepository.findByLockerIdAndStatus(1L, TransactionStatus.PAID))
+                .willReturn(Optional.empty());
+
+        // when & then
+        transactionService.completePickupForDemo(1L);
+    }
+
+    @Test
     void 존재하지_않는_거래를_조회하면_예외가_발생한다() {
         // given
         given(transactionRepository.findById(999L)).willReturn(Optional.empty());
