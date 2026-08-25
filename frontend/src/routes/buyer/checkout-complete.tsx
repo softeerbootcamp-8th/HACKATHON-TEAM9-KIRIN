@@ -20,7 +20,7 @@ export const Route = createFileRoute("/buyer/checkout-complete")({
 
 /**
  * 결제 완료 · 사물함 열림 (Figma "11 결제 완료 · 사물함 열림").
- * 뒤로가기가 없는 종료 화면 — "수령 완료"를 누르면 다시 스캔 화면으로 돌아간다.
+ * 뒤로가기가 없는 종료 화면 — "수령 완료"를 누르면 홈으로 돌아간다.
  */
 function CheckoutCompletePage() {
   const router = useRouter();
@@ -31,7 +31,7 @@ function CheckoutCompletePage() {
   const handlePickupComplete = () => {
     completePickup.mutate(
       { transactionId },
-      { onSettled: () => router.navigate({ to: "/buyer/scan" }) },
+      { onSettled: () => router.navigate({ to: "/" }) },
     );
   };
 
