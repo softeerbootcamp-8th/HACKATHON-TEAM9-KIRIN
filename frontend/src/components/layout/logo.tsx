@@ -13,7 +13,7 @@ export function Logo({ className }: { className?: string }) {
       )}
     >
       <span className="text-2xl leading-7 font-bold text-[var(--color-text)]">
-        KIRIN
+        오다가다
       </span>
     </div>
   );
