@@ -12,7 +12,7 @@ export function Logo({ className }: { className?: string }) {
         className,
       )}
     >
-      <span className="text-2xl leading-7 font-bold text-[var(--color-text)]">
+      <span className="font-brand text-2xl leading-7 font-bold text-[var(--color-text)]">
         오다가다
       </span>
     </div>
