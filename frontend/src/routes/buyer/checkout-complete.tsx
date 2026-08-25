@@ -1,4 +1,3 @@
-import { Check } from "lucide-react";
 import { createFileRoute, useRouter } from "@tanstack/react-router";
 import { PageContainer } from "@/components/layout/page";
 import { Button } from "@/components/ui/button";
@@ -26,8 +25,8 @@ function CheckoutCompletePage() {
   return (
     <PageContainer>
       <div className="flex flex-col items-center gap-5 px-4 pt-[70px] text-center">
-        <div className="flex size-[72px] items-center justify-center rounded-full bg-[var(--color-success)]">
-          <Check className="size-9 text-white" strokeWidth={3} />
+        <div className="flex h-[100px] w-[100px] shrink-0 items-center justify-center rounded-full bg-[var(--color-primary)]">
+          <span className="text-[44px] font-bold text-white">✓</span>
         </div>
 
         <div className="flex flex-col gap-1.5">
