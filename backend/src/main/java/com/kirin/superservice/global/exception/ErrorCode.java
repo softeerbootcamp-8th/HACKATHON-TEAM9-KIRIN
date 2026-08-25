@@ -30,7 +30,10 @@ public enum ErrorCode {
     TRANSACTION_NOT_FOUND(404, "TRANSACTION_NOT_FOUND", "거래를 찾을 수 없습니다."),
     TRANSACTION_ACCESS_DENIED(403, "TRANSACTION_ACCESS_DENIED", "본인의 거래만 조회하거나 처리할 수 있습니다."),
     PRICE_MISMATCH(400, "PRICE_MISMATCH", "결제 금액이 물품 가격과 일치하지 않습니다."),
-    PURCHASE_COMPLETION_FAILED(500, "PURCHASE_COMPLETION_FAILED", "결제는 완료되었으나 거래 처리에 실패했습니다.");
+    PURCHASE_COMPLETION_FAILED(500, "PURCHASE_COMPLETION_FAILED", "결제는 완료되었으나 거래 처리에 실패했습니다."),
+
+    INVALID_IMAGE_FILE(400, "INVALID_IMAGE_FILE", "이미지 파일이 비어있거나 지원하지 않는 형식입니다."),
+    IMAGE_UPLOAD_FAILED(500, "IMAGE_UPLOAD_FAILED", "이미지 업로드에 실패했습니다.");
 
     private final int statusCode;
     private final String code;
