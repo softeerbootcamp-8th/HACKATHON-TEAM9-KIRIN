@@ -4,9 +4,11 @@ import com.kirin.superservice.product.domain.Product;
 import com.kirin.superservice.product.domain.ProductStatus;
 import com.kirin.superservice.product.dto.request.CancelLockerReservationRequest;
 import com.kirin.superservice.product.dto.request.CompleteDepositRequest;
+import com.kirin.superservice.product.dto.request.CompleteRecoveryRequest;
 import com.kirin.superservice.product.dto.request.RegisterProductRequest;
 import com.kirin.superservice.product.dto.request.ReserveLockerRequest;
 import com.kirin.superservice.product.dto.request.StartDepositRequest;
+import com.kirin.superservice.product.dto.request.StartRecoveryRequest;
 import com.kirin.superservice.product.dto.response.ProductListResponse;
 import com.kirin.superservice.product.dto.response.ProductResponse;
 import com.kirin.superservice.product.service.ProductService;
@@ -62,6 +64,22 @@ public class ProductController {
             @PathVariable Long productId,
             @RequestBody @Valid CompleteDepositRequest request) {
         Product product = productService.completeDeposit(productId, request);
+        return ProductResponse.fromEntity(product);
+    }
+
+    @PostMapping("/{productId}/recovery-start")
+    public ProductResponse startRecovery(
+            @PathVariable Long productId,
+            @RequestBody @Valid StartRecoveryRequest request) {
+        Product product = productService.startRecovery(productId, request);
+        return ProductResponse.fromEntity(product);
+    }
+
+    @PostMapping("/{productId}/recovery-complete")
+    public ProductResponse completeRecovery(
+            @PathVariable Long productId,
+            @RequestBody @Valid CompleteRecoveryRequest request) {
+        Product product = productService.completeRecovery(productId, request);
         return ProductResponse.fromEntity(product);
     }
 

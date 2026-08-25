@@ -120,7 +120,34 @@ public class Product {
     }
 
     public boolean isReservationExpiredAt(LocalDateTime now) {
-        return !now.isBefore(this.reservationExpiresAt);
+        return this.reservationExpiresAt == null || !now.isBefore(this.reservationExpiresAt);
+    }
+
+    public void expireSelling() {
+        this.status = ProductStatus.EXPIRED;
+    }
+
+    public void startRecovery(LocalDateTime recoveryStartedAt) {
+        this.recoveryStartedAt = recoveryStartedAt;
+    }
+
+    public void completeRecovery() {
+        this.lockerId = null;
+        this.reservedAt = null;
+        this.reservationExpiresAt = null;
+        this.depositStartedAt = null;
+        this.sellingStartedAt = null;
+        this.sellingExpiresAt = null;
+        this.recoveryStartedAt = null;
+        this.status = ProductStatus.PREPARING;
+    }
+
+    public boolean isSellingExpiredAt(LocalDateTime now) {
+        return this.sellingExpiresAt == null || !now.isBefore(this.sellingExpiresAt);
+    }
+
+    public boolean hasStartedRecovery() {
+        return this.recoveryStartedAt != null;
     }
 
     public void markSold() {

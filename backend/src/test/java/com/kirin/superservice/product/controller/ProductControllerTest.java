@@ -12,9 +12,11 @@ import com.kirin.superservice.product.domain.Product;
 import com.kirin.superservice.product.domain.ProductStatus;
 import com.kirin.superservice.product.dto.request.CancelLockerReservationRequest;
 import com.kirin.superservice.product.dto.request.CompleteDepositRequest;
+import com.kirin.superservice.product.dto.request.CompleteRecoveryRequest;
 import com.kirin.superservice.product.dto.request.RegisterProductRequest;
 import com.kirin.superservice.product.dto.request.ReserveLockerRequest;
 import com.kirin.superservice.product.dto.request.StartDepositRequest;
+import com.kirin.superservice.product.dto.request.StartRecoveryRequest;
 import com.kirin.superservice.product.exception.ProductNotFoundException;
 import com.kirin.superservice.product.service.ProductService;
 import java.time.LocalDateTime;
@@ -198,5 +200,37 @@ class ProductControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.productId").value(1))
                 .andExpect(jsonPath("$.status").value("SELLING"));
+    }
+
+    @Test
+    void 판매자_회수를_시작하면_200과_만료물품정보를_반환한다() throws Exception {
+        // given
+        Product product = 물품(1L, ProductStatus.EXPIRED);
+        product.startRecovery(LocalDateTime.of(2026, 8, 25, 12, 0));
+        given(productService.startRecovery(any(Long.class), any(StartRecoveryRequest.class)))
+                .willReturn(product);
+
+        // when & then
+        mockMvc.perform(post("/api/products/1/recovery-start")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{" + "\"sellerName\":\"원기\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.productId").value(1))
+                .andExpect(jsonPath("$.status").value("EXPIRED"));
+    }
+
+    @Test
+    void 판매자_회수를_완료하면_200과_준비중_물품정보를_반환한다() throws Exception {
+        // given
+        given(productService.completeRecovery(any(Long.class), any(CompleteRecoveryRequest.class)))
+                .willReturn(물품(1L, ProductStatus.PREPARING));
+
+        // when & then
+        mockMvc.perform(post("/api/products/1/recovery-complete")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{" + "\"sellerName\":\"원기\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.productId").value(1))
+                .andExpect(jsonPath("$.status").value("PREPARING"));
     }
 }

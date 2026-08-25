@@ -6,12 +6,15 @@ import com.kirin.superservice.locker.service.LockerService;
 import com.kirin.superservice.payment.dto.response.PaymentConfirmResponse;
 import com.kirin.superservice.product.domain.Product;
 import com.kirin.superservice.product.exception.ProductNotSellingException;
+import com.kirin.superservice.product.exception.SellingPeriodExpiredException;
 import com.kirin.superservice.product.service.ProductService;
 import com.kirin.superservice.transaction.domain.Transaction;
 import com.kirin.superservice.transaction.dto.request.PurchaseProductRequest;
 import com.kirin.superservice.transaction.exception.PriceMismatchException;
 import com.kirin.superservice.transaction.exception.TransactionNotFoundException;
 import com.kirin.superservice.transaction.repository.TransactionRepository;
+import java.time.Clock;
+import java.time.LocalDateTime;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -26,6 +29,7 @@ public class TransactionService {
     private final TransactionRepository transactionRepository;
     private final ProductService productService;
     private final LockerService lockerService;
+    private final Clock clock;
 
     public Transaction getTransaction(Long transactionId) {
         return transactionRepository.findById(transactionId)
@@ -39,6 +43,9 @@ public class TransactionService {
         Product product = productService.getProduct(productId);
         if (!product.isSelling()) {
             throw new ProductNotSellingException(productId, product.getStatus());
+        }
+        if (product.isSellingExpiredAt(LocalDateTime.now(clock))) {
+            throw new SellingPeriodExpiredException(productId);
         }
         if (!product.getPrice().equals(amount)) {
             throw new PriceMismatchException(productId, product.getPrice(), amount);
@@ -54,6 +61,9 @@ public class TransactionService {
         Product product = productService.getProductForUpdate(request.productId());
         if (!product.isSelling()) {
             throw new ProductNotSellingException(product.getId(), product.getStatus());
+        }
+        if (product.isSellingExpiredAt(LocalDateTime.now(clock))) {
+            throw new SellingPeriodExpiredException(product.getId());
         }
         product.markSold();
         lockerService.getLocker(product.getLockerId()).changeLockStatus(LockStatus.UNLOCKED);

@@ -8,9 +8,11 @@ import com.kirin.superservice.product.domain.Product;
 import com.kirin.superservice.product.domain.ProductStatus;
 import com.kirin.superservice.product.dto.request.CancelLockerReservationRequest;
 import com.kirin.superservice.product.dto.request.CompleteDepositRequest;
+import com.kirin.superservice.product.dto.request.CompleteRecoveryRequest;
 import com.kirin.superservice.product.dto.request.RegisterProductRequest;
 import com.kirin.superservice.product.dto.request.ReserveLockerRequest;
 import com.kirin.superservice.product.dto.request.StartDepositRequest;
+import com.kirin.superservice.product.dto.request.StartRecoveryRequest;
 import com.kirin.superservice.product.exception.InvalidProductStatusException;
 import com.kirin.superservice.product.exception.ProductNotFoundException;
 import com.kirin.superservice.product.exception.ReservationExpiredException;
@@ -148,6 +150,72 @@ public class ProductService {
         log.info("물품 투입 완료 - productId={}, lockerId={}, sellerName={}",
                 productId, locker.getId(), product.getSellerName());
         return product;
+    }
+
+    /** 만료된 판매 물품을 회수하기 위해 물품보관함 문을 연다. */
+    @Transactional
+    public Product startRecovery(Long productId, StartRecoveryRequest request) {
+        Product product = getProductForUpdate(productId);
+        validateSeller(product, request.sellerName());
+        if (!product.isExpired()) {
+            throw new InvalidProductStatusException(productId, product.getStatus());
+        }
+        if (product.hasStartedRecovery()) {
+            return product;
+        }
+
+        Locker locker = lockerService.getLockerForUpdate(product.getLockerId());
+        product.startRecovery(LocalDateTime.now(clock));
+        locker.changeLockStatus(LockStatus.UNLOCKED);
+        log.info("판매 만료 물품 회수 시작 - productId={}, lockerId={}, sellerName={}",
+                productId, locker.getId(), product.getSellerName());
+        return product;
+    }
+
+    /** 판매자가 회수한 물품을 목록의 예약 가능 상태로 되돌린다. */
+    @Transactional
+    public Product completeRecovery(Long productId, CompleteRecoveryRequest request) {
+        Product product = getProductForUpdate(productId);
+        validateSeller(product, request.sellerName());
+        if (!product.isExpired() || !product.hasStartedRecovery()) {
+            throw new InvalidProductStatusException(productId, product.getStatus());
+        }
+
+        Locker locker = lockerService.getLockerForUpdate(product.getLockerId());
+        product.completeRecovery();
+        locker.changeLockStatus(LockStatus.LOCKED);
+        locker.release();
+        log.info("판매 만료 물품 회수 완료 - productId={}, lockerId={}, sellerName={}",
+                productId, locker.getId(), product.getSellerName());
+        return product;
+    }
+
+    /** 예약 만료 후보를 잠금 조회해 유효한 예약만 해제한다. */
+    @Transactional
+    public void expireLockerReservation(Long productId, LocalDateTime now) {
+        Product product = getProductForUpdate(productId);
+        if (!product.isReserved() || !product.isReservationExpiredAt(now)) {
+            return;
+        }
+
+        Locker locker = lockerService.getLockerForUpdate(product.getLockerId());
+        product.cancelLockerReservation();
+        locker.changeLockStatus(LockStatus.LOCKED);
+        locker.release();
+    }
+
+    /** 판매 만료 후보를 잠금 조회해 유효한 판매만 회수 대기 상태로 바꾼다. */
+    @Transactional
+    public void expireSellingProduct(Long productId, LocalDateTime now) {
+        Product product = getProductForUpdate(productId);
+        if (!product.isSelling() || !product.isSellingExpiredAt(now)) {
+            return;
+        }
+
+        Locker locker = lockerService.getLockerForUpdate(product.getLockerId());
+        product.expireSelling();
+        locker.occupy();
+        locker.changeLockStatus(LockStatus.LOCKED);
     }
 
     private void validateSeller(Product product, String sellerName) {

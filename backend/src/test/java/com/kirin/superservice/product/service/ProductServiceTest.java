@@ -14,9 +14,11 @@ import com.kirin.superservice.product.domain.Product;
 import com.kirin.superservice.product.domain.ProductStatus;
 import com.kirin.superservice.product.dto.request.CancelLockerReservationRequest;
 import com.kirin.superservice.product.dto.request.CompleteDepositRequest;
+import com.kirin.superservice.product.dto.request.CompleteRecoveryRequest;
 import com.kirin.superservice.product.dto.request.RegisterProductRequest;
 import com.kirin.superservice.product.dto.request.ReserveLockerRequest;
 import com.kirin.superservice.product.dto.request.StartDepositRequest;
+import com.kirin.superservice.product.dto.request.StartRecoveryRequest;
 import com.kirin.superservice.product.exception.SellerMismatchException;
 import com.kirin.superservice.product.exception.ProductNotFoundException;
 import com.kirin.superservice.product.exception.ReservationExpiredException;
@@ -212,10 +214,97 @@ class ProductServiceTest {
                 .isInstanceOf(ReservationExpiredException.class);
     }
 
+    @Test
+    void 만료된_예약을_처리하면_물품과_사물함이_사용가능상태로_복구된다() {
+        // given
+        Product product = 물품(1L, ProductStatus.PREPARING);
+        product.reserveLocker(1L, LocalDateTime.of(2026, 8, 25, 8, 0),
+                LocalDateTime.of(2026, 8, 25, 12, 0));
+        Locker locker = new Locker(1L, LockStatus.UNLOCKED, UsageStatus.RESERVED);
+        given(productRepository.findByIdForUpdate(1L)).willReturn(Optional.of(product));
+        given(lockerService.getLockerForUpdate(1L)).willReturn(locker);
+
+        // when
+        productService.expireLockerReservation(1L, LocalDateTime.of(2026, 8, 25, 12, 0));
+
+        // then
+        assertThat(product.getStatus()).isEqualTo(ProductStatus.PREPARING);
+        assertThat(product.getLockerId()).isNull();
+        assertThat(locker.getUsageStatus()).isEqualTo(UsageStatus.AVAILABLE);
+        assertThat(locker.getLockStatus()).isEqualTo(LockStatus.LOCKED);
+    }
+
+    @Test
+    void 판매기간이_만료되면_회수대기상태가_되고_사물함점유는_유지된다() {
+        // given
+        Product product = 판매중물품();
+        Locker locker = new Locker(1L, LockStatus.UNLOCKED, UsageStatus.OCCUPIED);
+        given(productRepository.findByIdForUpdate(1L)).willReturn(Optional.of(product));
+        given(lockerService.getLockerForUpdate(1L)).willReturn(locker);
+
+        // when
+        productService.expireSellingProduct(1L, LocalDateTime.of(2026, 8, 25, 12, 0));
+
+        // then
+        assertThat(product.getStatus()).isEqualTo(ProductStatus.EXPIRED);
+        assertThat(locker.getUsageStatus()).isEqualTo(UsageStatus.OCCUPIED);
+        assertThat(locker.getLockStatus()).isEqualTo(LockStatus.LOCKED);
+    }
+
+    @Test
+    void 만료된_물품의_회수를_시작하면_사물함이_열린다() {
+        // given
+        Product product = 만료된물품();
+        Locker locker = new Locker(1L, LockStatus.LOCKED, UsageStatus.OCCUPIED);
+        given(productRepository.findByIdForUpdate(1L)).willReturn(Optional.of(product));
+        given(lockerService.getLockerForUpdate(1L)).willReturn(locker);
+
+        // when
+        Product result = productService.startRecovery(1L, new StartRecoveryRequest("원기"));
+
+        // then
+        assertThat(result.getRecoveryStartedAt()).isEqualTo(LocalDateTime.of(2026, 8, 25, 12, 0));
+        assertThat(locker.getLockStatus()).isEqualTo(LockStatus.UNLOCKED);
+    }
+
+    @Test
+    void 회수를_완료하면_물품은_다시_예약가능하고_사물함은_해제된다() {
+        // given
+        Product product = 만료된물품();
+        product.startRecovery(LocalDateTime.of(2026, 8, 25, 11, 59));
+        Locker locker = new Locker(1L, LockStatus.UNLOCKED, UsageStatus.OCCUPIED);
+        given(productRepository.findByIdForUpdate(1L)).willReturn(Optional.of(product));
+        given(lockerService.getLockerForUpdate(1L)).willReturn(locker);
+
+        // when
+        Product result = productService.completeRecovery(1L, new CompleteRecoveryRequest("원기"));
+
+        // then
+        assertThat(result.getStatus()).isEqualTo(ProductStatus.PREPARING);
+        assertThat(result.getLockerId()).isNull();
+        assertThat(result.getSellingExpiresAt()).isNull();
+        assertThat(locker.getUsageStatus()).isEqualTo(UsageStatus.AVAILABLE);
+        assertThat(locker.getLockStatus()).isEqualTo(LockStatus.LOCKED);
+    }
+
     private Product 예약된물품() {
         Product product = 물품(1L, ProductStatus.PREPARING);
         product.reserveLocker(1L, LocalDateTime.of(2026, 8, 25, 11, 0),
                 LocalDateTime.of(2026, 8, 25, 16, 0));
+        return product;
+    }
+
+    private Product 판매중물품() {
+        Product product = 예약된물품();
+        product.startDeposit(LocalDateTime.of(2026, 8, 18, 11, 59));
+        product.completeDeposit(LocalDateTime.of(2026, 8, 18, 12, 0),
+                LocalDateTime.of(2026, 8, 25, 12, 0));
+        return product;
+    }
+
+    private Product 만료된물품() {
+        Product product = 판매중물품();
+        product.expireSelling();
         return product;
     }
 }
