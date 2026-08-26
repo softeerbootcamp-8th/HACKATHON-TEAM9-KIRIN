@@ -2,10 +2,12 @@ package com.kirin.superservice.product.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 
 import com.kirin.superservice.locker.domain.Locker;
 import com.kirin.superservice.locker.domain.LockStatus;
@@ -35,10 +37,12 @@ import java.util.Map;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
 class ProductServiceTest {
@@ -54,6 +58,9 @@ class ProductServiceTest {
 
     @Mock
     MemberService memberService;
+
+    @Mock
+    DummyProductLoader dummyProductLoader;
 
     @Spy
     Clock clock = Clock.fixed(Instant.parse("2026-08-25T03:00:00Z"), ZoneId.of("Asia/Seoul"));
@@ -108,6 +115,30 @@ class ProductServiceTest {
 
         // then
         assertThat(result.getImageUrls()).containsExactlyElementsOf(사진들);
+    }
+
+    @Test
+    void 더미_상품을_등록하면_로더가_제공한_상품이_모두_해당_판매자_소유로_저장된다() {
+        // given
+        Member 게스트 = 판매자();
+        ReflectionTestUtils.setField(게스트, "id", 판매자_ID);
+        List<DummyProductLoader.DummyProductData> 더미목록 = List.of(
+                new DummyProductLoader.DummyProductData("에어팟 프로 2세대", 150000L, "설명1", List.of("/api/images/a.png")),
+                new DummyProductLoader.DummyProductData("몽블랑 카드 지갑", 200000L, "설명2", List.of("/api/images/b.png")));
+        given(dummyProductLoader.getDummyProducts()).willReturn(더미목록);
+        given(productRepository.save(any(Product.class))).willAnswer(invocation -> invocation.getArgument(0));
+
+        // when
+        productService.registerDummyProducts(게스트);
+
+        // then
+        ArgumentCaptor<Product> captor = ArgumentCaptor.forClass(Product.class);
+        then(productRepository).should(times(2)).save(captor.capture());
+        assertThat(captor.getAllValues())
+                .extracting(Product::getName, Product::getSellerMemberId, Product::getSellerName)
+                .containsExactly(
+                        tuple("에어팟 프로 2세대", 판매자_ID, "원기"),
+                        tuple("몽블랑 카드 지갑", 판매자_ID, "원기"));
     }
 
     @Test
