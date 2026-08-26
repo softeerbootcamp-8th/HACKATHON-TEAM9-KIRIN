@@ -1,3 +1,4 @@
+import { useRef } from "react";
 import { describe, expect, test, vi } from "vitest";
 import { act, fireEvent, render, screen } from "@testing-library/react";
 import { ProductMoreMenu } from "./my-list";
@@ -193,5 +194,61 @@ describe("ProductMoreMenu", () => {
 
     // then
     expect(screen.queryByText("상품 수정")).not.toBeInTheDocument();
+  });
+
+  test("드롭다운이_열린_상태에서_카드의_다른_부분을_누르면_상세_화면으로_이동하지_않는다", async () => {
+    // given: my-list.tsx와 동일한 구성 — 카드 전체를 감싼 <a>가 onClick으로
+    // 상세 화면 이동을 흉내 내고, ProductMoreMenu의 onPointerDownOutside가
+    // "지금 막 바깥 클릭으로 닫혔다"는 걸 알려준다.
+    const product = 상품({ status: "PREPARING" });
+    const onAnchorClick = vi.fn();
+
+    function TestCard() {
+      const suppressCardClickRef = useRef(false);
+      return (
+        <a
+          href={`/seller/products/${product.productId}`}
+          onClick={(event) => {
+            onAnchorClick();
+            if (suppressCardClickRef.current) {
+              suppressCardClickRef.current = false;
+              event.preventDefault();
+            }
+          }}
+        >
+          <span>{product.name}</span>
+          <ProductMoreMenu
+            product={product}
+            onEdit={vi.fn()}
+            onStartDeposit={vi.fn()}
+            onRequestCancelReservation={vi.fn()}
+            onEndSelling={vi.fn()}
+            onRequestDelete={vi.fn()}
+            onPointerDownOutside={() => {
+              suppressCardClickRef.current = true;
+              setTimeout(() => {
+                suppressCardClickRef.current = false;
+              }, 0);
+            }}
+          />
+        </a>
+      );
+    }
+    render(<TestCard />);
+
+    // when
+    더보기_열기();
+    expect(screen.getByText("상품 수정")).toBeInTheDocument();
+    await act(() => new Promise((resolve) => setTimeout(resolve, 0)));
+
+    // 더보기 버튼도, 메뉴 항목도 아닌 카드의 다른 부분(상품명)을 누른다.
+    fireEvent.pointerDown(screen.getByText(product.name));
+    const notPrevented = fireEvent.click(screen.getByText(product.name));
+
+    // then: 메뉴는 닫히고, 카드 클릭의 onClick 자체는 호출되지만
+    // preventDefault로 상세 화면 이동(기본 동작)은 막혀야 한다.
+    expect(screen.queryByText("상품 수정")).not.toBeInTheDocument();
+    expect(onAnchorClick).toHaveBeenCalledTimes(1);
+    expect(notPrevented).toBe(false);
   });
 });
