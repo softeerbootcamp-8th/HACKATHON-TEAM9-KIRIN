@@ -202,13 +202,13 @@ function MyListPage() {
   const [activeTab, setActiveTab] =
     useState<(typeof TABS)[number]["key"]>("selling");
 
-  // 08 모달 · 사물함 잠금 해제 — 실행 전 확인(버튼 1개, 누르면 그때 입고를 시작한다).
-  const [depositTarget, setDepositTarget] = useState<{
+  // 08 모달 · 사물함 잠금 해제 — 물건 넣기 직후 안내(단일 버튼).
+  const [depositInfo, setDepositInfo] = useState<{
     product: ProductSummaryResponse;
-    previewStartedAt: Date;
+    depositedAt: Date;
   } | null>(null);
-  // 08-2 모달 · 판매 종료 — 실행 전 확인(버튼 1개, 누르면 그때 판매를 종료한다).
-  const [endSellingTarget, setEndSellingTarget] =
+  // 08-2 모달 · 판매 종료 — 판매 중단 직후 안내(단일 버튼).
+  const [endSellingInfo, setEndSellingInfo] =
     useState<ProductSummaryResponse | null>(null);
   // 08-3 모달 · 예약 취소 — 실행 전 확인(버튼 2개).
   const [cancelTarget, setCancelTarget] =
@@ -243,21 +243,24 @@ function MyListPage() {
     });
   };
 
-  /** 08 모달의 "확인" 버튼 — 여기서만 실제로 사물함을 열고 입고를 시작한다. */
-  const handleConfirmStartDeposit = () => {
-    if (!depositTarget || depositTarget.product.lockerId == null) return;
-    const { product } = depositTarget;
+  /** 물건 넣기: 사물함을 열고 투입을 시작한 뒤, 08 모달로 안내한다. */
+  const handleStartDeposit = (product: ProductSummaryResponse) => {
+    if (product.lockerId == null) return;
     changeLockStatus.mutate(
-      { lockerId: product.lockerId!, data: { lockStatus: "UNLOCKED" } },
+      { lockerId: product.lockerId, data: { lockStatus: "UNLOCKED" } },
       {
         onSuccess: () => {
           startDeposit.mutate(
             { productId: product.productId },
             {
-              onSuccess: () => {
-                toast.success("진열함이 열렸어요.");
+              onSuccess: (updated) => {
                 invalidateProductData();
-                setDepositTarget(null);
+                setDepositInfo({
+                  product,
+                  depositedAt: updated.depositStartedAt
+                    ? new Date(updated.depositStartedAt)
+                    : new Date(),
+                });
               },
               onError: () => toast.error("입고 처리에 실패했어요."),
             },
@@ -268,21 +271,19 @@ function MyListPage() {
     );
   };
 
-  /** 08-2 모달의 "확인" 버튼 — 여기서만 실제로 사물함을 열고 회수를 시작한다. */
-  const handleConfirmEndSelling = () => {
-    if (!endSellingTarget || endSellingTarget.lockerId == null) return;
-    const product = endSellingTarget;
+  /** 판매 중단: 사물함을 열고 회수를 시작한 뒤, 08-2 모달로 안내한다. */
+  const handleEndSelling = (product: ProductSummaryResponse) => {
+    if (product.lockerId == null) return;
     changeLockStatus.mutate(
-      { lockerId: product.lockerId!, data: { lockStatus: "UNLOCKED" } },
+      { lockerId: product.lockerId, data: { lockStatus: "UNLOCKED" } },
       {
         onSuccess: () => {
           startRecovery.mutate(
             { productId: product.productId },
             {
               onSuccess: () => {
-                toast.success("판매가 종료됐어요.");
                 invalidateProductData();
-                setEndSellingTarget(null);
+                setEndSellingInfo(product);
               },
               onError: () => toast.error("판매 종료 처리에 실패했어요."),
             },
@@ -387,14 +388,9 @@ function MyListPage() {
                       <ProductMoreMenu
                         product={product}
                         onEdit={handleEdit}
-                        onStartDeposit={(target) =>
-                          setDepositTarget({
-                            product: target,
-                            previewStartedAt: new Date(),
-                          })
-                        }
+                        onStartDeposit={handleStartDeposit}
                         onRequestCancelReservation={setCancelTarget}
-                        onEndSelling={setEndSellingTarget}
+                        onEndSelling={handleEndSelling}
                         onRequestDelete={setDeleteTarget}
                       />
                     ) : undefined
@@ -406,14 +402,14 @@ function MyListPage() {
         </div>
       </div>
 
-      {/* 08 모달 · 사물함 잠금 해제 (내 리스트) — 실행 전 확인, 확인을 눌러야 입고가 시작된다. */}
+      {/* 08 모달 · 사물함 잠금 해제 (내 리스트) */}
       <Dialog
-        open={depositTarget !== null}
-        onOpenChange={(open) => !open && setDepositTarget(null)}
+        open={depositInfo !== null}
+        onOpenChange={(open) => !open && setDepositInfo(null)}
       >
         <DialogContent className="max-w-[313px] gap-3.5 rounded-[16px] p-5">
           <DialogTitle className="text-center text-[17px]">
-            {depositTarget?.product.lockerId}번 진열함을 열까요?
+            {depositInfo?.product.lockerId}번 진열함이 열렸어요
           </DialogTitle>
 
           <ul className="flex flex-col gap-2 text-[13px] text-[var(--color-text-muted)]">
@@ -427,10 +423,10 @@ function MyListPage() {
               <span className="font-bold">·</span>
               <div className="flex-1">
                 <p>점유 기간은 최대 {MAX_OCCUPANCY_DAYS}일이에요.</p>
-                {depositTarget && (
+                {depositInfo && (
                   <p className="font-bold">
                     {formatOccupancyPeriod(
-                      depositTarget.previewStartedAt,
+                      depositInfo.depositedAt,
                       MAX_OCCUPANCY_DAYS,
                     )}
                   </p>
@@ -454,42 +450,36 @@ function MyListPage() {
             </p>
           </div>
 
-          <Button
-            fullWidth
-            size="lg"
-            disabled={changeLockStatus.isPending || startDeposit.isPending}
-            onClick={handleConfirmStartDeposit}
-          >
+          <Button fullWidth size="lg" onClick={() => setDepositInfo(null)}>
             확인
           </Button>
         </DialogContent>
       </Dialog>
 
-      {/* 08-2 모달 · 판매 종료 (내 리스트) — 실행 전 확인, 확인을 눌러야 판매가 종료된다. */}
+      {/* 08-2 모달 · 판매 종료 (내 리스트) */}
       <Dialog
-        open={endSellingTarget !== null}
-        onOpenChange={(open) => !open && setEndSellingTarget(null)}
+        open={endSellingInfo !== null}
+        onOpenChange={(open) => !open && setEndSellingInfo(null)}
       >
         <DialogContent className="max-w-[313px] gap-3.5 rounded-[16px] p-5">
           <DialogTitle className="text-center text-[17px]">
-            {endSellingTarget?.lockerId}번 진열함 판매를 종료할까요?
+            {endSellingInfo?.lockerId}번 진열함 판매를 종료했어요
           </DialogTitle>
 
           <ul className="flex flex-col gap-2 text-[13px] text-[var(--color-text-muted)]">
             <li className="flex items-start gap-1.5">
               <span className="font-bold">·</span>
               <p className="flex-1">
-                진열함 문이 열려요. 상품을 회수해 주세요.
+                진열함 문이 열렸어요. 상품을 회수해 주세요.
               </p>
             </li>
             <li className="flex items-start gap-1.5">
               <span className="font-bold">·</span>
               <div className="flex-1">
-                <p>판매를 종료할 상품이에요.</p>
-                {endSellingTarget && (
+                <p>판매를 종료한 상품이에요.</p>
+                {endSellingInfo && (
                   <p className="font-bold">
-                    {endSellingTarget.name} /{" "}
-                    {formatPrice(endSellingTarget.price)}
+                    {endSellingInfo.name} / {formatPrice(endSellingInfo.price)}
                   </p>
                 )}
               </div>
@@ -509,12 +499,7 @@ function MyListPage() {
             </p>
           </div>
 
-          <Button
-            fullWidth
-            size="lg"
-            disabled={changeLockStatus.isPending || startRecovery.isPending}
-            onClick={handleConfirmEndSelling}
-          >
+          <Button fullWidth size="lg" onClick={() => setEndSellingInfo(null)}>
             확인
           </Button>
         </DialogContent>
