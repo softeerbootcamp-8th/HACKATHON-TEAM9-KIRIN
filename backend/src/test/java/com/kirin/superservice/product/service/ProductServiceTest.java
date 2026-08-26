@@ -377,6 +377,25 @@ class ProductServiceTest {
     }
 
     @Test
+    void 투입을_시작한_뒤에도_판매중으로_전환되기_전이면_예약을_취소할_수_있다() {
+        // given
+        Product product = 예약된물품();
+        product.startDeposit(LocalDateTime.of(2026, 8, 25, 11, 30));
+        Locker locker = new Locker(1L, LockStatus.UNLOCKED, UsageStatus.RESERVED);
+        given(productRepository.findByIdForUpdate(1L)).willReturn(Optional.of(product));
+        given(lockerService.getLockerForUpdate(1L)).willReturn(locker);
+
+        // when
+        Product result = productService.cancelLockerReservation(1L, 판매자_ID);
+
+        // then
+        assertThat(result.getStatus()).isEqualTo(ProductStatus.PREPARING);
+        assertThat(result.getLockerId()).isNull();
+        assertThat(locker.getUsageStatus()).isEqualTo(UsageStatus.AVAILABLE);
+        assertThat(locker.getLockStatus()).isEqualTo(LockStatus.LOCKED);
+    }
+
+    @Test
     void 다른_회원이_예약을_취소하면_예외가_발생한다() {
         // given
         Product product = 물품(1L, ProductStatus.PREPARING);
@@ -425,6 +444,19 @@ class ProductServiceTest {
         assertThat(result.getSellingExpiresAt()).isEqualTo(LocalDateTime.of(2026, 9, 1, 12, 0));
         assertThat(locker.getUsageStatus()).isEqualTo(UsageStatus.OCCUPIED);
         assertThat(locker.getLockStatus()).isEqualTo(LockStatus.LOCKED);
+    }
+
+    @Test
+    void 이미_판매중인_물품의_투입을_시작하면_상태를_바꾸지_않고_그대로_반환한다() {
+        // given
+        Product product = 판매중물품();
+        given(productRepository.findByIdForUpdate(1L)).willReturn(Optional.of(product));
+
+        // when
+        Product result = productService.startDeposit(1L, 판매자_ID);
+
+        // then
+        assertThat(result.getStatus()).isEqualTo(ProductStatus.SELLING);
     }
 
     @Test
@@ -583,6 +615,46 @@ class ProductServiceTest {
         // when & then
         assertThatThrownBy(() -> productService.validateLockerSeller(1L, 판매자_ID))
                 .isInstanceOf(LockerAccessDeniedException.class);
+    }
+
+    @Test
+    void 데모_오픈으로_예약된_물품은_투입_없이_바로_판매중이_된다() {
+        // given
+        Product product = 예약된물품();
+        Locker locker = new Locker(1L, LockStatus.UNLOCKED, UsageStatus.RESERVED);
+        given(productRepository.findFirstByLockerIdOrderByCreatedAtDescIdDesc(1L)).willReturn(Optional.of(product));
+        given(productRepository.findByIdForUpdate(1L)).willReturn(Optional.of(product));
+        given(lockerService.getLockerForUpdate(1L)).willReturn(locker);
+
+        // when
+        productService.startSellingForDemo(1L);
+
+        // then
+        assertThat(product.getStatus()).isEqualTo(ProductStatus.SELLING);
+        assertThat(product.getSellingStartedAt()).isEqualTo(LocalDateTime.of(2026, 8, 25, 12, 0));
+        assertThat(locker.getUsageStatus()).isEqualTo(UsageStatus.OCCUPIED);
+    }
+
+    @Test
+    void 데모_오픈_대상_사물함에_예약된_물품이_없으면_아무일도_일어나지_않는다() {
+        // given
+        given(productRepository.findFirstByLockerIdOrderByCreatedAtDescIdDesc(1L)).willReturn(Optional.empty());
+
+        // when & then
+        productService.startSellingForDemo(1L);
+    }
+
+    @Test
+    void 데모_오픈_대상_사물함의_물품이_이미_판매중이면_아무일도_일어나지_않는다() {
+        // given
+        Product product = 판매중물품();
+        given(productRepository.findFirstByLockerIdOrderByCreatedAtDescIdDesc(1L)).willReturn(Optional.of(product));
+
+        // when
+        productService.startSellingForDemo(1L);
+
+        // then
+        assertThat(product.getStatus()).isEqualTo(ProductStatus.SELLING);
     }
 
     @Test
