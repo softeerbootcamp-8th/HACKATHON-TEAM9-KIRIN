@@ -74,6 +74,32 @@ class ProductControllerTest {
     }
 
     @Test
+    void 여러_장의_사진으로_등록하면_등록한_순서_그대로_반환한다() throws Exception {
+        // given
+        Product product = new Product(1L, null, "아이패드", 300000L, "상태 좋음",
+                List.of("/images/1.jpg", "/images/2.jpg"), 1L, "원기", ProductStatus.PREPARING,
+                LocalDateTime.now());
+        given(productService.registerProduct(any(RegisterProductRequest.class), any(Long.class)))
+                .willReturn(product);
+        String 여러장_등록_요청 = """
+                {
+                  "name": "아이패드",
+                  "price": 300000,
+                  "imageUrls": ["/images/1.jpg", "/images/2.jpg"]
+                }
+                """;
+
+        // when & then
+        mockMvc.perform(post("/api/products")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .sessionAttr(SessionConst.LOGIN_MEMBER_ID, 1L)
+                        .content(여러장_등록_요청))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.imageUrls[0]").value("/images/1.jpg"))
+                .andExpect(jsonPath("$.imageUrls[1]").value("/images/2.jpg"));
+    }
+
+    @Test
     void 로그인하지_않고_물품을_등록하면_401을_반환한다() throws Exception {
         // when & then
         mockMvc.perform(post("/api/products")

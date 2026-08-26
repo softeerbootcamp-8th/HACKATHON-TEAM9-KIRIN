@@ -1,14 +1,20 @@
 package com.kirin.superservice.product.domain;
 
+import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
+import jakarta.persistence.ElementCollection;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.OrderColumn;
 import jakarta.persistence.Table;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -35,8 +41,15 @@ public class Product {
     @Column(name = "description", length = 1000)
     private String description;
 
+    /**
+     * 여러 장을 순서대로 저장한다(구매자 상세 화면 캐러셀용). 등록 화면에서
+     * 사진을 여러 장 골라도 예전엔 첫 장만 저장했는데, 이제 전부 저장한다.
+     */
+    @ElementCollection
+    @CollectionTable(name = "product_image", joinColumns = @JoinColumn(name = "product_id"))
+    @OrderColumn(name = "image_order")
     @Column(name = "image_url", length = 500)
-    private String imageUrl;
+    private List<String> imageUrls = new ArrayList<>();
 
     @Column(name = "seller_member_id", nullable = false)
     private Long sellerMemberId;
@@ -70,23 +83,23 @@ public class Product {
     private LocalDateTime recoveryStartedAt;
 
     public Product(Long id, Long lockerId, String name, Long price, String description,
-            String imageUrl, Long sellerMemberId, String sellerName, ProductStatus status,
+            List<String> imageUrls, Long sellerMemberId, String sellerName, ProductStatus status,
             LocalDateTime createdAt) {
         this.id = id;
         this.lockerId = lockerId;
         this.name = name;
         this.price = price;
         this.description = description;
-        this.imageUrl = imageUrl;
+        this.imageUrls = imageUrls != null ? new ArrayList<>(imageUrls) : new ArrayList<>();
         this.sellerMemberId = sellerMemberId;
         this.sellerName = sellerName;
         this.status = status;
         this.createdAt = createdAt;
     }
 
-    public Product(String name, Long price, String description, String imageUrl,
+    public Product(String name, Long price, String description, List<String> imageUrls,
             Long sellerMemberId, String sellerName) {
-        this(null, null, name, price, description, imageUrl, sellerMemberId, sellerName,
+        this(null, null, name, price, description, imageUrls, sellerMemberId, sellerName,
                 ProductStatus.PREPARING, LocalDateTime.now());
     }
 

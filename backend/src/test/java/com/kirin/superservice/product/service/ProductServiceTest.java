@@ -93,6 +93,21 @@ class ProductServiceTest {
     }
 
     @Test
+    void 물품을_등록하면_사진_여러_장이_고른_순서_그대로_저장된다() {
+        // given
+        List<String> 사진들 = List.of("/images/1.jpg", "/images/2.jpg", "/images/3.jpg");
+        RegisterProductRequest 요청 = new RegisterProductRequest("아이패드", 300000L, "상태 좋음", 사진들);
+        given(memberService.getById(판매자_ID)).willReturn(판매자());
+        given(productRepository.save(any(Product.class))).willAnswer(invocation -> invocation.getArgument(0));
+
+        // when
+        Product result = productService.registerProduct(요청, 판매자_ID);
+
+        // then
+        assertThat(result.getImageUrls()).containsExactlyElementsOf(사진들);
+    }
+
+    @Test
     void 사물함이_재사용되어_같은_lockerId를_가진_물품이_여러_건이면_가장_최근_물품만_반환한다() {
         // given
         Product 이전_물품 = new Product(1L, 1L, "구 물품", 10000L, null, null,

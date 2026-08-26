@@ -70,10 +70,9 @@ function extractErrorMessage(error: unknown, fallback: string) {
 }
 
 /**
- * 상품 등록 (Figma "06 상품 등록"). 사진은 여러 장 미리보기로 보여주지만
- * 첫 번째 사진만 업로드해 `POST /images`로 URL을 받은 뒤, 그 URL을
- * `POST /products`의 `imageUrl`로 그대로 넣는다 (여러 장 첨부는 아직
- * 백엔드가 1장만 지원).
+ * 상품 등록 (Figma "06 상품 등록"). 고른 사진을 전부 `POST /images`로
+ * 순서대로 업로드해 URL 배열을 만든 뒤, `POST /products`의 `imageUrls`로
+ * 그대로 넣는다. 구매자 상세 화면에서는 이 순서 그대로 캐러셀로 보여준다.
  */
 function NewProductPage() {
   const router = useRouter();
@@ -145,20 +144,19 @@ function NewProductPage() {
     }
 
     try {
-      let imageUrl: string | undefined;
-      if (photos[0]) {
-        const uploaded = await uploadImage.mutateAsync({
-          data: { file: photos[0].file },
-        });
-        imageUrl = uploaded.imageUrl;
-      }
+      const uploaded = await Promise.all(
+        photos.map((photo) =>
+          uploadImage.mutateAsync({ data: { file: photo.file } }),
+        ),
+      );
+      const imageUrls = uploaded.map((result) => result.imageUrl);
 
       await registerProduct.mutateAsync({
         data: {
           name: name.trim(),
           price: Number(price),
           description: description.trim() || undefined,
-          imageUrl,
+          imageUrls,
         },
       });
 
@@ -226,16 +224,10 @@ function NewProductPage() {
               </label>
             )}
           </div>
-          {photos.length === 0 ? (
+          {photos.length === 0 && (
             <p className="text-xs text-[var(--color-danger)]">
               사진을 1장 이상 등록해야 등록할 수 있어요.
             </p>
-          ) : (
-            photos.length > 1 && (
-              <p className="text-xs text-[var(--color-text-muted)]">
-                지금은 첫 번째 사진만 등록에 사용돼요.
-              </p>
-            )
           )}
         </div>
 

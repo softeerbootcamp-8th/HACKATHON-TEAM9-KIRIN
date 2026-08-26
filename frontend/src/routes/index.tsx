@@ -527,8 +527,8 @@ function SellingSheetBody({
         <ItemRow
           title={product.name}
           place={formatPrice(product.price)}
-          address={product.imageUrl ? "" : "사진 없음"}
-          thumbnailUrl={product.imageUrl ?? undefined}
+          address={product.imageUrls[0] ? "" : "사진 없음"}
+          thumbnailUrl={product.imageUrls[0]}
         />
         <InfoBox
           rows={[
