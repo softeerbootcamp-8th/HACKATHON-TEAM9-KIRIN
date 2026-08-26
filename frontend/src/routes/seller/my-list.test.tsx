@@ -1,5 +1,5 @@
 import { describe, expect, test, vi } from "vitest";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import { ProductMoreMenu } from "./my-list";
 import type { ProductSummaryResponse } from "@/api/generated/model";
 
@@ -163,5 +163,35 @@ describe("ProductMoreMenu", () => {
     // then
     expect(onEdit).toHaveBeenCalledWith(product);
     expect(onAnchorClick).not.toHaveBeenCalled();
+  });
+
+  test("드롭다운이_열린_상태에서_다른_곳을_누르면_닫힌다", async () => {
+    // given: Radix DropdownMenu는 "바깥 클릭 감지" 리스너를 마운트 다음 매크로태스크에
+    // 등록한다(같은 클릭으로 열자마자 바로 닫히는 걸 막기 위해서). 그래서 이 테스트도
+    // 실제 사용자처럼 열고 나서 한 틱 기다린 뒤에 바깥을 눌러야 한다.
+    const product = 상품({ status: "PREPARING" });
+    render(
+      <div>
+        <div data-testid="outside">다른 영역</div>
+        <ProductMoreMenu
+          product={product}
+          onEdit={vi.fn()}
+          onStartDeposit={vi.fn()}
+          onRequestCancelReservation={vi.fn()}
+          onEndSelling={vi.fn()}
+          onRequestDelete={vi.fn()}
+        />
+      </div>,
+    );
+
+    // when
+    더보기_열기();
+    expect(screen.getByText("상품 수정")).toBeInTheDocument();
+
+    await act(() => new Promise((resolve) => setTimeout(resolve, 0)));
+    fireEvent.pointerDown(screen.getByTestId("outside"));
+
+    // then
+    expect(screen.queryByText("상품 수정")).not.toBeInTheDocument();
   });
 });

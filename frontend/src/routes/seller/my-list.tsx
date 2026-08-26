@@ -358,7 +358,7 @@ function MyListPage() {
           </span>
         </div>
 
-        <RegisterProductChip />
+        {activeTab === "selling" && <RegisterProductChip />}
 
         <div className="flex flex-col gap-2.5">
           {isLoading ? (
