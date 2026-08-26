@@ -20,42 +20,18 @@
 | Frontend | React 19, TypeScript, Vite, TanStack Router, TanStack Query, Tailwind CSS v4, shadcn/ui(Radix), Orval(OpenAPI 코드 생성), axios, Toss Payments SDK, pnpm |
 | Embedded | ESP32(Arduino/C++) — Wi-Fi HTTP 폴링 기반 사물함 잠금장치 컨트롤러(서보모터 구동) |
 | 결제 | Toss Payments API |
-| 인프라 · CI/CD | GitHub Actions(백엔드/프론트엔드 CI·CD, PR 가드), 단일 EC2(`kirin-server`), Nginx(+ Certbot TLS), systemd(백엔드), Slack 에러 알림 |
+| 인프라 · CI/CD | GitHub Actions(백엔드/프론트엔드 CI·CD, PR 가드), AWS VPC(퍼블릭 서브넷 애플리케이션 EC2 + 프라이빗 서브넷 MySQL EC2), Nginx(+ Certbot TLS), systemd(백엔드), Slack 에러 알림 |
 | 테스트 | JUnit5 + AssertJ(Backend), Vitest + Testing Library(Frontend) |
 
 ## 서비스 아키텍처
 
-```mermaid
-flowchart LR
-    subgraph Clients["클라이언트"]
-        Buyer["구매자 브라우저"]
-        Seller["판매자 브라우저"]
-    end
+![서비스 아키텍처](docs/images/architecture.png)
 
-    ESP["ESP32\n사물함 잠금장치 컨트롤러"]
-
-    subgraph Server["kirin-server (단일 EC2)"]
-        Nginx["Nginx (+Certbot TLS)"]
-        FE["React SPA (정적 파일)"]
-        BE["Spring Boot API"]
-        DB[("MySQL")]
-    end
-
-    Toss["Toss Payments"]
-    Slack["Slack (에러 알림)"]
-
-    Buyer -- HTTPS --> Nginx
-    Seller -- HTTPS --> Nginx
-    Nginx -- 정적 파일 서빙 --> FE
-    Nginx -- "/api/**" --> BE
-    BE --> DB
-    BE -- 결제 승인 요청 --> Toss
-    BE -. 예외 발생 시 .-> Slack
-    ESP -- "GET/PATCH /api/lockers/{id}/lock-status\n(0.3초 폴링, 무인증)" --> BE
-```
-
-- 프론트엔드(React SPA)와 백엔드(Spring Boot)는 같은 EC2 인스턴스에 배포되며, Nginx가
-  정적 파일 서빙과 `/api/**` 리버스 프록시를 함께 담당한다.
+- AWS VPC 안에 퍼블릭 서브넷과 프라이빗 서브넷을 나눠 두었다. 프론트엔드(React SPA)와
+  백엔드(Spring Boot)는 퍼블릭 서브넷의 같은 EC2 인스턴스에 배포되며, Nginx가 정적
+  파일 서빙과 `/api/**` 리버스 프록시를 함께 담당한다.
+- MySQL은 프라이빗 서브넷의 별도 EC2에서 실행되고, 애플리케이션 EC2에서만 접근할 수
+  있어 외부에 직접 노출되지 않는다.
 - 배포는 GitHub Actions가 빌드 산출물을 SSH로 서버에 전달하면, 서버의 `deploy.sh`가
   릴리스 디렉터리를 심볼릭 링크로 원자적으로 교체하고 헬스체크 실패 시 이전 버전으로
   자동 롤백한다.
@@ -184,8 +160,8 @@ pnpm dev
   사용한다.
 - **세션 인메모리 저장**: 별도 세션 스토어(Redis 등) 없이 단일 인스턴스의 인메모리
   `HttpSession`을 사용해, 서버를 다중화하면 세션이 공유되지 않는다.
-- **단일 서버 배포**: 프론트엔드·백엔드·DB가 EC2 한 대에 함께 배포되어 있어 무중단
-  다중화나 오토스케일링이 되지 않는다.
+- **애플리케이션 서버 단일 인스턴스**: 프론트엔드·백엔드는 퍼블릭 서브넷의 EC2 한 대에
+  함께 배포되어 있어 무중단 다중화나 오토스케일링이 되지 않는다.
 - **ESP32 ↔ 서버 통신이 단방향 폴링**: 실시간 푸시(WebSocket 등) 대신 0.3초 주기 HTTP
   폴링 방식이라 네트워크 상태에 따라 반응 지연이 생길 수 있다. Wi-Fi 재연결이 일정
   시간(15초) 안에 되지 않으면 장치가 자동 재부팅하도록 완화 조치만 되어 있다.
