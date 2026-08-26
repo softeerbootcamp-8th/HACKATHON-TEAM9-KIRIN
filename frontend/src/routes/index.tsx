@@ -440,7 +440,7 @@ function HomePage() {
               {openedLockerDepositedAt && (
                 <>
                   <br />
-                  <span className="font-bold text-[var(--color-text-sub)]">
+                  <span className="font-bold text-[var(--color-text-muted)]">
                     {formatOccupancyPeriod(
                       openedLockerDepositedAt,
                       DEFAULT_MAX_OCCUPANCY_DAYS,
