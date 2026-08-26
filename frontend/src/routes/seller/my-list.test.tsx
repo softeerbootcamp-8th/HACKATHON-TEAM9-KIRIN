@@ -198,22 +198,22 @@ describe("ProductMoreMenu", () => {
 
   test("드롭다운이_열린_상태에서_카드의_다른_부분을_바로_눌러도_상세_화면으로_이동하지_않는다", () => {
     // given: my-list.tsx와 동일한 구성 — 카드 전체를 감싼 <a>가 pointerdown
-    // 캡처 시점에 "지금 이 카드의 더보기 메뉴가 열려 있는지"를 직접 확인한다.
-    // Radix의 onPointerDownOutside(바깥 클릭 감지)는 메뉴가 뜬 뒤 다음
-    // 매크로태스크에 리스너를 등록해서, 실기기에서 "더보기 → 다른 곳"을
-    // 빠르게 연달아 누르면 감지를 못 하는 경합이 있었다. 그래서 이 테스트는
-    // 일부러 등록 대기용 tick 없이 곧바로 다른 곳을 눌러 그 경합을 재현한다.
+    // 캡처 시점에 열린 드롭다운(`[role="menu"]`) DOM이 있는지를 직접 확인한다.
+    // (이전엔 Radix의 onOpenChange/onPointerDownOutside 콜백에 기댔었는데, 이건
+    // 실제 DOM 갱신보다 늦게 — 리액트 effect나 별도 매크로태스크에서 — 불려서
+    // 빠르게 "더보기 → 다른 곳"을 연달아 누르면 놓치는 경합이 있었다. 지금
+    // 방식은 렌더 커밋과 동기적으로 반영되는 DOM을 직접 보기 때문에 그 경합이 없다.)
     const product = 상품({ status: "PREPARING" });
     const onAnchorClick = vi.fn();
 
     function TestCard() {
-      const isMoreMenuOpenRef = useRef(false);
       const suppressCardClickRef = useRef(false);
       return (
         <a
           href={`/seller/products/${product.productId}`}
           onPointerDownCapture={() => {
-            suppressCardClickRef.current = isMoreMenuOpenRef.current;
+            suppressCardClickRef.current =
+              document.querySelector('[role="menu"]') !== null;
           }}
           onClick={(event) => {
             onAnchorClick();
@@ -231,9 +231,6 @@ describe("ProductMoreMenu", () => {
             onRequestCancelReservation={vi.fn()}
             onEndSelling={vi.fn()}
             onRequestDelete={vi.fn()}
-            onOpenChange={(open) => {
-              isMoreMenuOpenRef.current = open;
-            }}
           />
         </a>
       );
@@ -254,3 +251,9 @@ describe("ProductMoreMenu", () => {
     expect(notPrevented).toBe(false);
   });
 });
+
+// 참고: "act()/fireEvent 없이 raw dispatchEvent를 연달아 호출해도 막히는지"까지
+// jsdom에서 검증해 보려 했으나, jsdom은 act() 밖에서는 렌더 커밋 자체(더보기
+// 클릭으로 메뉴 콘텐츠가 DOM에 붙는 것)조차 동기적으로 반영하지 않는다 —
+// 실제 크롬(운영 배포 사이트)에서 직접 확인한 동작과 다르다. 그래서 이 경합은
+// jsdom 테스트로는 신뢰할 수 없다고 판단해 실제 브라우저 확인으로 대체했다.
