@@ -12,6 +12,7 @@ import com.kirin.superservice.global.auth.SessionConst;
 import com.kirin.superservice.member.domain.Member;
 import com.kirin.superservice.member.dto.response.MemberResponse;
 import com.kirin.superservice.member.service.MemberService;
+import com.kirin.superservice.product.service.ProductService;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
@@ -26,6 +27,7 @@ import lombok.extern.slf4j.Slf4j;
 public class AuthController {
 
     private final MemberService memberService;
+    private final ProductService productService;
 
     @PostMapping("/login")
     public ResponseEntity<MemberResponse> login(@Valid @RequestBody LoginRequest request,
@@ -42,6 +44,7 @@ public class AuthController {
     @PostMapping("/guest-login")
     public ResponseEntity<MemberResponse> guestLogin(HttpServletRequest httpRequest) {
         Member member = memberService.registerGuest();
+        productService.registerDummyProducts(member);
 
         HttpSession session = httpRequest.getSession();
         session.setAttribute(SessionConst.LOGIN_MEMBER_ID, member.getId());
