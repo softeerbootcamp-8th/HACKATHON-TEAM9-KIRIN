@@ -486,16 +486,16 @@ function MyListPage() {
             </li>
             <li className="flex items-start gap-1.5">
               <span className="font-bold">·</span>
-              <p className="flex-1">문을 닫으면 진열함 점유가 끝나요.</p>
+              <p className="flex-1">이미 판매대기 상태로 돌아갔어요.</p>
             </li>
           </ul>
 
           <div className="flex gap-1.5 rounded-[var(--radius-sm)] bg-[var(--color-primary-weak)] p-3 text-[var(--color-primary)]">
             <span className="text-[13px] font-bold">!</span>
             <p className="text-xs font-medium">
-              상품을 두고 닫으면 점유가 계속돼요.
+              이 진열함은 이미 다른 판매자가 예약할 수 있어요.
               <br />
-              반드시 상품을 회수한 뒤 닫아 주세요.
+              상품을 두고 가면 잃어버릴 수 있으니 지금 바로 회수해 주세요.
             </p>
           </div>
 

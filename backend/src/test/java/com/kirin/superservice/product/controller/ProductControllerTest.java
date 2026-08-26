@@ -414,19 +414,17 @@ class ProductControllerTest {
     }
 
     @Test
-    void 판매자_회수를_시작하면_200과_만료물품정보를_반환한다() throws Exception {
+    void 판매자_회수를_시작하면_200과_판매대기_물품정보를_반환한다() throws Exception {
         // given
-        Product product = 물품(1L, ProductStatus.EXPIRED);
-        product.startRecovery(LocalDateTime.of(2026, 8, 25, 12, 0));
         given(productService.startRecovery(any(Long.class), any(Long.class)))
-                .willReturn(product);
+                .willReturn(물품(1L, ProductStatus.PREPARING));
 
         // when & then
         mockMvc.perform(post("/api/products/1/recovery-start")
                         .sessionAttr(SessionConst.LOGIN_MEMBER_ID, 1L))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.productId").value(1))
-                .andExpect(jsonPath("$.status").value("EXPIRED"));
+                .andExpect(jsonPath("$.status").value("PREPARING"));
     }
 
     @Test

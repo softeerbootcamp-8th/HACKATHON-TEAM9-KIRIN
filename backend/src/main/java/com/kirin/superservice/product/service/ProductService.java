@@ -206,9 +206,10 @@ public class ProductService {
     }
 
     /**
-     * 판매 물품을 회수하기 위해 물품보관함 문을 연다. 판매기간이 이미 만료됐거나, 판매자가
-     * 판매를 조기 종료하는 경우(아직 SELLING) 모두 허용한다. 조기 종료면 곧바로 판매기간을
-     * 만료 처리해 이후 흐름(회수 완료 등)이 자연 만료와 동일하게 진행되게 한다.
+     * 판매 물품을 회수하기 위해 물품보관함 문을 열고, 즉시 판매대기 상태로 되돌린다. 판매기간이
+     * 이미 만료됐거나, 판매자가 판매를 조기 종료하는 경우(아직 SELLING) 모두 허용한다.
+     * 판매자가 실제로 물건을 꺼내기 전에 진열함이 사용 가능 상태로 풀리기 때문에, 그 사이
+     * 다른 판매자가 같은 진열함을 먼저 예약하면 겹칠 수 있다는 점을 감수한 설계다.
      */
     @Transactional
     public Product startRecovery(Long productId, Long sellerMemberId) {
@@ -217,17 +218,12 @@ public class ProductService {
         if (!product.isSelling() && !product.isExpired()) {
             throw new InvalidProductStatusException(productId, product.getStatus());
         }
-        if (product.hasStartedRecovery()) {
-            return product;
-        }
-        if (product.isSelling()) {
-            product.expireSelling();
-        }
 
         Locker locker = lockerService.getLockerForUpdate(product.getLockerId());
-        product.startRecovery(LocalDateTime.now(clock));
+        product.completeRecovery();
         locker.changeLockStatus(LockStatus.UNLOCKED);
-        log.info("판매 물품 회수 시작 - productId={}, lockerId={}, sellerName={}",
+        locker.release();
+        log.info("판매 종료 및 회수 완료 - productId={}, lockerId={}, sellerName={}",
                 productId, locker.getId(), product.getSellerName());
         return product;
     }
