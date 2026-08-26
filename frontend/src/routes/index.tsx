@@ -116,9 +116,6 @@ function HomePage() {
   const queryClient = useQueryClient();
   const search = Route.useSearch();
   const [sheet, setSheet] = useState<SheetState | null>(null);
-  const [infoModalLocker, setInfoModalLocker] = useState<HomeLocker | null>(
-    null,
-  );
   // "진열함 열기" 확인 모달 — 개방 요청이 성공하면 뜬다.
   const [openedLocker, setOpenedLocker] = useState<HomeLocker | null>(null);
   // 점유 기한 안내("8/25(월) 15:10 - 8/31(일) 15:10")를 계산하는 기준 시각 — 투입 시작 응답을 그대로 쓴다.
@@ -226,8 +223,8 @@ function HomePage() {
         setSheet({ type: "selling", locker });
         return;
       case "occupied":
-        // 타인이 예약/판매 중인 진열함 — 어느 쪽인지는 구분하지 않고 안내만 띄운다.
-        setInfoModalLocker(locker);
+        // 타인이 예약/판매 중인 진열함 — 누를 수 있는 게 없으니 아무 반응도 하지 않는다.
+        return;
     }
   };
 
@@ -401,24 +398,6 @@ function HomePage() {
           )}
         </BottomSheetContent>
       </BottomSheet>
-
-      <Dialog
-        open={infoModalLocker !== null}
-        onOpenChange={(open) => !open && setInfoModalLocker(null)}
-      >
-        <DialogContent className="max-w-[313px] gap-3.5 rounded-[16px] p-5">
-          <DialogTitle className="text-center text-[17px]">
-            사용 중인 진열함이에요
-          </DialogTitle>
-          <ul className="flex flex-col gap-2 text-[13px] text-[var(--color-text-muted)]">
-            <li>· 다른 사용자가 예약 또는 판매 중인 진열함이에요.</li>
-            <li>· 이용이 끝나면 다시 예약할 수 있어요.</li>
-          </ul>
-          <Button fullWidth size="lg" onClick={() => setInfoModalLocker(null)}>
-            확인
-          </Button>
-        </DialogContent>
-      </Dialog>
 
       <Dialog
         open={openedLocker !== null}
