@@ -33,6 +33,7 @@ import {
   useStartRecovery,
   useDeleteProduct,
   getGetMyProductsQueryKey,
+  getGetProductQueryKey,
 } from "@/api/generated/products/products";
 import {
   useChangeLockStatus,
@@ -240,9 +241,14 @@ function MyListPage() {
   const cancelReservation = useCancelLockerReservation();
   const deleteProduct = useDeleteProduct();
 
-  const invalidateProductData = () => {
+  const invalidateProductData = (productId?: number) => {
     queryClient.invalidateQueries({ queryKey: getGetMyProductsQueryKey({}) });
     queryClient.invalidateQueries({ queryKey: getGetLockersQueryKey() });
+    if (productId != null) {
+      queryClient.invalidateQueries({
+        queryKey: getGetProductQueryKey(productId),
+      });
+    }
   };
 
   const handleEdit = (product: ProductSummaryResponse) => {
@@ -263,7 +269,7 @@ function MyListPage() {
             { productId: product.productId },
             {
               onSuccess: (updated) => {
-                invalidateProductData();
+                invalidateProductData(product.productId);
                 setDepositInfo({
                   product,
                   depositedAt: updated.depositStartedAt
@@ -291,7 +297,7 @@ function MyListPage() {
             { productId: product.productId },
             {
               onSuccess: () => {
-                invalidateProductData();
+                invalidateProductData(product.productId);
                 setEndSellingInfo(product);
               },
               onError: () => toast.error("판매 종료 처리에 실패했어요."),
@@ -311,7 +317,7 @@ function MyListPage() {
       {
         onSuccess: () => {
           toast.success("예약이 취소됐어요.");
-          invalidateProductData();
+          invalidateProductData(cancelTarget.productId);
           setCancelTarget(null);
         },
         onError: () => toast.error("예약 취소에 실패했어요."),
@@ -327,7 +333,7 @@ function MyListPage() {
       {
         onSuccess: () => {
           toast.success("상품을 삭제했어요.");
-          invalidateProductData();
+          invalidateProductData(deleteTarget.productId);
           setDeleteTarget(null);
         },
         onError: () => toast.error("상품 삭제에 실패했어요."),
