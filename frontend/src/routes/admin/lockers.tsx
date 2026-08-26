@@ -23,6 +23,9 @@ export const Route = createFileRoute("/admin/lockers")({
   component: AdminLockersPage,
 });
 
+/** 지금 데모에 실제로 연결된 사물함만 관리자가 건드릴 수 있게 6·7번으로 한정한다. */
+const MANAGED_LOCKER_IDS = new Set([6, 7]);
+
 /**
  * 관리자 전용 사물함 관리 페이지. 로그인 가드는 두지 않는다 — 백엔드
  * `/api/lockers/**` 자체가 데모 편의를 위해 인증 없이 열려 있다.
@@ -35,6 +38,10 @@ function AdminLockersPage() {
   const { data, isLoading } = useGetLockers();
   const changeLockStatus = useChangeLockStatus();
   const resetLocker = useResetLocker();
+
+  const lockers = (data?.lockers ?? []).filter((locker) =>
+    MANAGED_LOCKER_IDS.has(locker.lockerId),
+  );
 
   const invalidate = () =>
     queryClient.invalidateQueries({ queryKey: getGetLockersQueryKey() });
@@ -79,7 +86,7 @@ function AdminLockersPage() {
             불러오는 중...
           </p>
         ) : (
-          data?.lockers.map((locker) => (
+          lockers.map((locker) => (
             <div
               key={locker.lockerId}
               className="flex items-center justify-between gap-3 rounded-[var(--radius-sm)] border border-[var(--color-border)] bg-[var(--color-surface-2)] p-3.5"
