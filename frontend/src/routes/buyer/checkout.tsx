@@ -165,7 +165,6 @@ function CheckoutPage() {
           <Button
             fullWidth
             size="lg"
-            variant="outline"
             disabled={isPaying || purchaseProductForDemo.isPending}
             onClick={handleDemoPay}
           >
