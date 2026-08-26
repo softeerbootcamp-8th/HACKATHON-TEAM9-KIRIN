@@ -1,3 +1,10 @@
+import { serverNow } from "./server-clock";
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+// 판매 시작 직후처럼 남은 시간이 "정확히 N일"에 걸친 순간, 클라이언트 시계가
+// 서버보다 몇 초~수십 초 앞서 있어도 하루를 더 올림하지 않도록 여유를 둔다.
+const DDAY_BOUNDARY_BUFFER_MS = 60 * 1000;
+
 /**
  * 단어 마지막 글자의 받침 유무에 따라 "을"/"를"을 고른다. 한글이 아니면 "을"을 기본값으로 쓴다.
  * 상품명처럼 사용자가 입력한 값을 문장에 그대로 끼워 넣는 곳에 쓴다 (Figma "08-4 모달 · 상품 삭제").
@@ -36,19 +43,27 @@ export function formatShortDate(iso: string): string {
   return `${date.getMonth() + 1}/${date.getDate()}`;
 }
 
-/** 만료 시각까지 남은 시간을 "6일 남음" / "3시간 남음" / "곧 만료" 형태로 표시한다. */
+/**
+ * 만료 시각까지 남은 시간을 "6일 남음" / "3시간 남음" / "곧 만료" 형태로 표시한다.
+ * 날짜 단위는 진열함 현황 그리드의 D-day 배지({@link formatDday})와 같은 방식(올림 +
+ * 경계 여유)으로 세, 같은 만료 시각을 두고 그리드는 "D-7", 여기는 "6일 남음"처럼
+ * 서로 다른 값이 보이지 않게 한다. 이 때문에 하루 미만 남은 마지막 날에는(D-day 배지도
+ * "D-1"과 "D-Day" 사이에 중간 단계가 없듯) 시/분 단위 표시 없이 "1일 남음"으로 뭉뚱그려
+ * 보이다가 만료 직전에야 "곧 만료"로 넘어간다. 시/분 단위 표시는 그 전 사실상 도달하지
+ * 않는 경계 안전장치다.
+ */
 export function formatRemaining(
   expiresAtIso: string,
-  now: Date = new Date(),
+  now: Date = serverNow(),
 ): string {
   const diffMs = new Date(expiresAtIso).getTime() - now.getTime();
   if (diffMs <= 0) return "곧 만료";
 
+  const diffDays = Math.ceil((diffMs - DDAY_BOUNDARY_BUFFER_MS) / DAY_MS);
+  if (diffDays >= 1) return `${diffDays}일 남음`;
+
   const diffMinutes = Math.floor(diffMs / (60 * 1000));
   const diffHours = Math.floor(diffMinutes / 60);
-  const diffDays = Math.floor(diffHours / 24);
-
-  if (diffDays >= 1) return `${diffDays}일 남음`;
   if (diffHours >= 1) return `${diffHours}시간 남음`;
   return `${Math.max(diffMinutes, 1)}분 남음`;
 }
@@ -60,7 +75,7 @@ export function formatRemaining(
  */
 export function formatDuration(
   expiresAtIso: string,
-  now: Date = new Date(),
+  now: Date = serverNow(),
 ): string {
   const diffMs = new Date(expiresAtIso).getTime() - now.getTime();
   if (diffMs <= 0) return "0분";
@@ -80,7 +95,7 @@ export function formatDuration(
  */
 export function formatRemainingDetailed(
   expiresAtIso: string,
-  now: Date = new Date(),
+  now: Date = serverNow(),
 ): string {
   const diffMs = new Date(expiresAtIso).getTime() - now.getTime();
   if (diffMs <= 0) return "곧 만료";
@@ -93,7 +108,7 @@ export function formatRemainingDetailed(
  */
 export function formatCountdown(
   expiresAtIso: string,
-  now: Date = new Date(),
+  now: Date = serverNow(),
 ): string {
   const diffMs = new Date(expiresAtIso).getTime() - now.getTime();
   if (diffMs <= 0) return "0:00:00";
@@ -105,18 +120,13 @@ export function formatCountdown(
   return `${hours}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
 }
 
-const DAY_MS = 24 * 60 * 60 * 1000;
-// 판매 시작 직후처럼 남은 시간이 "정확히 N일"에 걸친 순간, 클라이언트 시계가
-// 서버보다 몇 초~수십 초 앞서 있어도 하루를 더 올림하지 않도록 여유를 둔다.
-const DDAY_BOUNDARY_BUFFER_MS = 60 * 1000;
-
 /**
  * 만료 시각까지 남은 날짜를 "D-3" / 오늘 만료면 "D-Day" 형태로 표시한다.
  * 진열함 현황 그리드의 판매중 셀에 쓴다 (Figma "01 홈 · 사물함 현황").
  */
 export function formatDday(
   expiresAtIso: string,
-  now: Date = new Date(),
+  now: Date = serverNow(),
 ): string {
   const diffMs = new Date(expiresAtIso).getTime() - now.getTime();
   const diffDays = Math.ceil((diffMs - DDAY_BOUNDARY_BUFFER_MS) / DAY_MS);

@@ -3,6 +3,7 @@ import axios, {
   type AxiosRequestConfig,
   type AxiosResponse,
 } from "axios";
+import { updateServerClockOffset } from "@/lib/server-clock";
 
 /**
  * Orval 이 생성하는 API 클라이언트가 사용하는 커스텀 axios 인스턴스.
@@ -15,6 +16,20 @@ export const axiosInstance = axios.create({
   },
   withCredentials: true,
 });
+
+// 응답마다 Date 헤더로 서버-클라이언트 시계 오차를 갱신한다 (server-clock.ts 참고).
+axiosInstance.interceptors.response.use(
+  (response) => {
+    const serverDate = response.headers?.date;
+    if (typeof serverDate === "string") updateServerClockOffset(serverDate);
+    return response;
+  },
+  (error: AxiosError) => {
+    const serverDate = error.response?.headers?.date;
+    if (typeof serverDate === "string") updateServerClockOffset(serverDate);
+    return Promise.reject(error);
+  },
+);
 
 export const customInstance = <T>(
   config: AxiosRequestConfig,
