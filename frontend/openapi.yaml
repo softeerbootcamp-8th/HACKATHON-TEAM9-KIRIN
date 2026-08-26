@@ -451,6 +451,28 @@ paths:
         default:
           $ref: "#/components/responses/Error"
 
+  /transactions/demo-purchase:
+    post:
+      operationId: purchaseProductForDemo
+      tags:
+        - transactions
+      summary: 데모용 간편결제 (토스 결제위젯 없이 즉시 결제·거래 생성)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PurchaseProductForDemoRequest"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TransactionResponse"
+        default:
+          $ref: "#/components/responses/Error"
+
   /transactions/{transactionId}:
     get:
       operationId: getTransaction
@@ -912,6 +934,14 @@ components:
         orderId:
           type: string
         amount:
+          type: integer
+          format: int64
+
+    PurchaseProductForDemoRequest:
+      type: object
+      required: [productId]
+      properties:
+        productId:
           type: integer
           format: int64
 

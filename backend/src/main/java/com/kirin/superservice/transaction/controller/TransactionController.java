@@ -2,6 +2,7 @@ package com.kirin.superservice.transaction.controller;
 
 import com.kirin.superservice.global.auth.LoginMember;
 import com.kirin.superservice.transaction.domain.Transaction;
+import com.kirin.superservice.transaction.dto.request.PurchaseProductForDemoRequest;
 import com.kirin.superservice.transaction.dto.request.PurchaseProductRequest;
 import com.kirin.superservice.transaction.dto.response.TransactionResponse;
 import com.kirin.superservice.transaction.service.PurchaseService;
@@ -28,6 +29,15 @@ public class TransactionController {
             @LoginMember Long memberId,
             @RequestBody @Valid PurchaseProductRequest request) {
         Transaction transaction = purchaseService.purchaseProduct(request, memberId);
+        return TransactionResponse.fromEntity(transaction);
+    }
+
+    /** 데모용 간편결제: 토스 결제위젯 없이 버튼 한 번으로 결제·거래 생성을 끝낸다. */
+    @PostMapping("/demo-purchase")
+    public TransactionResponse purchaseProductForDemo(
+            @LoginMember Long memberId,
+            @RequestBody @Valid PurchaseProductForDemoRequest request) {
+        Transaction transaction = purchaseService.purchaseProductForDemo(request.productId(), memberId);
         return TransactionResponse.fromEntity(transaction);
     }
 
