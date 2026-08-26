@@ -3,6 +3,7 @@ package com.kirin.superservice.product.dto.response;
 import com.kirin.superservice.product.domain.Product;
 import com.kirin.superservice.product.domain.ProductStatus;
 import java.time.LocalDateTime;
+import java.util.List;
 
 public record ProductResponse(
         Long productId,
@@ -10,7 +11,7 @@ public record ProductResponse(
         String name,
         Long price,
         String description,
-        String imageUrl,
+        List<String> imageUrls,
         String sellerName,
         ProductStatus status,
         LocalDateTime createdAt,
@@ -28,7 +29,7 @@ public record ProductResponse(
                 product.getName(),
                 product.getPrice(),
                 product.getDescription(),
-                product.getImageUrl(),
+                product.getImageUrls(),
                 product.getSellerName(),
                 product.getStatus(),
                 product.getCreatedAt(),

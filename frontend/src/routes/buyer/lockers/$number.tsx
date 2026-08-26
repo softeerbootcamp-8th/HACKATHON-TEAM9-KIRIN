@@ -4,6 +4,7 @@ import { PageContainer } from "@/components/layout/page";
 import { Header } from "@/components/layout/header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { PhotoCarousel } from "@/components/domain/photo-carousel";
 import { formatDateTime, formatPrice } from "@/lib/format";
 import { useGetProductByLocker } from "@/api/generated/lockers/lockers";
 import type { ProductStatus } from "@/api/generated/model";
@@ -54,17 +55,7 @@ function ProductDetailPage() {
     <PageContainer>
       <Header title={`${lockerId}번 사물함`} onBack={() => router.history.back()} />
 
-      {product.imageUrl ? (
-        <img
-          src={product.imageUrl}
-          alt={product.name}
-          className="h-[220px] w-full object-cover"
-        />
-      ) : (
-        <div className="flex h-[220px] w-full items-center justify-center bg-[var(--color-surface-2)] text-sm text-[var(--color-text-muted)]">
-          상품 이미지
-        </div>
-      )}
+      <PhotoCarousel imageUrls={product.imageUrls} alt={product.name} />
 
       <div className="flex flex-col gap-3.5 px-4 pt-3.5">
         <div className="flex items-center gap-2">

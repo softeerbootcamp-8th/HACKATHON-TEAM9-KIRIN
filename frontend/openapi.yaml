@@ -628,10 +628,13 @@ components:
           type: string
           maxLength: 1000
           nullable: true
-        imageUrl:
-          type: string
-          maxLength: 500
+        imageUrls:
+          type: array
+          maxItems: 10
           nullable: true
+          items:
+            type: string
+            maxLength: 500
 
     ReserveLockerRequest:
       type: object
@@ -650,7 +653,7 @@ components:
           name,
           price,
           description,
-          imageUrl,
+          imageUrls,
           sellerName,
           status,
           createdAt,
@@ -677,9 +680,10 @@ components:
         description:
           type: string
           nullable: true
-        imageUrl:
-          type: string
-          nullable: true
+        imageUrls:
+          type: array
+          items:
+            type: string
         sellerName:
           type: string
         status:

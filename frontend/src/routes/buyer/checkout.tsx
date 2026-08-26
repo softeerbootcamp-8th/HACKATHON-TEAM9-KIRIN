@@ -127,7 +127,7 @@ function CheckoutPage() {
                 ? `${product.lockerId}번 사물함`
                 : "사물함 미배치"
             }
-            thumbnailUrl={product.imageUrl ?? undefined}
+            thumbnailUrl={product.imageUrls[0]}
           />
         </section>
 

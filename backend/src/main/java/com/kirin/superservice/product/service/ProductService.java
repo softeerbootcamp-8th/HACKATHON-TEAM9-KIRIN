@@ -75,7 +75,7 @@ public class ProductService {
                 request.name(),
                 request.price(),
                 request.description(),
-                request.imageUrl(),
+                request.imageUrls(),
                 sellerMemberId,
                 seller.getNickname()));
         log.info("물품 목록 등록 완료 - productId={}, sellerMemberId={}",

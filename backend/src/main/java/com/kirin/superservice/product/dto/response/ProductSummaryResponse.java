@@ -11,13 +11,14 @@ public record ProductSummaryResponse(
         String imageUrl,
         ProductStatus status
 ) {
+    /** 목록·그리드용 썸네일이라 여러 장 중 첫 장만 대표로 내려준다. */
     public static ProductSummaryResponse fromEntity(Product product) {
         return new ProductSummaryResponse(
                 product.getId(),
                 product.getLockerId(),
                 product.getName(),
                 product.getPrice(),
-                product.getImageUrl(),
+                product.getImageUrls().isEmpty() ? null : product.getImageUrls().get(0),
                 product.getStatus()
         );
     }
