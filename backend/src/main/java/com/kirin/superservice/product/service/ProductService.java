@@ -11,6 +11,7 @@ import com.kirin.superservice.product.domain.Product;
 import com.kirin.superservice.product.domain.ProductStatus;
 import com.kirin.superservice.product.dto.request.RegisterProductRequest;
 import com.kirin.superservice.product.dto.request.ReserveLockerRequest;
+import com.kirin.superservice.product.dto.request.UpdateProductRequest;
 import com.kirin.superservice.product.exception.InvalidProductStatusException;
 import com.kirin.superservice.product.exception.ProductNotFoundException;
 import com.kirin.superservice.product.exception.ReservationExpiredException;
@@ -85,6 +86,20 @@ public class ProductService {
                 seller.getNickname()));
         log.info("물품 목록 등록 완료 - productId={}, sellerMemberId={}",
                 product.getId(), product.getSellerMemberId());
+        return product;
+    }
+
+    /** 판매자가 등록한 물품 정보를 수정한다. 판매 완료(SOLD)된 물품은 거래 기록이라 수정할 수 없다. */
+    @Transactional
+    public Product updateProduct(Long productId, UpdateProductRequest request, Long sellerMemberId) {
+        Product product = getProductForUpdate(productId);
+        validateSeller(product, sellerMemberId);
+        if (product.isSold()) {
+            throw new InvalidProductStatusException(productId, product.getStatus());
+        }
+
+        product.updateInfo(request.name(), request.price(), request.description(), request.imageUrls());
+        log.info("물품 정보 수정 완료 - productId={}, sellerMemberId={}", productId, sellerMemberId);
         return product;
     }
 

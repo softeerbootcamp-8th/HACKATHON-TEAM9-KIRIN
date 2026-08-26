@@ -5,12 +5,14 @@ import com.kirin.superservice.product.domain.Product;
 import com.kirin.superservice.product.domain.ProductStatus;
 import com.kirin.superservice.product.dto.request.RegisterProductRequest;
 import com.kirin.superservice.product.dto.request.ReserveLockerRequest;
+import com.kirin.superservice.product.dto.request.UpdateProductRequest;
 import com.kirin.superservice.product.dto.response.ProductListResponse;
 import com.kirin.superservice.product.dto.response.ProductResponse;
 import com.kirin.superservice.product.service.ProductService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -100,6 +102,15 @@ public class ProductController {
         Product product = productService.getProduct(productId);
         long completedSalesCount = productService.countCompletedSales(product.getSellerMemberId());
         return ProductResponse.fromEntity(product, completedSalesCount);
+    }
+
+    @PatchMapping("/{productId}")
+    public ProductResponse updateProduct(
+            @LoginMember Long memberId,
+            @PathVariable Long productId,
+            @RequestBody @Valid UpdateProductRequest request) {
+        Product product = productService.updateProduct(productId, request, memberId);
+        return ProductResponse.fromEntity(product);
     }
 
 }
