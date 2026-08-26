@@ -52,7 +52,7 @@ function ProductDetailPage() {
   if (isLoading) {
     return (
       <PageContainer>
-        <Header title="상품 상세" onBack={() => router.history.back()} />
+        <Header title="상품 상세" onBack={() => router.navigate({ to: "/" })} />
         <p className="px-4 pt-10 text-center text-sm text-[var(--color-text-muted)]">
           불러오는 중...
         </p>
@@ -65,7 +65,7 @@ function ProductDetailPage() {
       <PageContainer>
         <Header
           title={`${lockerId}번 사물함`}
-          onBack={() => router.history.back()}
+          onBack={() => router.navigate({ to: "/" })}
         />
         <div className="flex flex-col items-center gap-10 px-4 pt-10">
           <p className="text-center text-sm text-[var(--color-text-muted)]">
@@ -90,7 +90,7 @@ function ProductDetailPage() {
   if (error || !product) {
     return (
       <PageContainer>
-        <Header title="상품 상세" onBack={() => router.history.back()} />
+        <Header title="상품 상세" onBack={() => router.navigate({ to: "/" })} />
         <p className="px-4 pt-10 text-center text-sm text-[var(--color-text-muted)]">
           정보를 불러오지 못했어요.
         </p>
@@ -105,7 +105,7 @@ function ProductDetailPage() {
     <PageContainer>
       <Header
         title={`${lockerId}번 진열함`}
-        onBack={() => router.history.back()}
+        onBack={() => router.navigate({ to: "/" })}
       />
 
       <PhotoCarousel imageUrls={product.imageUrls} alt={product.name} />
