@@ -556,7 +556,7 @@ function MyListPage() {
 
           <div className="flex gap-2">
             <Button
-              fullWidth
+              className="flex-1"
               size="lg"
               variant="secondary"
               onClick={() => setCancelTarget(null)}
@@ -564,7 +564,7 @@ function MyListPage() {
               돌아가기
             </Button>
             <Button
-              fullWidth
+              className="flex-1"
               size="lg"
               disabled={cancelReservation.isPending}
               onClick={handleConfirmCancelReservation}
@@ -619,7 +619,7 @@ function MyListPage() {
 
           <div className="flex gap-2">
             <Button
-              fullWidth
+              className="flex-1"
               size="lg"
               variant="secondary"
               onClick={() => setDeleteTarget(null)}
@@ -627,7 +627,7 @@ function MyListPage() {
               돌아가기
             </Button>
             <Button
-              fullWidth
+              className="flex-1"
               size="lg"
               disabled={deleteProduct.isPending}
               onClick={handleConfirmDelete}
