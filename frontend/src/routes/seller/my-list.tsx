@@ -112,7 +112,7 @@ const TABS = [
   statuses: ProductStatus[];
 }[];
 
-type ProductMoreMenuProps = {
+export type ProductMoreMenuProps = {
   product: ProductSummaryResponse;
   onEdit: (product: ProductSummaryResponse) => void;
   onStartDeposit: (product: ProductSummaryResponse) => void;
@@ -127,7 +127,7 @@ type ProductMoreMenuProps = {
  * - 판매중: 상품 수정 / 판매 중단
  * - 판매대기: 상품 수정 / 삭제
  */
-function ProductMoreMenu({
+export function ProductMoreMenu({
   product,
   onEdit,
   onStartDeposit,
@@ -152,7 +152,16 @@ function ProductMoreMenu({
           <MoreVertical className="size-6" />
         </button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
+      <DropdownMenuContent
+        align="end"
+        onClick={(event) => {
+          // DropdownMenuContent는 Portal로 document.body에 그려지지만, React는
+          // 포탈 내부 이벤트를 DOM 위치가 아니라 React 트리를 기준으로 버블시킨다.
+          // 그래서 여기서 막지 않으면 이 메뉴를 감싸는 카드의 <Link> onClick까지
+          // 같이 실행돼 상세 화면으로 튕겨나가면서, 메뉴 항목의 동작이 무시된 것처럼 보인다.
+          event.stopPropagation();
+        }}
+      >
         <DropdownMenuItem onClick={() => onEdit(product)}>
           상품 수정
         </DropdownMenuItem>
