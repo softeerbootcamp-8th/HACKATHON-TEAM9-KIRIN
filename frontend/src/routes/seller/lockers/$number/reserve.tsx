@@ -38,8 +38,9 @@ const MAX_OCCUPANCY_DAYS = 7;
 /**
  * 진열함 예약 · 상품 선택 (Figma "05 사물함 예약 · 상품 선택").
  * "자리 예약"은 진열함을 열지 않고 홈의 예약중(본인) 바텀시트로 바로 이동하고,
- * "바로 팔기"는 예약과 동시에 진열함을 열어 "08 모달 · 사물함 잠금 해제" 를
- * 띄운 뒤 확인하면 홈으로 돌아간다.
+ * "바로 팔기"는 예약과 동시에 판매중으로 전환하며 진열함을 열어 "08 모달 · 사물함
+ * 잠금 해제" 를 띄운 뒤 확인하면 홈(판매중)으로 돌아간다. 이후 관리자가 진열함을
+ * 수동으로 잠그는 것은 물리적으로 문을 닫는 절차일 뿐, 판매중 전환은 이미 끝난 상태다.
  */
 function ReservePage() {
   const { number } = Route.useParams();
@@ -94,11 +95,11 @@ function ReservePage() {
     );
   };
 
-  // "바로 팔기" — 예약과 동시에 진열함을 열어 즉시 판매 준비를 시작한다.
+  // "바로 팔기" — 예약과 동시에 판매중으로 전환하고 진열함을 연다.
   const handleSellNow = () => {
     if (!selectedId) return;
     reserveLocker.mutate(
-      { productId: selectedId, data: { lockerId } },
+      { productId: selectedId, data: { lockerId, sellImmediately: true } },
       {
         onSuccess: () => {
           changeLockStatus.mutate(
