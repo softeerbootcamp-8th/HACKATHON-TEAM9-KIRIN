@@ -130,6 +130,8 @@ class ProductServiceTest {
     void 물품보관함_번호로_지금_그_안에_있는_물품을_조회한다() {
         // given
         Product 물품 = 물품(1L, ProductStatus.SELLING);
+        Locker 사물함 = new Locker(1L, LockStatus.LOCKED, UsageStatus.OCCUPIED);
+        given(lockerService.getLocker(1L)).willReturn(사물함);
         given(productRepository.findAllByLockerIdIsNotNull()).willReturn(List.of(물품));
 
         // when
@@ -142,7 +144,8 @@ class ProductServiceTest {
     @Test
     void 물품이_없는_물품보관함_번호로_조회하면_예외가_발생한다() {
         // given
-        given(productRepository.findAllByLockerIdIsNotNull()).willReturn(List.of());
+        Locker 사물함 = new Locker(1L, LockStatus.LOCKED, UsageStatus.AVAILABLE);
+        given(lockerService.getLocker(1L)).willReturn(사물함);
 
         // when & then
         assertThatThrownBy(() -> productService.getProductByLockerId(1L))

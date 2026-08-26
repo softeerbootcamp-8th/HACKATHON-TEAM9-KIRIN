@@ -272,8 +272,18 @@ public class ProductService {
                                 : latest));
     }
 
-    /** QR로 스캔한 물품보관함 번호로 지금 그 안에 있는 물품을 조회한다. 구매자가 로그인 없이도 호출한다. */
+    /**
+     * QR로 스캔한 물품보관함 번호로 지금 그 안에 있는 물품을 조회한다. 구매자가 로그인 없이도 호출한다.
+     * lockerId는 물품이 회수·수령완료된 뒤에도 지워지지 않고 이력으로 남기 때문에, 사물함이 비워진 뒤
+     * 아직 재예약되지 않은 상태라면 최근 물품이 여전히 그 lockerId를 가지고 있다. 그래서 물품 이력이
+     * 아니라 물품보관함의 실제 사용상태(usageStatus)로 지금 비어있는지를 먼저 확인한다.
+     */
     public Product getProductByLockerId(Long lockerId) {
+        Locker locker = lockerService.getLocker(lockerId);
+        if (locker.isAvailable()) {
+            throw ProductNotFoundException.byLockerId(lockerId);
+        }
+
         Product product = findAllProductsByLockerId().get(lockerId);
         if (product == null) {
             throw ProductNotFoundException.byLockerId(lockerId);
