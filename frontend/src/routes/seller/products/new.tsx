@@ -298,7 +298,7 @@ function NewProductPage() {
           </div>
           {photos.length === 0 && (
             <p className="text-xs text-[var(--color-danger)]">
-              사진을 1장 이상 등록해야 등록할 수 있어요.
+              사진을 1장 이상 첨부해야 등록할 수 있어요.
             </p>
           )}
         </div>
