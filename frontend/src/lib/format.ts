@@ -1,3 +1,19 @@
+/**
+ * 단어 마지막 글자의 받침 유무에 따라 "을"/"를"을 고른다. 한글이 아니면 "을"을 기본값으로 쓴다.
+ * 상품명처럼 사용자가 입력한 값을 문장에 그대로 끼워 넣는 곳에 쓴다 (Figma "08-4 모달 · 상품 삭제").
+ */
+export function josaEulReul(word: string): "을" | "를" {
+  const lastChar = word.trim().at(-1);
+  if (!lastChar) return "을";
+
+  const code = lastChar.charCodeAt(0);
+  const isCompleteHangulSyllable = code >= 0xac00 && code <= 0xd7a3;
+  if (!isCompleteHangulSyllable) return "을";
+
+  const hasBatchim = (code - 0xac00) % 28 !== 0;
+  return hasBatchim ? "을" : "를";
+}
+
 /** 가격을 "300,000원" 형태로 표시한다. */
 export function formatPrice(price: number): string {
   return `${price.toLocaleString("ko-KR")}원`;
@@ -38,6 +54,26 @@ export function formatRemaining(
 }
 
 /**
+ * 만료 시각까지 남은 시간을 "3시간 20분" / "20분" 형태로 분 단위까지 보여준다.
+ * "남음" 같은 접미사 없이 문장에 끼워 쓰기 위한 것이라, 이미 지난 시각이면
+ * 빈 문자열 대신 "0분"을 돌려준다 (Figma "08-3 모달 · 예약 취소").
+ */
+export function formatDuration(
+  expiresAtIso: string,
+  now: Date = new Date(),
+): string {
+  const diffMs = new Date(expiresAtIso).getTime() - now.getTime();
+  if (diffMs <= 0) return "0분";
+
+  const diffMinutes = Math.floor(diffMs / (60 * 1000));
+  const hours = Math.floor(diffMinutes / 60);
+  const minutes = diffMinutes % 60;
+
+  if (hours >= 1) return `${hours}시간 ${minutes}분`;
+  return `${Math.max(minutes, 1)}분`;
+}
+
+/**
  * 만료 시각까지 남은 시간을 "3시간 20분 남음" / "20분 남음" / "곧 만료" 형태로
  * 분 단위까지 보여준다. 예약 남은 시간처럼 창이 짧아 분 단위 정밀도가 필요한
  * 곳에 쓴다 (Figma "03 홈 · 바텀시트(예약중·본인)").
@@ -48,13 +84,7 @@ export function formatRemainingDetailed(
 ): string {
   const diffMs = new Date(expiresAtIso).getTime() - now.getTime();
   if (diffMs <= 0) return "곧 만료";
-
-  const diffMinutes = Math.floor(diffMs / (60 * 1000));
-  const hours = Math.floor(diffMinutes / 60);
-  const minutes = diffMinutes % 60;
-
-  if (hours >= 1) return `${hours}시간 ${minutes}분 남음`;
-  return `${Math.max(minutes, 1)}분 남음`;
+  return `${formatDuration(expiresAtIso, now)} 남음`;
 }
 
 /**

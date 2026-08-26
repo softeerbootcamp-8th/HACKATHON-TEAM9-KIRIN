@@ -222,6 +222,18 @@ paths:
                 $ref: "#/components/schemas/ProductResponse"
         default:
           $ref: "#/components/responses/Error"
+    delete:
+      operationId: deleteProduct
+      tags:
+        - products
+      summary: 물품 삭제 (판매대기중만 가능)
+      parameters:
+        - $ref: "#/components/parameters/ProductId"
+      responses:
+        "204":
+          description: 삭제됨
+        default:
+          $ref: "#/components/responses/Error"
 
   /products/{productId}/locker-reservation:
     post:
