@@ -5,23 +5,63 @@ import { PageContainer } from "@/components/layout/page";
 import { Header } from "@/components/layout/header";
 import { ProductCard } from "@/components/domain/product-card";
 import { RegisterProductChip } from "@/components/domain/register-product-chip";
+import {
+  formatDateTimeShort,
+  formatRemaining,
+  formatRemainingDetailed,
+} from "@/lib/format";
 import { useGetMyProducts } from "@/api/generated/products/products";
-import type { ProductStatus } from "@/api/generated/model";
+import type {
+  ProductStatus,
+  ProductSummaryResponse,
+} from "@/api/generated/model";
 
 export const Route = createFileRoute("/seller/my-list")({
   component: MyListPage,
 });
 
+// PREPARING(판매대기)은 배지를 아예 표시하지 않는다 (Figma "07 내 리스트 · 판매 중").
 const STATUS_BADGE: Record<
   ProductStatus,
-  { label: string; variant: "info" | "danger" | "muted" | "success" }
+  {
+    label: string;
+    variant: "listReserved" | "listSelling" | "muted" | "success";
+  } | null
 > = {
-  RESERVED: { label: "예약중", variant: "info" },
-  SELLING: { label: "판매중", variant: "danger" },
-  PREPARING: { label: "판매대기", variant: "muted" },
+  RESERVED: { label: "예약중", variant: "listReserved" },
+  SELLING: { label: "판매중", variant: "listSelling" },
+  PREPARING: null,
   SOLD: { label: "판매완료", variant: "success" },
   EXPIRED: { label: "판매만료", variant: "muted" },
 };
+
+/** 진열함 위치(+ 판매중이면 점유 기간) 한 줄 (Figma "07 내 리스트 · 판매 중"). */
+function metaFor(product: ProductSummaryResponse): string {
+  if (
+    product.status === "SELLING" &&
+    product.sellingStartedAt &&
+    product.sellingExpiresAt
+  ) {
+    return `${product.lockerId}번 진열함 (${formatDateTimeShort(product.sellingStartedAt)} - ${formatDateTimeShort(product.sellingExpiresAt)})`;
+  }
+  return product.lockerId != null
+    ? `${product.lockerId}번 진열함`
+    : "진열함 미지정";
+}
+
+/** 남은 예약 시간(예약중) / 남은 점유 기간(판매중) 강조 캡션. */
+function highlightFor(
+  product: ProductSummaryResponse,
+  now: Date,
+): string | undefined {
+  if (product.status === "RESERVED" && product.reservationExpiresAt) {
+    return formatRemainingDetailed(product.reservationExpiresAt, now);
+  }
+  if (product.status === "SELLING" && product.sellingExpiresAt) {
+    return formatRemaining(product.sellingExpiresAt, now);
+  }
+  return undefined;
+}
 
 const TABS = [
   {
@@ -47,6 +87,7 @@ function MyListPage() {
 
   const { data, isLoading } = useGetMyProducts({});
   const allProducts = data?.products ?? [];
+  const now = new Date();
 
   const tab = TABS.find((item) => item.key === activeTab) ?? TABS[0];
   const items = allProducts.filter((product) =>
@@ -106,12 +147,9 @@ function MyListPage() {
                 <ProductCard
                   name={product.name}
                   price={product.price}
-                  meta={
-                    product.lockerId != null
-                      ? `${product.lockerId}번 사물함`
-                      : "사물함 미지정"
-                  }
-                  badge={STATUS_BADGE[product.status]}
+                  meta={metaFor(product)}
+                  highlight={highlightFor(product, now)}
+                  badge={STATUS_BADGE[product.status] ?? undefined}
                   thumbnailUrl={product.imageUrl ?? undefined}
                 />
               </Link>

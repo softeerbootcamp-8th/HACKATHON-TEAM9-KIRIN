@@ -223,6 +223,29 @@ class ProductControllerTest {
     }
 
     @Test
+    void 내_물품_목록을_조회하면_예약중_판매중_물품의_남은_기간_정보도_함께_반환한다() throws Exception {
+        // given
+        Product reserved = 물품(1L, ProductStatus.RESERVED);
+        Product selling = 물품(2L, ProductStatus.SELLING);
+        selling.reserveLocker(2L, LocalDateTime.of(2026, 8, 18, 11, 0),
+                LocalDateTime.of(2026, 8, 18, 15, 0));
+        selling.startDeposit(LocalDateTime.of(2026, 8, 18, 11, 59));
+        selling.completeDeposit(LocalDateTime.of(2026, 8, 18, 12, 0),
+                LocalDateTime.of(2026, 8, 25, 12, 0));
+        given(productService.findAllProductsBySellerMemberId(1L, null))
+                .willReturn(List.of(reserved, selling));
+
+        // when & then
+        mockMvc.perform(get("/api/products/me")
+                        .sessionAttr(SessionConst.LOGIN_MEMBER_ID, 1L))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.products[0].reservationExpiresAt").exists())
+                .andExpect(jsonPath("$.products[0].sellingExpiresAt").doesNotExist())
+                .andExpect(jsonPath("$.products[1].sellingStartedAt").exists())
+                .andExpect(jsonPath("$.products[1].sellingExpiresAt").exists());
+    }
+
+    @Test
     void 로그인하지_않고_내_물품_목록을_조회하면_401을_반환한다() throws Exception {
         // when & then
         mockMvc.perform(get("/api/products/me"))
