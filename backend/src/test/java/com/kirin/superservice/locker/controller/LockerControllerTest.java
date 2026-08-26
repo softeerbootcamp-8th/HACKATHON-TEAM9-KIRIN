@@ -184,6 +184,7 @@ class LockerControllerTest {
                 .andExpect(jsonPath("$.lockerId").value(1))
                 .andExpect(jsonPath("$.lockStatus").value("UNLOCKED"));
 
+        then(productService).should().startSellingForDemo(1L);
         then(productService).should(never()).completeDepositForDemo(1L);
         then(productService).should(never()).completeRecoveryForDemo(1L);
         then(transactionService).should(never()).completePickupForDemo(1L);
@@ -203,6 +204,7 @@ class LockerControllerTest {
                 .andExpect(jsonPath("$.lockerId").value(1))
                 .andExpect(jsonPath("$.lockStatus").value("LOCKED"));
 
+        then(productService).should(never()).startSellingForDemo(1L);
         then(productService).should().completeDepositForDemo(1L);
         then(productService).should().completeRecoveryForDemo(1L);
         then(transactionService).should().completePickupForDemo(1L);

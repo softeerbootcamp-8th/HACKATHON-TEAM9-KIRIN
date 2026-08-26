@@ -148,12 +148,12 @@ public class ProductService {
         return product;
     }
 
-    /** 투입 시작 전의 예약을 취소하고 물품보관함을 다시 사용 가능 상태로 돌린다. */
+    /** 판매중으로 전환되기 전까지의 예약을 취소하고 물품보관함을 다시 사용 가능 상태로 돌린다. */
     @Transactional
     public Product cancelLockerReservation(Long productId, Long sellerMemberId) {
         Product product = getProductForUpdate(productId);
         validateSeller(product, sellerMemberId);
-        if (!product.isReserved() || product.hasStartedDeposit()) {
+        if (!product.isReserved()) {
             throw new InvalidProductStatusException(productId, product.getStatus());
         }
 
@@ -166,11 +166,18 @@ public class ProductService {
         return product;
     }
 
-    /** 예약한 물품보관함을 열어 물품 투입을 시작한다. */
+    /**
+     * 예약한 물품보관함을 열어 물품 투입을 시작한다. 사물함을 여는 시점에 데모용 판매 전환
+     * ({@link #startSellingForDemo})이 이미 끝나 판매중으로 넘어가 있다면, 되돌리지 않고
+     * 그대로 반환한다(멱등 처리).
+     */
     @Transactional
     public Product startDeposit(Long productId, Long sellerMemberId) {
         Product product = getProductForUpdate(productId);
         validateSeller(product, sellerMemberId);
+        if (product.isSelling()) {
+            return product;
+        }
         LocalDateTime now = LocalDateTime.now(clock);
         validateReservable(product, now);
         if (product.hasStartedDeposit()) {
@@ -342,6 +349,27 @@ public class ProductService {
         Product product = productRepository.findFirstByLockerIdOrderByCreatedAtDescIdDesc(lockerId)
                 .orElseThrow(() -> new LockerAccessDeniedException(lockerId));
         validateSeller(product, sellerMemberId);
+    }
+
+    /**
+     * 데모용: 사물함을 여는(UNLOCKED) 시점에 예약 중인 물품의 투입 절차 없이 곧바로 판매중으로
+     * 전환한다. ESP32가 문이 실제로 닫혔는지 감지할 수 없어 잠금(LOCKED) 신호에만 의존할 수
+     * 없기 때문에, "물건 넣기"로 사물함을 여는 순간을 투입 완료로 간주한다.
+     * 로그인·판매자 검증과 무관하게, 예약된 물품이면 바로 판매중으로 전환한다.
+     */
+    @Transactional
+    public void startSellingForDemo(Long lockerId) {
+        productRepository.findFirstByLockerIdOrderByCreatedAtDescIdDesc(lockerId).ifPresent(found -> {
+            if (!found.isReserved()) {
+                return;
+            }
+            Product product = getProductForUpdate(found.getId());
+            Locker locker = lockerService.getLockerForUpdate(lockerId);
+            LocalDateTime now = LocalDateTime.now(clock);
+            product.completeDeposit(now, now.plusDays(SELLING_DAYS));
+            locker.occupy();
+            log.info("데모용 사물함 오픈으로 판매 시작 - productId={}, lockerId={}", product.getId(), lockerId);
+        });
     }
 
     /**
