@@ -179,13 +179,6 @@ function CheckoutPage() {
           <h2 className="text-[15px] font-bold text-[var(--color-text-sub)]">
             결제 수단
           </h2>
-          <div id="toss-payment-method" />
-          <div id="toss-agreement" />
-          {!widgets && (
-            <p className="py-6 text-center text-sm text-[var(--color-text-muted)]">
-              결제 수단을 불러오는 중...
-            </p>
-          )}
           <Button
             fullWidth
             size="lg"
@@ -196,6 +189,13 @@ function CheckoutPage() {
           >
             간편결제
           </Button>
+          <div id="toss-payment-method" />
+          <div id="toss-agreement" />
+          {!widgets && (
+            <p className="py-6 text-center text-sm text-[var(--color-text-muted)]">
+              결제 수단을 불러오는 중...
+            </p>
+          )}
         </section>
 
         <p className="text-xs text-[var(--color-text-muted)]">
