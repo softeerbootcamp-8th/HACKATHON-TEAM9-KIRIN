@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { createFileRoute, useRouter } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
+import axios from "axios";
 import { Camera, X } from "lucide-react";
 import { toast } from "sonner";
 import { PageContainer } from "@/components/layout/page";
@@ -14,6 +15,7 @@ import {
   useRegisterProduct,
   getGetMyProductsQueryKey,
 } from "@/api/generated/products/products";
+import type { ErrorResponse } from "@/api/generated/model";
 
 export const Route = createFileRoute("/seller/products/new")({
   component: NewProductPage,
@@ -26,6 +28,46 @@ const MIN_PRICE = 1_000;
 const MAX_PRICE = 1_000_000_000;
 
 type Photo = { id: string; url: string; file: File };
+
+const HEIC_CONTENT_TYPES = new Set(["image/heic", "image/heif"]);
+
+/** 아이폰 사진 라이브러리는 기본적으로 HEIC/HEIF로 저장하는데, 백엔드가
+ * 지원하지 않는 형식이라(jpeg/png/webp/gif만 허용) 그대로 올리면 등록이
+ * 실패한다. iOS는 file input이 content-type을 빈 문자열로 주는 경우도 있어
+ * 확장자도 같이 본다. */
+function isHeicFile(file: File) {
+  return (
+    HEIC_CONTENT_TYPES.has(file.type.toLowerCase()) ||
+    /\.(heic|heif)$/i.test(file.name)
+  );
+}
+
+/** HEIC/HEIF 사진을 업로드 가능한 JPEG로 변환한다. 변환 라이브러리(heic2any)는
+ * 용량이 커서 HEIC 파일을 실제로 선택했을 때만 동적으로 불러온다. */
+async function toUploadableFile(file: File): Promise<File> {
+  if (!isHeicFile(file)) return file;
+
+  const { default: heic2any } = await import("heic2any");
+  const converted = await heic2any({
+    blob: file,
+    toType: "image/jpeg",
+    quality: 0.85,
+  });
+  const blob = Array.isArray(converted) ? converted[0] : converted;
+  const jpegName = file.name.replace(/\.(heic|heif)$/i, "") + ".jpg";
+  return new File([blob], jpegName, { type: "image/jpeg" });
+}
+
+/** 서버가 내려준 에러 메시지가 있으면 그대로 보여주고, 없으면 기본 문구를 쓴다. */
+function extractErrorMessage(error: unknown, fallback: string) {
+  if (
+    axios.isAxiosError<ErrorResponse>(error) &&
+    error.response?.data.message
+  ) {
+    return error.response.data.message;
+  }
+  return fallback;
+}
 
 /**
  * 상품 등록 (Figma "06 상품 등록"). 사진은 여러 장 미리보기로 보여주지만
@@ -42,6 +84,7 @@ function NewProductPage() {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [price, setPrice] = useState("");
+  const [isConvertingPhotos, setIsConvertingPhotos] = useState(false);
 
   const uploadImage = useUploadImage();
   const registerProduct = useRegisterProduct();
@@ -61,17 +104,27 @@ function NewProductPage() {
     };
   }, []);
 
-  const handleFilesSelected = (files: FileList | null) => {
+  const handleFilesSelected = async (files: FileList | null) => {
     if (!files || files.length === 0) return;
     const remaining = MAX_PHOTOS - photos.length;
-    const newPhotos = Array.from(files)
-      .slice(0, remaining)
-      .map((file) => ({
+    const selectedFiles = Array.from(files).slice(0, remaining);
+
+    setIsConvertingPhotos(true);
+    try {
+      const uploadableFiles = await Promise.all(
+        selectedFiles.map(toUploadableFile),
+      );
+      const newPhotos = uploadableFiles.map((file) => ({
         id: `${file.name}-${file.lastModified}-${Math.random().toString(36).slice(2)}`,
         url: URL.createObjectURL(file),
         file,
       }));
-    setPhotos((prev) => [...prev, ...newPhotos]);
+      setPhotos((prev) => [...prev, ...newPhotos]);
+    } catch {
+      toast.error("사진을 처리하지 못했어요. 다른 사진을 선택해 주세요.");
+    } finally {
+      setIsConvertingPhotos(false);
+    }
   };
 
   const removePhoto = (id: string) => {
@@ -115,8 +168,8 @@ function NewProductPage() {
 
       toast.success("상품이 등록됐어요.");
       router.history.back();
-    } catch {
-      toast.error("상품 등록에 실패했어요.");
+    } catch (error) {
+      toast.error(extractErrorMessage(error, "상품 등록에 실패했어요."));
     }
   };
 
@@ -150,18 +203,23 @@ function NewProductPage() {
             ))}
 
             {photos.length < MAX_PHOTOS && (
-              <label className="flex size-[88px] shrink-0 flex-col items-center justify-center gap-1 rounded-[var(--radius-sm)] border border-dashed border-[var(--color-border)] bg-[var(--color-surface-2)] text-[var(--color-text-muted)]">
+              <label
+                className={`flex size-[88px] shrink-0 flex-col items-center justify-center gap-1 rounded-[var(--radius-sm)] border border-dashed border-[var(--color-border)] bg-[var(--color-surface-2)] text-[var(--color-text-muted)] ${isConvertingPhotos ? "opacity-50" : ""}`}
+              >
                 <Camera className="size-5" />
                 <span className="text-[11px]">
-                  {photos.length} / {MAX_PHOTOS}
+                  {isConvertingPhotos
+                    ? "처리 중..."
+                    : `${photos.length} / ${MAX_PHOTOS}`}
                 </span>
                 <input
                   type="file"
                   accept="image/*"
                   multiple
                   className="hidden"
+                  disabled={isConvertingPhotos}
                   onChange={(event) => {
-                    handleFilesSelected(event.target.files);
+                    void handleFilesSelected(event.target.files);
                     event.target.value = "";
                   }}
                 />
@@ -243,7 +301,7 @@ function NewProductPage() {
         <Button
           fullWidth
           size="lg"
-          disabled={!canSubmit || isSubmitting}
+          disabled={!canSubmit || isSubmitting || isConvertingPhotos}
           onClick={handleSubmit}
         >
           작성 완료
