@@ -18,6 +18,9 @@ const buttonVariants = cva(
           "bg-primary text-primary-foreground hover:bg-[var(--color-primary-hover)] disabled:bg-[var(--color-disabled-bg)] disabled:text-[var(--color-disabled-text)]",
         secondary:
           "border border-[var(--color-border-strong)] bg-transparent text-foreground hover:bg-[var(--color-surface-2)] disabled:border-[var(--color-border)] disabled:text-[var(--color-disabled-text)]",
+        // 테두리·글자 모두 primary 색인 아웃라인 버튼 (Figma "05 사물함 예약 · 상품 선택"의 "자리 예약")
+        outline:
+          "border border-[var(--color-primary)] bg-transparent text-[var(--color-primary)] hover:bg-[var(--color-primary-weak)] disabled:border-[var(--color-disabled-bg)] disabled:text-[var(--color-disabled-text)]",
         ghost:
           "bg-transparent hover:bg-[var(--color-surface-2)] disabled:opacity-50",
         destructive:
