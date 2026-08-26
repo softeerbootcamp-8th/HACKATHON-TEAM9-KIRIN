@@ -1,4 +1,4 @@
-import { User } from "lucide-react";
+import { Pencil, User } from "lucide-react";
 import { createFileRoute, useRouter } from "@tanstack/react-router";
 import { PageContainer } from "@/components/layout/page";
 import { Header } from "@/components/layout/header";
@@ -73,6 +73,21 @@ function SellerProductDetailPage() {
             {product.name}
           </h1>
           <Badge variant={badge.variant}>{badge.label}</Badge>
+          {product.status !== "SOLD" && (
+            <button
+              type="button"
+              onClick={() =>
+                router.navigate({
+                  to: "/seller/products/new",
+                  search: { productId: product.productId },
+                })
+              }
+              className="ml-auto flex items-center gap-1 text-xs text-[var(--color-text-muted)]"
+            >
+              <Pencil className="size-3" />
+              수정하기
+            </button>
+          )}
         </div>
         <p className="text-2xl font-bold text-[var(--color-text)]">
           {formatPrice(product.price)}
