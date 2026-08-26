@@ -723,7 +723,19 @@ components:
 
     ProductSummaryResponse:
       type: object
-      required: [productId, lockerId, name, price, imageUrl, status]
+      required:
+        [
+          productId,
+          lockerId,
+          name,
+          price,
+          imageUrl,
+          status,
+          reservationExpiresAt,
+          sellingStartedAt,
+          sellingExpiresAt,
+          soldAt,
+        ]
       properties:
         productId:
           type: integer
@@ -742,6 +754,22 @@ components:
           nullable: true
         status:
           $ref: "#/components/schemas/ProductStatus"
+        reservationExpiresAt:
+          type: string
+          format: date-time
+          nullable: true
+        sellingStartedAt:
+          type: string
+          format: date-time
+          nullable: true
+        sellingExpiresAt:
+          type: string
+          format: date-time
+          nullable: true
+        soldAt:
+          type: string
+          format: date-time
+          nullable: true
 
     ProductListResponse:
       type: object

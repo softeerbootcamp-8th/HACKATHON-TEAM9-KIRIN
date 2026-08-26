@@ -223,6 +223,35 @@ class ProductControllerTest {
     }
 
     @Test
+    void 내_물품_목록에_상태별_시각_정보가_포함된다() throws Exception {
+        // given
+        LocalDateTime now = LocalDateTime.now();
+        Product 예약중_물품 = new Product(1L, 1L, "아이패드", 300000L, "상태 좋음", null, 1L, "원기",
+                ProductStatus.RESERVED, now);
+        예약중_물품.reserveLocker(1L, now, now.plusHours(4));
+
+        Product 판매중_물품 = new Product(2L, 2L, "맥북", 1000000L, "상태 좋음", null, 1L, "원기",
+                ProductStatus.SELLING, now);
+        판매중_물품.completeDeposit(now, now.plusDays(7));
+
+        Product 판매완료_물품 = new Product(3L, null, "지갑", 170000L, "상태 좋음", null, 1L, "원기",
+                ProductStatus.SOLD, now);
+        판매완료_물품.markSold(now);
+
+        given(productService.findAllProductsBySellerMemberId(1L, null))
+                .willReturn(List.of(예약중_물품, 판매중_물품, 판매완료_물품));
+
+        // when & then
+        mockMvc.perform(get("/api/products/me")
+                        .sessionAttr(SessionConst.LOGIN_MEMBER_ID, 1L))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.products[0].reservationExpiresAt").exists())
+                .andExpect(jsonPath("$.products[1].sellingStartedAt").exists())
+                .andExpect(jsonPath("$.products[1].sellingExpiresAt").exists())
+                .andExpect(jsonPath("$.products[2].soldAt").exists());
+    }
+
+    @Test
     void 로그인하지_않고_내_물품_목록을_조회하면_401을_반환한다() throws Exception {
         // when & then
         mockMvc.perform(get("/api/products/me"))

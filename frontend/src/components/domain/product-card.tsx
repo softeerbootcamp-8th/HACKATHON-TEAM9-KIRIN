@@ -4,12 +4,19 @@ import { Badge } from "@/components/ui/badge";
 
 type ProductCardBadge = {
   label: string;
-  variant: "info" | "danger" | "muted" | "success";
+  variant: "info" | "danger" | "muted" | "success" | "mine" | "mineSelling";
 };
 
 type ProductCardHighlight = {
   text: string;
-  tone: "info" | "danger";
+  tone: "info" | "danger" | "mine" | "selling";
+};
+
+const HIGHLIGHT_TONE_COLOR: Record<ProductCardHighlight["tone"], string> = {
+  info: "text-[var(--color-info)]",
+  danger: "text-[var(--color-danger)]",
+  mine: "text-[var(--color-mine)]",
+  selling: "text-[var(--color-selling)]",
 };
 
 type ProductCardProps = {
@@ -71,9 +78,7 @@ export function ProductCard({
           <p
             className={cn(
               "text-xs font-medium",
-              highlight.tone === "danger"
-                ? "text-[var(--color-danger)]"
-                : "text-[var(--color-info)]",
+              HIGHLIGHT_TONE_COLOR[highlight.tone],
             )}
           >
             {highlight.text}

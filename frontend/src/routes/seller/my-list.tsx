@@ -5,8 +5,17 @@ import { PageContainer } from "@/components/layout/page";
 import { Header } from "@/components/layout/header";
 import { ProductCard } from "@/components/domain/product-card";
 import { RegisterProductChip } from "@/components/domain/register-product-chip";
+import {
+  formatDateTime,
+  formatRemaining,
+  formatRemainingDetailed,
+  formatShortDate,
+} from "@/lib/format";
 import { useGetMyProducts } from "@/api/generated/products/products";
-import type { ProductStatus } from "@/api/generated/model";
+import type {
+  ProductStatus,
+  ProductSummaryResponse,
+} from "@/api/generated/model";
 
 export const Route = createFileRoute("/seller/my-list")({
   component: MyListPage,
@@ -14,14 +23,49 @@ export const Route = createFileRoute("/seller/my-list")({
 
 const STATUS_BADGE: Record<
   ProductStatus,
-  { label: string; variant: "info" | "danger" | "muted" | "success" }
+  { label: string; variant: "info" | "danger" | "muted" | "mine" | "mineSelling" }
 > = {
-  RESERVED: { label: "예약중", variant: "info" },
-  SELLING: { label: "판매중", variant: "danger" },
+  RESERVED: { label: "예약중", variant: "mine" },
+  SELLING: { label: "판매중", variant: "mineSelling" },
   PREPARING: { label: "판매대기", variant: "muted" },
-  SOLD: { label: "판매완료", variant: "success" },
+  SOLD: { label: "판매완료", variant: "muted" },
   EXPIRED: { label: "판매만료", variant: "muted" },
 };
+
+/** 사물함/보조 정보 한 줄 — 상태별로 보여줄 내용이 다르다 (Figma "07"/"07-2"). */
+function getMeta(product: ProductSummaryResponse): string {
+  if (product.status === "SOLD" && product.soldAt) {
+    return `${formatShortDate(product.soldAt)} 거래 완료`;
+  }
+  if (product.lockerId == null) {
+    return "사물함 미지정";
+  }
+  if (
+    product.status === "SELLING" &&
+    product.sellingStartedAt &&
+    product.sellingExpiresAt
+  ) {
+    return `${product.lockerId}번 사물함 (${formatDateTime(product.sellingStartedAt)} - ${formatDateTime(product.sellingExpiresAt)})`;
+  }
+  return `${product.lockerId}번 사물함`;
+}
+
+/** 남은 예약 시간(예약중)/남은 판매 기간(판매중) 강조 캡션 (Figma "07"). */
+function getHighlight(product: ProductSummaryResponse) {
+  if (product.status === "RESERVED" && product.reservationExpiresAt) {
+    return {
+      text: formatRemainingDetailed(product.reservationExpiresAt),
+      tone: "mine" as const,
+    };
+  }
+  if (product.status === "SELLING" && product.sellingExpiresAt) {
+    return {
+      text: formatRemaining(product.sellingExpiresAt),
+      tone: "selling" as const,
+    };
+  }
+  return undefined;
+}
 
 const TABS = [
   {
@@ -106,11 +150,8 @@ function MyListPage() {
                 <ProductCard
                   name={product.name}
                   price={product.price}
-                  meta={
-                    product.lockerId != null
-                      ? `${product.lockerId}번 사물함`
-                      : "사물함 미지정"
-                  }
+                  meta={getMeta(product)}
+                  highlight={getHighlight(product)}
                   badge={STATUS_BADGE[product.status]}
                   thumbnailUrl={product.imageUrl ?? undefined}
                 />

@@ -170,6 +170,7 @@ class TransactionServiceTest {
 
         // then
         assertThat(product.getStatus()).isEqualTo(ProductStatus.SOLD);
+        assertThat(product.getSoldAt()).isEqualTo(LocalDateTime.now(clock));
         assertThat(locker.getLockStatus()).isEqualTo(LockStatus.UNLOCKED);
     }
 
