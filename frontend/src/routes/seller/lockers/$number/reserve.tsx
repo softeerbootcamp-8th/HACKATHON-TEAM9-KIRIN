@@ -151,7 +151,7 @@ function ReservePage() {
           </p>
         ) : products.length === 0 ? (
           <p className="py-6 text-center text-sm text-[var(--color-text-muted)]">
-            아직 배치되지 않은 등록 상품이 없어요.
+            판매할 상품이 없어요.
           </p>
         ) : (
           <div className="flex flex-col gap-2.5">
