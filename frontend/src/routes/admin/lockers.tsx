@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { createFileRoute, useRouter } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
-import { toast } from "sonner";
 import { PageContainer } from "@/components/layout/page";
 import { Header } from "@/components/layout/header";
 import { Badge } from "@/components/ui/badge";
@@ -47,15 +46,7 @@ function AdminLockersPage() {
       current === LockStatus.LOCKED ? LockStatus.UNLOCKED : LockStatus.LOCKED;
     changeLockStatus.mutate(
       { lockerId, data: { lockStatus: next } },
-      {
-        onSuccess: () => {
-          toast.success(
-            `${lockerId}번 진열함을 ${next === LockStatus.LOCKED ? "잠갔어요" : "열었어요"}.`,
-          );
-          invalidate();
-        },
-        onError: () => toast.error("잠금 상태 변경에 실패했어요."),
-      },
+      { onSuccess: invalidate },
     );
   };
 
@@ -65,11 +56,9 @@ function AdminLockersPage() {
       { lockerId: resetTarget },
       {
         onSuccess: () => {
-          toast.success(`${resetTarget}번 진열함을 초기화했어요.`);
           invalidate();
           setResetTarget(null);
         },
-        onError: () => toast.error("초기화에 실패했어요."),
       },
     );
   };
