@@ -22,10 +22,11 @@ const HIGHLIGHT_TONE_COLOR: Record<ProductCardHighlight["tone"], string> = {
 type ProductCardProps = {
   name: string;
   price: number;
-  badge: ProductCardBadge;
-  /** 사물함 위치/미지정 등 보조 정보 한 줄 (Figma 회색 캡션) */
+  /** 판매대기(PREPARING) 등 배지가 없는 상태도 있다 (Figma "07 내 리스트 · 판매 중") */
+  badge?: ProductCardBadge;
+  /** 진열함 위치/미지정 등 보조 정보 한 줄 (Figma 회색 캡션) */
   meta: string;
-  /** 등록 마감 · 남은 점유 기간 등 강조 캡션 (info/danger 톤) */
+  /** 남은 예약 시간·남은 점유 기간 등 강조 캡션 (Figma "07 내 리스트 · 판매 중") */
   highlight?: ProductCardHighlight;
   thumbnailUrl?: string;
   onMoreClick?: () => void;
@@ -61,12 +62,14 @@ export function ProductCard({
           <p className="truncate text-[15px] font-semibold text-[var(--color-text-sub)]">
             {name}
           </p>
-          <Badge
-            variant={badge.variant}
-            className="shrink-0 px-1.5 py-0.5 text-[11px]"
-          >
-            {badge.label}
-          </Badge>
+          {badge && (
+            <Badge
+              variant={badge.variant}
+              className="shrink-0 px-1.5 py-0.5 text-[11px]"
+            >
+              {badge.label}
+            </Badge>
+          )}
         </div>
         <p className="tabular text-[15px] font-bold text-[var(--color-text-sub)]">
           {price.toLocaleString()}원

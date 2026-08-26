@@ -246,6 +246,7 @@ class ProductControllerTest {
                         .sessionAttr(SessionConst.LOGIN_MEMBER_ID, 1L))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.products[0].reservationExpiresAt").exists())
+                .andExpect(jsonPath("$.products[0].sellingExpiresAt").doesNotExist())
                 .andExpect(jsonPath("$.products[1].sellingStartedAt").exists())
                 .andExpect(jsonPath("$.products[1].sellingExpiresAt").exists())
                 .andExpect(jsonPath("$.products[2].soldAt").exists());
