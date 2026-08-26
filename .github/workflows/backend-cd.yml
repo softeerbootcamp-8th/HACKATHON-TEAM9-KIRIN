@@ -69,12 +69,15 @@ jobs:
           SPRING_DATASOURCE_USERNAME: ${{ secrets.DB_USERNAME }}
           SPRING_DATASOURCE_PASSWORD: ${{ secrets.DB_PASSWORD }}
           TOSS_SECRET_KEY: ${{ secrets.TOSS_SECRET_KEY }}
+          SLACK_ENABLED: ${{ vars.SLACK_ENABLED }}
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+          SLACK_CHANNEL: ${{ vars.SLACK_CHANNEL }}
         with:
           host: ${{ vars.SSH_HOST }}
           username: ${{ vars.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: 22
-          envs: SPRING_DATASOURCE_URL,SPRING_DATASOURCE_USERNAME,SPRING_DATASOURCE_PASSWORD,TOSS_SECRET_KEY
+          envs: SPRING_DATASOURCE_URL,SPRING_DATASOURCE_USERNAME,SPRING_DATASOURCE_PASSWORD,TOSS_SECRET_KEY,SLACK_ENABLED,SLACK_BOT_TOKEN,SLACK_CHANNEL
           command_timeout: 3m
           script: |
             set -uo pipefail
