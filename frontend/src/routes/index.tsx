@@ -434,23 +434,31 @@ function HomePage() {
           </DialogTitle>
 
           <ul className="flex flex-col gap-2 text-[13px] text-[var(--color-text-muted)]">
-            <li>· 상품을 넣은 뒤 문을 닫으면 자동으로 잠겨요.</li>
-            <li>
-              · 점유 기간은 최대 {DEFAULT_MAX_OCCUPANCY_DAYS}일이에요.
-              {openedLockerDepositedAt && (
-                <>
-                  <br />
-                  <span className="font-bold text-[var(--color-text-sub)]">
+            <li className="flex items-start gap-1.5">
+              <span className="font-bold">·</span>
+              <p className="flex-1">
+                상품을 넣은 뒤 문을 닫으면 자동으로 잠겨요.
+              </p>
+            </li>
+            <li className="flex items-start gap-1.5">
+              <span className="font-bold">·</span>
+              <div className="flex-1">
+                <p>점유 기간은 최대 {DEFAULT_MAX_OCCUPANCY_DAYS}일이에요.</p>
+                {openedLockerDepositedAt && (
+                  <p className="font-bold">
                     {formatOccupancyPeriod(
                       openedLockerDepositedAt,
                       DEFAULT_MAX_OCCUPANCY_DAYS,
                     )}
-                  </span>
-                </>
-              )}
+                  </p>
+                )}
+              </div>
             </li>
-            <li>
-              · 기간이 끝나기 전까지 판매되지 않으면 상품을 회수해 주세요.
+            <li className="flex items-start gap-1.5">
+              <span className="font-bold">·</span>
+              <p className="flex-1">
+                기간이 끝나기 전까지 판매되지 않으면 상품을 회수해 주세요.
+              </p>
             </li>
           </ul>
 
@@ -558,18 +566,13 @@ function SellingSheetBody({
   onEndSelling: () => void;
   pending: boolean;
 }) {
+  const router = useRouter();
+
   return (
     <>
       <BottomSheetHeader className="h-auto items-center justify-start gap-2">
         <BottomSheetTitle>{locker.number}번 진열함</BottomSheetTitle>
         <Badge variant="mineSelling">판매중</Badge>
-        <Link
-          to="/seller/products/$productId"
-          params={{ productId: String(product.productId) }}
-          className="ml-auto text-xs text-[var(--color-text-muted)]"
-        >
-          상세보기 ›
-        </Link>
       </BottomSheetHeader>
       <BottomSheetBody className="flex flex-col gap-3">
         <ItemRow
@@ -577,6 +580,12 @@ function SellingSheetBody({
           place={formatPrice(product.price)}
           address={product.imageUrls[0] ? "" : "사진 없음"}
           thumbnailUrl={product.imageUrls[0]}
+          onClick={() =>
+            router.navigate({
+              to: "/seller/products/$productId",
+              params: { productId: String(product.productId) },
+            })
+          }
         />
         <InfoBox
           rows={[

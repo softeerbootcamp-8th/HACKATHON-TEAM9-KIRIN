@@ -200,6 +200,28 @@ paths:
                 $ref: "#/components/schemas/ProductResponse"
         default:
           $ref: "#/components/responses/Error"
+    patch:
+      operationId: updateProduct
+      tags:
+        - products
+      summary: 물품 정보 수정
+      parameters:
+        - $ref: "#/components/parameters/ProductId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateProductRequest"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProductResponse"
+        default:
+          $ref: "#/components/responses/Error"
 
   /products/{productId}/locker-reservation:
     post:
@@ -613,6 +635,30 @@ components:
       enum: [PREPARING, RESERVED, SELLING, SOLD, EXPIRED]
 
     RegisterProductRequest:
+      type: object
+      required: [name, price]
+      properties:
+        name:
+          type: string
+          maxLength: 100
+        price:
+          type: integer
+          format: int64
+          minimum: 1000
+          maximum: 1000000000
+        description:
+          type: string
+          maxLength: 1000
+          nullable: true
+        imageUrls:
+          type: array
+          maxItems: 10
+          nullable: true
+          items:
+            type: string
+            maxLength: 500
+
+    UpdateProductRequest:
       type: object
       required: [name, price]
       properties:

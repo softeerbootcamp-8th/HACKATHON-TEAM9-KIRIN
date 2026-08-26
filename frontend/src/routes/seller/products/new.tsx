@@ -13,11 +13,19 @@ import { Button } from "@/components/ui/button";
 import { useUploadImage } from "@/api/generated/images/images";
 import {
   useRegisterProduct,
+  useUpdateProduct,
+  useGetProduct,
   getGetMyProductsQueryKey,
+  getGetProductQueryKey,
 } from "@/api/generated/products/products";
 import type { ErrorResponse } from "@/api/generated/model";
 
+type NewProductSearch = { productId?: number };
+
 export const Route = createFileRoute("/seller/products/new")({
+  validateSearch: (search: Record<string, unknown>): NewProductSearch => ({
+    productId: search.productId != null ? Number(search.productId) : undefined,
+  }),
   component: NewProductPage,
 });
 
@@ -27,7 +35,9 @@ const DESCRIPTION_MAX_LENGTH = 500;
 const MIN_PRICE = 1_000;
 const MAX_PRICE = 1_000_000_000;
 
-type Photo = { id: string; url: string; file: File };
+/** 새로 고른 사진은 file을 들고 있고, 수정 화면에 프리필된 기존 사진은 이미
+ * 업로드돼 있어 file 없이 서버 URL만 가진다. */
+type Photo = { id: string; url: string; file?: File };
 
 const HEIC_CONTENT_TYPES = new Set(["image/heic", "image/heif"]);
 
@@ -70,15 +80,29 @@ function extractErrorMessage(error: unknown, fallback: string) {
 }
 
 /**
- * 상품 등록 (Figma "06 상품 등록"). 고른 사진을 전부 `POST /images`로
- * 순서대로 업로드해 URL 배열을 만든 뒤, `POST /products`의 `imageUrls`로
- * 그대로 넣는다. 구매자 상세 화면에서는 이 순서 그대로 캐러셀로 보여준다.
+ * 상품 등록 · 수정 (Figma "06 상품 등록"). 등록 시엔 고른 사진을 전부
+ * `POST /images`로 순서대로 업로드해 URL 배열을 만든 뒤, `POST /products`의
+ * `imageUrls`로 그대로 넣는다. 구매자 상세 화면에서는 이 순서 그대로
+ * 캐러셀로 보여준다.
+ *
+ * `?productId=`가 있으면 같은 화면을 수정 모드로 재활용한다 — 기존 상품
+ * 정보를 불러와 값을 채워 넣고, 제출 시 등록 대신 `PATCH /products/{id}`를
+ * 호출한다. 사진을 새로 고르지 않으면 기존 URL을 그대로 재사용해 다시
+ * 업로드하지 않는다.
  */
 function NewProductPage() {
   const router = useRouter();
   const queryClient = useQueryClient();
+  const { productId } = Route.useSearch();
+  const isEditMode = productId != null;
+
+  const { data: existingProduct } = useGetProduct(productId ?? 0, {
+    query: { enabled: isEditMode },
+  });
+
   const [photos, setPhotos] = useState<Photo[]>([]);
   const photosRef = useRef<Photo[]>([]);
+  const prefilledRef = useRef(false);
 
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -87,7 +111,11 @@ function NewProductPage() {
 
   const uploadImage = useUploadImage();
   const registerProduct = useRegisterProduct();
-  const isSubmitting = uploadImage.isPending || registerProduct.isPending;
+  const updateProduct = useUpdateProduct();
+  const isSubmitting =
+    uploadImage.isPending ||
+    registerProduct.isPending ||
+    updateProduct.isPending;
 
   const canSubmit =
     photos.length > 0 && name.trim().length > 0 && price.trim().length > 0;
@@ -96,10 +124,29 @@ function NewProductPage() {
     photosRef.current = photos;
   }, [photos]);
 
-  // 언마운트 시 미리보기용 objectURL 을 정리한다.
+  // 수정 모드로 기존 상품이 로드되면 값을 한 번만 채워 넣는다 — 백그라운드
+  // 리페치가 다시 와도 사용자가 입력 중인 값을 덮어쓰지 않도록 한다.
+  useEffect(() => {
+    if (!existingProduct || prefilledRef.current) return;
+    prefilledRef.current = true;
+    setName(existingProduct.name);
+    setDescription(existingProduct.description ?? "");
+    setPrice(String(existingProduct.price));
+    setPhotos(
+      existingProduct.imageUrls.map((url, index) => ({
+        id: `existing-${index}-${url}`,
+        url,
+      })),
+    );
+  }, [existingProduct]);
+
+  // 언마운트 시 새로 고른 사진의 미리보기용 objectURL 만 정리한다 —
+  // 기존 사진의 url은 실제 서버 URL이라 회수 대상이 아니다.
   useEffect(() => {
     return () => {
-      photosRef.current.forEach((photo) => URL.revokeObjectURL(photo.url));
+      photosRef.current.forEach((photo) => {
+        if (photo.file) URL.revokeObjectURL(photo.url);
+      });
     };
   }, []);
 
@@ -129,7 +176,7 @@ function NewProductPage() {
   const removePhoto = (id: string) => {
     setPhotos((prev) => {
       const target = prev.find((photo) => photo.id === id);
-      if (target) URL.revokeObjectURL(target.url);
+      if (target?.file) URL.revokeObjectURL(target.url);
       return prev.filter((photo) => photo.id !== id);
     });
   };
@@ -144,36 +191,61 @@ function NewProductPage() {
     }
 
     try {
-      const uploaded = await Promise.all(
+      // 기존 사진(file 없음)은 이미 업로드돼 있으니 URL을 그대로 쓰고,
+      // 새로 고른 사진(file 있음)만 업로드한다.
+      const imageUrls = await Promise.all(
         photos.map((photo) =>
-          uploadImage.mutateAsync({ data: { file: photo.file } }),
+          photo.file
+            ? uploadImage
+                .mutateAsync({ data: { file: photo.file } })
+                .then((result) => result.imageUrl)
+            : Promise.resolve(photo.url),
         ),
       );
-      const imageUrls = uploaded.map((result) => result.imageUrl);
 
-      await registerProduct.mutateAsync({
-        data: {
-          name: name.trim(),
-          price: Number(price),
-          description: description.trim() || undefined,
-          imageUrls,
-        },
-      });
+      const data = {
+        name: name.trim(),
+        price: Number(price),
+        description: description.trim() || undefined,
+        imageUrls,
+      };
 
-      // 뒤로 돌아갈 화면(예약 상품 선택, 내 리스트)이 캐시된 목록을 그대로
-      // 보여주지 않도록 방금 등록한 상품이 반영되게 무효화한다.
-      queryClient.invalidateQueries({ queryKey: getGetMyProductsQueryKey({}) });
+      if (isEditMode) {
+        await updateProduct.mutateAsync({ productId, data });
+        queryClient.invalidateQueries({
+          queryKey: getGetProductQueryKey(productId),
+        });
+        queryClient.invalidateQueries({
+          queryKey: getGetMyProductsQueryKey({}),
+        });
+        toast.success("상품 정보가 수정됐어요.");
+      } else {
+        await registerProduct.mutateAsync({ data });
+        // 뒤로 돌아갈 화면(예약 상품 선택, 내 리스트)이 캐시된 목록을 그대로
+        // 보여주지 않도록 방금 등록한 상품이 반영되게 무효화한다.
+        queryClient.invalidateQueries({
+          queryKey: getGetMyProductsQueryKey({}),
+        });
+        toast.success("상품이 등록됐어요.");
+      }
 
-      toast.success("상품이 등록됐어요.");
       router.history.back();
     } catch (error) {
-      toast.error(extractErrorMessage(error, "상품 등록에 실패했어요."));
+      toast.error(
+        extractErrorMessage(
+          error,
+          isEditMode ? "상품 수정에 실패했어요." : "상품 등록에 실패했어요.",
+        ),
+      );
     }
   };
 
   return (
     <PageContainer>
-      <Header title="상품 등록" onBack={() => router.history.back()} />
+      <Header
+        title={isEditMode ? "상품 수정" : "상품 등록"}
+        onBack={() => router.history.back()}
+      />
 
       <div className="flex flex-col gap-[18px] px-4 pt-2">
         <div className="flex flex-col gap-2">
@@ -296,7 +368,7 @@ function NewProductPage() {
           disabled={!canSubmit || isSubmitting || isConvertingPhotos}
           onClick={handleSubmit}
         >
-          작성 완료
+          {isEditMode ? "수정 완료" : "작성 완료"}
         </Button>
       </div>
     </PageContainer>

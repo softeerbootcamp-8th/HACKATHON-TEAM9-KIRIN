@@ -1,4 +1,4 @@
-import { User } from "lucide-react";
+import { Pencil, User } from "lucide-react";
 import { createFileRoute, useRouter } from "@tanstack/react-router";
 import { PageContainer } from "@/components/layout/page";
 import { Header } from "@/components/layout/header";
@@ -24,7 +24,7 @@ const STATUS_BADGE: Record<
 };
 
 /** 지금은 보관 장소가 한 곳뿐이라 고정 문구로 보여준다. */
-const STORAGE_LOCATION = "에테르노 청담 1층 로비";
+const STORAGE_LOCATION = "현대자동차 본사 9조 해커톤 부스";
 
 /**
  * 판매자 본인 상품 상세. 내 리스트, 홈 예약중·판매중 바텀시트에서 상품 하나를
@@ -73,6 +73,21 @@ function SellerProductDetailPage() {
             {product.name}
           </h1>
           <Badge variant={badge.variant}>{badge.label}</Badge>
+          {product.status !== "SOLD" && (
+            <button
+              type="button"
+              onClick={() =>
+                router.navigate({
+                  to: "/seller/products/new",
+                  search: { productId: product.productId },
+                })
+              }
+              className="ml-auto flex items-center gap-1 text-xs text-[var(--color-text-muted)]"
+            >
+              <Pencil className="size-3" />
+              수정하기
+            </button>
+          )}
         </div>
         <p className="text-2xl font-bold text-[var(--color-text)]">
           {formatPrice(product.price)}

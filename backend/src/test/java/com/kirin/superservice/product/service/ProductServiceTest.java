@@ -18,6 +18,7 @@ import com.kirin.superservice.product.domain.Product;
 import com.kirin.superservice.product.domain.ProductStatus;
 import com.kirin.superservice.product.dto.request.RegisterProductRequest;
 import com.kirin.superservice.product.dto.request.ReserveLockerRequest;
+import com.kirin.superservice.product.dto.request.UpdateProductRequest;
 import com.kirin.superservice.product.exception.InvalidProductStatusException;
 import com.kirin.superservice.product.exception.SellerMismatchException;
 import com.kirin.superservice.product.exception.ProductNotFoundException;
@@ -231,6 +232,48 @@ class ProductServiceTest {
         assertThat(result.getReservationExpiresAt()).isEqualTo(LocalDateTime.of(2026, 8, 25, 16, 0));
         assertThat(locker.getUsageStatus()).isEqualTo(UsageStatus.RESERVED);
         assertThat(locker.getLockStatus()).isEqualTo(LockStatus.LOCKED);
+    }
+
+    @Test
+    void 판매중인_물품의_정보를_수정하면_바뀐_값이_반영된다() {
+        // given
+        Product product = 물품(1L, ProductStatus.SELLING);
+        List<String> 새_사진들 = List.of("/images/new1.jpg", "/images/new2.jpg");
+        UpdateProductRequest 수정요청 = new UpdateProductRequest("수정된 이름", 500000L, "수정된 설명", 새_사진들);
+        given(productRepository.findByIdForUpdate(1L)).willReturn(Optional.of(product));
+
+        // when
+        Product result = productService.updateProduct(1L, 수정요청, 판매자_ID);
+
+        // then
+        assertThat(result.getName()).isEqualTo("수정된 이름");
+        assertThat(result.getPrice()).isEqualTo(500000L);
+        assertThat(result.getDescription()).isEqualTo("수정된 설명");
+        assertThat(result.getImageUrls()).containsExactlyElementsOf(새_사진들);
+    }
+
+    @Test
+    void 판매완료된_물품을_수정하면_예외가_발생한다() {
+        // given
+        Product product = 물품(1L, ProductStatus.SOLD);
+        UpdateProductRequest 수정요청 = new UpdateProductRequest("수정된 이름", 500000L, null, null);
+        given(productRepository.findByIdForUpdate(1L)).willReturn(Optional.of(product));
+
+        // when & then
+        assertThatThrownBy(() -> productService.updateProduct(1L, 수정요청, 판매자_ID))
+                .isInstanceOf(InvalidProductStatusException.class);
+    }
+
+    @Test
+    void 다른_회원이_물품을_수정하면_예외가_발생한다() {
+        // given
+        Product product = 물품(1L, ProductStatus.SELLING);
+        UpdateProductRequest 수정요청 = new UpdateProductRequest("수정된 이름", 500000L, null, null);
+        given(productRepository.findByIdForUpdate(1L)).willReturn(Optional.of(product));
+
+        // when & then
+        assertThatThrownBy(() -> productService.updateProduct(1L, 수정요청, 다른_회원_ID))
+                .isInstanceOf(SellerMismatchException.class);
     }
 
     @Test

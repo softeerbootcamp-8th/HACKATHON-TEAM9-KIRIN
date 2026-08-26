@@ -103,6 +103,16 @@ public class Product {
                 ProductStatus.PREPARING, LocalDateTime.now());
     }
 
+    public void updateInfo(String name, Long price, String description, List<String> imageUrls) {
+        this.name = name;
+        this.price = price;
+        this.description = description;
+        this.imageUrls.clear();
+        if (imageUrls != null) {
+            this.imageUrls.addAll(imageUrls);
+        }
+    }
+
     public void reserveLocker(Long lockerId, LocalDateTime reservedAt,
             LocalDateTime reservationExpiresAt) {
         this.lockerId = lockerId;

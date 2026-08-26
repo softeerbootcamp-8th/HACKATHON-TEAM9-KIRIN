@@ -4,6 +4,7 @@ import static org.hamcrest.Matchers.nullValue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -14,6 +15,7 @@ import com.kirin.superservice.product.domain.Product;
 import com.kirin.superservice.product.domain.ProductStatus;
 import com.kirin.superservice.product.dto.request.RegisterProductRequest;
 import com.kirin.superservice.product.dto.request.ReserveLockerRequest;
+import com.kirin.superservice.product.dto.request.UpdateProductRequest;
 import com.kirin.superservice.product.exception.ProductNotFoundException;
 import com.kirin.superservice.product.exception.SellerMismatchException;
 import com.kirin.superservice.product.service.ProductService;
@@ -191,6 +193,53 @@ class ProductControllerTest {
                         .sessionAttr(SessionConst.LOGIN_MEMBER_ID, 1L))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.code").value("PRODUCT_NOT_FOUND"));
+    }
+
+    @Test
+    void 유효한_정보로_수정하면_200과_수정된_물품정보를_반환한다() throws Exception {
+        // given
+        Product 수정된_물품 = new Product(1L, null, "수정된 이름", 500000L, "수정된 설명",
+                null, 1L, "원기", ProductStatus.PREPARING, LocalDateTime.now());
+        given(productService.updateProduct(any(Long.class), any(UpdateProductRequest.class), any(Long.class)))
+                .willReturn(수정된_물품);
+        String 수정_요청 = """
+                {
+                  "name": "수정된 이름",
+                  "price": 500000,
+                  "description": "수정된 설명"
+                }
+                """;
+
+        // when & then
+        mockMvc.perform(patch("/api/products/1")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .sessionAttr(SessionConst.LOGIN_MEMBER_ID, 1L)
+                        .content(수정_요청))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.name").value("수정된 이름"))
+                .andExpect(jsonPath("$.price").value(500000))
+                .andExpect(jsonPath("$.description").value("수정된 설명"));
+    }
+
+    @Test
+    void 다른_판매자의_물품을_수정하면_403을_반환한다() throws Exception {
+        // given
+        given(productService.updateProduct(any(Long.class), any(UpdateProductRequest.class), any(Long.class)))
+                .willThrow(new SellerMismatchException(1L));
+        String 수정_요청 = """
+                {
+                  "name": "수정된 이름",
+                  "price": 500000
+                }
+                """;
+
+        // when & then
+        mockMvc.perform(patch("/api/products/1")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .sessionAttr(SessionConst.LOGIN_MEMBER_ID, 2L)
+                        .content(수정_요청))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("SELLER_MISMATCH"));
     }
 
     @Test
