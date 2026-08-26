@@ -223,17 +223,23 @@ class ProductControllerTest {
     }
 
     @Test
-    void 내_물품_목록을_조회하면_예약중_판매중_물품의_남은_기간_정보도_함께_반환한다() throws Exception {
+    void 내_물품_목록에_상태별_시각_정보가_포함된다() throws Exception {
         // given
-        Product reserved = 물품(1L, ProductStatus.RESERVED);
-        Product selling = 물품(2L, ProductStatus.SELLING);
-        selling.reserveLocker(2L, LocalDateTime.of(2026, 8, 18, 11, 0),
-                LocalDateTime.of(2026, 8, 18, 15, 0));
-        selling.startDeposit(LocalDateTime.of(2026, 8, 18, 11, 59));
-        selling.completeDeposit(LocalDateTime.of(2026, 8, 18, 12, 0),
-                LocalDateTime.of(2026, 8, 25, 12, 0));
+        LocalDateTime now = LocalDateTime.now();
+        Product 예약중_물품 = new Product(1L, 1L, "아이패드", 300000L, "상태 좋음", null, 1L, "원기",
+                ProductStatus.RESERVED, now);
+        예약중_물품.reserveLocker(1L, now, now.plusHours(4));
+
+        Product 판매중_물품 = new Product(2L, 2L, "맥북", 1000000L, "상태 좋음", null, 1L, "원기",
+                ProductStatus.SELLING, now);
+        판매중_물품.completeDeposit(now, now.plusDays(7));
+
+        Product 판매완료_물품 = new Product(3L, null, "지갑", 170000L, "상태 좋음", null, 1L, "원기",
+                ProductStatus.SOLD, now);
+        판매완료_물품.markSold(now);
+
         given(productService.findAllProductsBySellerMemberId(1L, null))
-                .willReturn(List.of(reserved, selling));
+                .willReturn(List.of(예약중_물품, 판매중_물품, 판매완료_물품));
 
         // when & then
         mockMvc.perform(get("/api/products/me")
@@ -242,7 +248,8 @@ class ProductControllerTest {
                 .andExpect(jsonPath("$.products[0].reservationExpiresAt").exists())
                 .andExpect(jsonPath("$.products[0].sellingExpiresAt").doesNotExist())
                 .andExpect(jsonPath("$.products[1].sellingStartedAt").exists())
-                .andExpect(jsonPath("$.products[1].sellingExpiresAt").exists());
+                .andExpect(jsonPath("$.products[1].sellingExpiresAt").exists())
+                .andExpect(jsonPath("$.products[2].soldAt").exists());
     }
 
     @Test

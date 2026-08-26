@@ -20,18 +20,6 @@ export function formatShortDate(iso: string): string {
   return `${date.getMonth() + 1}/${date.getDate()}`;
 }
 
-/**
- * ISO 날짜 문자열을 "8/25 15:10" 형태로 표시한다(요일 없이).
- * 내 리스트 카드의 점유 기간처럼 좁은 한 줄에 시작~만료를 함께 쓸 때 쓴다
- * (Figma "07 내 리스트 · 판매 중").
- */
-export function formatDateTimeShort(iso: string): string {
-  const date = new Date(iso);
-  const hh = String(date.getHours()).padStart(2, "0");
-  const mm = String(date.getMinutes()).padStart(2, "0");
-  return `${date.getMonth() + 1}/${date.getDate()} ${hh}:${mm}`;
-}
-
 /** 만료 시각까지 남은 시간을 "6일 남음" / "3시간 남음" / "곧 만료" 형태로 표시한다. */
 export function formatRemaining(
   expiresAtIso: string,

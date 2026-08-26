@@ -23,9 +23,6 @@ const badgeVariants = cva(
         // 본인 소유 판매중 배지 — 배경을 통째로 채운다 (Figma "Badge/판매중", "04 홈 · 바텀시트(판매중·본인)")
         mineSelling: "bg-[var(--color-selling)] text-white",
         muted: "bg-[var(--color-surface-2)] text-[var(--color-text-muted)]",
-        // 내 리스트 카드 배지 — 예약중/판매중 (Figma "Badge/예약중·판매중", "07 내 리스트 · 판매 중")
-        listReserved: "bg-[var(--color-list-reserved)] text-white",
-        listSelling: "bg-[var(--color-list-accent)] text-white",
       },
     },
     defaultVariants: { variant: "neutral" },

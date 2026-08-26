@@ -78,7 +78,7 @@ public class TransactionService {
         if (product.isSellingExpiredAt(LocalDateTime.now(clock))) {
             throw new SellingPeriodExpiredException(product.getId());
         }
-        product.markSold();
+        product.markSold(LocalDateTime.now(clock));
         lockerService.getLocker(product.getLockerId()).changeLockStatus(LockStatus.UNLOCKED);
 
         Member buyer = memberService.getById(buyerMemberId);

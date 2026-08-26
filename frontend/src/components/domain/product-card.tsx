@@ -4,8 +4,19 @@ import { Badge } from "@/components/ui/badge";
 
 type ProductCardBadge = {
   label: string;
-  variant:
-    "info" | "danger" | "muted" | "success" | "listReserved" | "listSelling";
+  variant: "info" | "danger" | "muted" | "success" | "mine" | "mineSelling";
+};
+
+type ProductCardHighlight = {
+  text: string;
+  tone: "info" | "danger" | "mine" | "selling";
+};
+
+const HIGHLIGHT_TONE_COLOR: Record<ProductCardHighlight["tone"], string> = {
+  info: "text-[var(--color-info)]",
+  danger: "text-[var(--color-danger)]",
+  mine: "text-[var(--color-mine)]",
+  selling: "text-[var(--color-selling)]",
 };
 
 type ProductCardProps = {
@@ -16,7 +27,7 @@ type ProductCardProps = {
   /** 진열함 위치/미지정 등 보조 정보 한 줄 (Figma 회색 캡션) */
   meta: string;
   /** 남은 예약 시간·남은 점유 기간 등 강조 캡션 (Figma "07 내 리스트 · 판매 중") */
-  highlight?: string;
+  highlight?: ProductCardHighlight;
   thumbnailUrl?: string;
   onMoreClick?: () => void;
   className?: string;
@@ -67,8 +78,13 @@ export function ProductCard({
           {meta}
         </p>
         {highlight && (
-          <p className="text-xs font-bold text-[var(--color-list-accent)]">
-            {highlight}
+          <p
+            className={cn(
+              "text-xs font-medium",
+              HIGHLIGHT_TONE_COLOR[highlight.tone],
+            )}
+          >
+            {highlight.text}
           </p>
         )}
       </div>

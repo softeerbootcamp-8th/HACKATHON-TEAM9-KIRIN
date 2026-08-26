@@ -79,6 +79,9 @@ public class Product {
     @Column(name = "recovery_started_at")
     private LocalDateTime recoveryStartedAt;
 
+    @Column(name = "sold_at")
+    private LocalDateTime soldAt;
+
     public Product(Long id, Long lockerId, String name, Long price, String description,
             List<String> imageUrls, Long sellerMemberId, String sellerName, ProductStatus status,
             LocalDateTime createdAt) {
@@ -166,8 +169,9 @@ public class Product {
         return this.recoveryStartedAt != null;
     }
 
-    public void markSold() {
+    public void markSold(LocalDateTime soldAt) {
         this.status = ProductStatus.SOLD;
+        this.soldAt = soldAt;
     }
 
     public boolean isPreparing() {

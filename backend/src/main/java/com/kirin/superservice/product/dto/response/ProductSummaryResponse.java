@@ -13,7 +13,8 @@ public record ProductSummaryResponse(
         ProductStatus status,
         LocalDateTime reservationExpiresAt,
         LocalDateTime sellingStartedAt,
-        LocalDateTime sellingExpiresAt
+        LocalDateTime sellingExpiresAt,
+        LocalDateTime soldAt
 ) {
     /** 목록·그리드용 썸네일이라 여러 장 중 첫 장만 대표로 내려준다. */
     public static ProductSummaryResponse fromEntity(Product product) {
@@ -26,7 +27,8 @@ public record ProductSummaryResponse(
                 product.getStatus(),
                 product.getReservationExpiresAt(),
                 product.getSellingStartedAt(),
-                product.getSellingExpiresAt()
+                product.getSellingExpiresAt(),
+                product.getSoldAt()
         );
     }
 }

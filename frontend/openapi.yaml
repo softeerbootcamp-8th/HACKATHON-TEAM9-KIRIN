@@ -734,6 +734,7 @@ components:
           reservationExpiresAt,
           sellingStartedAt,
           sellingExpiresAt,
+          soldAt,
         ]
       properties:
         productId:
@@ -762,6 +763,10 @@ components:
           format: date-time
           nullable: true
         sellingExpiresAt:
+          type: string
+          format: date-time
+          nullable: true
+        soldAt:
           type: string
           format: date-time
           nullable: true
