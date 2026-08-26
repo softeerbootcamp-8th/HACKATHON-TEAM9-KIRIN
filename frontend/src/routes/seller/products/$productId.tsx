@@ -73,7 +73,7 @@ function SellerProductDetailPage() {
             {product.name}
           </h1>
           <Badge variant={badge.variant}>{badge.label}</Badge>
-          {product.status !== "SOLD" && (
+          {product.status !== "SOLD" && product.status !== "EXPIRED" && (
             <button
               type="button"
               onClick={() =>

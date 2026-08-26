@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { createFileRoute, useRouter, Link } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { MoreVertical } from "lucide-react";
@@ -119,6 +119,12 @@ export type ProductMoreMenuProps = {
   onRequestCancelReservation: (product: ProductSummaryResponse) => void;
   onEndSelling: (product: ProductSummaryResponse) => void;
   onRequestDelete: (product: ProductSummaryResponse) => void;
+  /**
+   * 메뉴 바깥을 눌러 메뉴가 닫힐 때(항목 선택으로 닫힐 때는 호출되지 않는다)
+   * 호출된다. 카드를 감싼 <Link>가 "메뉴를 닫으려던 그 클릭"까지 상세 화면
+   * 이동으로 잘못 처리하지 않게 하는 데 쓴다.
+   */
+  onPointerDownOutside?: () => void;
 };
 
 /**
@@ -134,6 +140,7 @@ export function ProductMoreMenu({
   onRequestCancelReservation,
   onEndSelling,
   onRequestDelete,
+  onPointerDownOutside,
 }: ProductMoreMenuProps) {
   return (
     <DropdownMenu>
@@ -161,6 +168,7 @@ export function ProductMoreMenu({
           // 같이 실행돼 상세 화면으로 튕겨나가면서, 메뉴 항목의 동작이 무시된 것처럼 보인다.
           event.stopPropagation();
         }}
+        onPointerDownOutside={() => onPointerDownOutside?.()}
       >
         <DropdownMenuItem onClick={() => onEdit(product)}>
           상품 수정
@@ -201,6 +209,12 @@ function MyListPage() {
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] =
     useState<(typeof TABS)[number]["key"]>("selling");
+
+  // 더보기 드롭다운이 열려 있을 때 카드의 다른 부분(더보기 버튼도 메뉴 항목도
+  // 아닌 곳)을 눌러 메뉴를 닫으면, 그 클릭이 카드를 감싼 <Link>의 클릭으로도
+  // 이어져 상세 화면으로 들어가버린다. 드롭다운이 닫히는 시점(주로 바깥
+  // pointerdown)에 이 값을 true로 세워두고, 카드의 클릭 한 번만 무시해 막는다.
+  const suppressCardClickRef = useRef(false);
 
   // 08 모달 · 사물함 잠금 해제 — 물건 넣기 직후 안내(단일 버튼).
   const [depositInfo, setDepositInfo] = useState<{
@@ -375,6 +389,12 @@ function MyListPage() {
                 key={product.productId}
                 to="/seller/products/$productId"
                 params={{ productId: String(product.productId) }}
+                onClick={(event) => {
+                  if (suppressCardClickRef.current) {
+                    suppressCardClickRef.current = false;
+                    event.preventDefault();
+                  }
+                }}
               >
                 <ProductCard
                   name={product.name}
@@ -392,6 +412,15 @@ function MyListPage() {
                         onRequestCancelReservation={setCancelTarget}
                         onEndSelling={handleEndSelling}
                         onRequestDelete={setDeleteTarget}
+                        onPointerDownOutside={() => {
+                          suppressCardClickRef.current = true;
+                          // 클릭이 뒤따르지 않는 경우(예: 다른 요소로 포커스만
+                          // 옮겨간 경우)를 대비해 곧바로 원복한다. 실제로 뒤따르는
+                          // 클릭은 이 타이머보다 먼저 도착해 정상적으로 막힌다.
+                          setTimeout(() => {
+                            suppressCardClickRef.current = false;
+                          }, 0);
+                        }}
                       />
                     ) : undefined
                   }
