@@ -20,9 +20,15 @@ public record ProductResponse(
         LocalDateTime depositStartedAt,
         LocalDateTime sellingStartedAt,
         LocalDateTime sellingExpiresAt,
-        LocalDateTime recoveryStartedAt
+        LocalDateTime recoveryStartedAt,
+        Long sellerCompletedSalesCount
 ) {
     public static ProductResponse fromEntity(Product product) {
+        return fromEntity(product, null);
+    }
+
+    /** sellerCompletedSalesCount는 상품 상세 화면에서만 채워 넣는 신뢰 지표라 필요할 때만 넘긴다. */
+    public static ProductResponse fromEntity(Product product, Long sellerCompletedSalesCount) {
         return new ProductResponse(
                 product.getId(),
                 product.getLockerId(),
@@ -38,7 +44,8 @@ public record ProductResponse(
                 product.getDepositStartedAt(),
                 product.getSellingStartedAt(),
                 product.getSellingExpiresAt(),
-                product.getRecoveryStartedAt()
+                product.getRecoveryStartedAt(),
+                sellerCompletedSalesCount
         );
     }
 }

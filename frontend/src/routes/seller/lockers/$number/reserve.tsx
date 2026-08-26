@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { createFileRoute, useRouter } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
+import axios from "axios";
 import { toast } from "sonner";
 import { PageContainer } from "@/components/layout/page";
 import { Header } from "@/components/layout/header";
@@ -14,6 +15,17 @@ import {
   useReserveLocker,
 } from "@/api/generated/products/products";
 import { useChangeLockStatus } from "@/api/generated/lockers/lockers";
+import type { ErrorResponse } from "@/api/generated/model";
+
+/** 예약 시도 사이에 다른 판매자가 먼저 같은 사물함을 예약한 경우 백엔드가 내려주는 코드. */
+const LOCKER_NOT_AVAILABLE = "LOCKER_NOT_AVAILABLE";
+
+function isLockerAlreadyReserved(error: unknown) {
+  return (
+    axios.isAxiosError<ErrorResponse>(error) &&
+    error.response?.data.code === LOCKER_NOT_AVAILABLE
+  );
+}
 
 export const Route = createFileRoute("/seller/lockers/$number/reserve")({
   component: ReservePage,
@@ -34,6 +46,7 @@ function ReservePage() {
   // 사물함 한 칸에는 상품을 하나만 넣을 수 있어 단일 선택으로 동작한다.
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [sellDialogOpen, setSellDialogOpen] = useState(false);
+  const [conflictDialogOpen, setConflictDialogOpen] = useState(false);
 
   const { data: myProductsData, isLoading } = useGetMyProducts({
     status: "PREPARING",
@@ -60,7 +73,14 @@ function ReservePage() {
           invalidateLockerData();
           router.navigate({ to: "/", search: { openLocker: lockerId } });
         },
-        onError: () => toast.error("사물함 예약에 실패했어요."),
+        onError: (error) => {
+          if (isLockerAlreadyReserved(error)) {
+            invalidateLockerData();
+            setConflictDialogOpen(true);
+            return;
+          }
+          toast.error("사물함 예약에 실패했어요.");
+        },
       },
     );
   };
@@ -83,7 +103,14 @@ function ReservePage() {
             },
           );
         },
-        onError: () => toast.error("사물함 예약에 실패했어요."),
+        onError: (error) => {
+          if (isLockerAlreadyReserved(error)) {
+            invalidateLockerData();
+            setConflictDialogOpen(true);
+            return;
+          }
+          toast.error("사물함 예약에 실패했어요.");
+        },
       },
     );
   };
@@ -192,6 +219,33 @@ function ReservePage() {
               열린 채로 두면 분실 책임이 판매자에게 있어요.
             </p>
           </div>
+
+          <Button
+            fullWidth
+            size="lg"
+            onClick={() => router.navigate({ to: "/" })}
+          >
+            확인
+          </Button>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={conflictDialogOpen}
+        onOpenChange={(open) => {
+          if (!open) router.navigate({ to: "/" });
+        }}
+      >
+        <DialogContent className="max-w-[313px] gap-3.5 rounded-[16px] p-5">
+          <DialogTitle className="text-center text-[17px]">
+            이미 예약된 진열함이에요
+          </DialogTitle>
+
+          <ul className="flex flex-col gap-2 text-[13px] text-[var(--color-text-muted)]">
+            <li>· 다른 사용자가 {number}번 진열함을 예약했어요.</li>
+            <li>· 판매 등록이 끝나면 상품 정보를 확인할 수 있어요.</li>
+            <li>· 예약 후 4시간 안에 등록되지 않으면 자동으로 취소돼요.</li>
+          </ul>
 
           <Button
             fullWidth

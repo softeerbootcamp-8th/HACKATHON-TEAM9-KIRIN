@@ -169,6 +169,7 @@ class ProductControllerTest {
     void 존재하는_물품을_조회하면_200과_물품정보를_반환한다() throws Exception {
         // given
         given(productService.getProduct(1L)).willReturn(물품(1L, ProductStatus.SELLING));
+        given(productService.countCompletedSales(1L)).willReturn(12L);
 
         // when & then
         mockMvc.perform(get("/api/products/1")
@@ -176,7 +177,8 @@ class ProductControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.productId").value(1))
                 .andExpect(jsonPath("$.name").value("아이패드"))
-                .andExpect(jsonPath("$.price").value(300000));
+                .andExpect(jsonPath("$.price").value(300000))
+                .andExpect(jsonPath("$.sellerCompletedSalesCount").value(12));
     }
 
     @Test

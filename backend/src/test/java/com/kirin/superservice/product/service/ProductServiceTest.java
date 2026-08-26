@@ -159,6 +159,19 @@ class ProductServiceTest {
     }
 
     @Test
+    void 판매자의_완료된_판매_건수를_조회한다() {
+        // given
+        given(productRepository.countBySellerMemberIdAndStatus(판매자_ID, ProductStatus.SOLD))
+                .willReturn(12L);
+
+        // when
+        long result = productService.countCompletedSales(판매자_ID);
+
+        // then
+        assertThat(result).isEqualTo(12L);
+    }
+
+    @Test
     void 판매중인_물품_목록을_조회하면_해당_상태의_물품만_반환한다() {
         // given
         given(productRepository.findAllByStatusOrderByCreatedAtDescIdDesc(ProductStatus.SELLING))
