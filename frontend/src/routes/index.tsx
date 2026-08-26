@@ -28,6 +28,7 @@ import {
   formatRemaining,
   formatRemainingDetailed,
 } from "@/lib/format";
+import { serverNow } from "@/lib/server-clock";
 import {
   useGetLockers,
   getGetLockersQueryKey,
@@ -127,9 +128,9 @@ function HomePage() {
   const { data: myProductsData } = useGetMyProducts({});
 
   // 예약중 셀의 남은 시간을 초 단위로 실시간으로 보여주기 위한 틱.
-  const [now, setNow] = useState(() => new Date());
+  const [now, setNow] = useState(() => serverNow());
   useEffect(() => {
-    const timer = setInterval(() => setNow(new Date()), 1000);
+    const timer = setInterval(() => setNow(serverNow()), 1000);
     return () => clearInterval(timer);
   }, []);
 
