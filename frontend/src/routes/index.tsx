@@ -23,6 +23,7 @@ import {
   formatCountdown,
   formatDateTime,
   formatDday,
+  formatOccupancyPeriod,
   formatPrice,
   formatRemaining,
   formatRemainingDetailed,
@@ -120,6 +121,9 @@ function HomePage() {
   );
   // "진열함 열기" 확인 모달 — 개방 요청이 성공하면 뜬다.
   const [openedLocker, setOpenedLocker] = useState<HomeLocker | null>(null);
+  // 점유 기한 안내("8/25(월) 15:10 - 8/31(일) 15:10")를 계산하는 기준 시각 — 투입 시작 응답을 그대로 쓴다.
+  const [openedLockerDepositedAt, setOpenedLockerDepositedAt] =
+    useState<Date | null>(null);
 
   const { data: lockersData, isLoading: isLockersLoading } = useGetLockers();
   const { data: myProductsData } = useGetMyProducts({});
@@ -251,10 +255,15 @@ function HomePage() {
           startDeposit.mutate(
             { productId: locker.productId! },
             {
-              onSuccess: () => {
+              onSuccess: (product) => {
                 invalidateLockerData();
                 closeSheet();
                 setOpenedLocker(locker);
+                setOpenedLockerDepositedAt(
+                  product.depositStartedAt
+                    ? new Date(product.depositStartedAt)
+                    : new Date(),
+                );
               },
               onError: () => toast.error("입고 처리에 실패했어요."),
             },
@@ -412,7 +421,12 @@ function HomePage() {
 
       <Dialog
         open={openedLocker !== null}
-        onOpenChange={(open) => !open && setOpenedLocker(null)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setOpenedLocker(null);
+            setOpenedLockerDepositedAt(null);
+          }
+        }}
       >
         <DialogContent className="max-w-[313px] gap-3.5 rounded-[16px] p-5">
           <DialogTitle className="text-center text-[17px]">
@@ -421,7 +435,20 @@ function HomePage() {
 
           <ul className="flex flex-col gap-2 text-[13px] text-[var(--color-text-muted)]">
             <li>· 상품을 넣은 뒤 문을 닫으면 자동으로 잠겨요.</li>
-            <li>· 점유 기간은 최대 {DEFAULT_MAX_OCCUPANCY_DAYS}일이에요.</li>
+            <li>
+              · 점유 기간은 최대 {DEFAULT_MAX_OCCUPANCY_DAYS}일이에요.
+              {openedLockerDepositedAt && (
+                <>
+                  <br />
+                  <span className="font-bold text-[var(--color-text-sub)]">
+                    {formatOccupancyPeriod(
+                      openedLockerDepositedAt,
+                      DEFAULT_MAX_OCCUPANCY_DAYS,
+                    )}
+                  </span>
+                </>
+              )}
+            </li>
             <li>
               · 기간이 끝나기 전까지 판매되지 않으면 상품을 회수해 주세요.
             </li>
@@ -436,7 +463,14 @@ function HomePage() {
             </p>
           </div>
 
-          <Button fullWidth size="lg" onClick={() => setOpenedLocker(null)}>
+          <Button
+            fullWidth
+            size="lg"
+            onClick={() => {
+              setOpenedLocker(null);
+              setOpenedLockerDepositedAt(null);
+            }}
+          >
             확인
           </Button>
         </DialogContent>
@@ -465,6 +499,13 @@ function ReservedSheetBody({
       <BottomSheetHeader className="h-auto items-center justify-start gap-2">
         <BottomSheetTitle>{locker.number}번 진열함</BottomSheetTitle>
         <Badge variant="mine">예약중</Badge>
+        <Link
+          to="/seller/products/$productId"
+          params={{ productId: String(product.productId) }}
+          className="ml-auto text-xs text-[var(--color-text-muted)]"
+        >
+          상세보기 ›
+        </Link>
       </BottomSheetHeader>
       <BottomSheetBody className="flex flex-col gap-3">
         <InfoBox
@@ -522,6 +563,13 @@ function SellingSheetBody({
       <BottomSheetHeader className="h-auto items-center justify-start gap-2">
         <BottomSheetTitle>{locker.number}번 진열함</BottomSheetTitle>
         <Badge variant="mineSelling">판매중</Badge>
+        <Link
+          to="/seller/products/$productId"
+          params={{ productId: String(product.productId) }}
+          className="ml-auto text-xs text-[var(--color-text-muted)]"
+        >
+          상세보기 ›
+        </Link>
       </BottomSheetHeader>
       <BottomSheetBody className="flex flex-col gap-3">
         <ItemRow
