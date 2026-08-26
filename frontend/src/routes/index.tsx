@@ -558,18 +558,13 @@ function SellingSheetBody({
   onEndSelling: () => void;
   pending: boolean;
 }) {
+  const router = useRouter();
+
   return (
     <>
       <BottomSheetHeader className="h-auto items-center justify-start gap-2">
         <BottomSheetTitle>{locker.number}번 진열함</BottomSheetTitle>
         <Badge variant="mineSelling">판매중</Badge>
-        <Link
-          to="/seller/products/$productId"
-          params={{ productId: String(product.productId) }}
-          className="ml-auto text-xs text-[var(--color-text-muted)]"
-        >
-          상세보기 ›
-        </Link>
       </BottomSheetHeader>
       <BottomSheetBody className="flex flex-col gap-3">
         <ItemRow
@@ -577,6 +572,12 @@ function SellingSheetBody({
           place={formatPrice(product.price)}
           address={product.imageUrls[0] ? "" : "사진 없음"}
           thumbnailUrl={product.imageUrls[0]}
+          onClick={() =>
+            router.navigate({
+              to: "/seller/products/$productId",
+              params: { productId: String(product.productId) },
+            })
+          }
         />
         <InfoBox
           rows={[

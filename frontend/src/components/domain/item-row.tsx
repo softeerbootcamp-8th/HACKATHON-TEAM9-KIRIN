@@ -1,4 +1,4 @@
-import { AlertCircle, Check, Image, X } from "lucide-react";
+import { AlertCircle, Check, ChevronRight, Image, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type ItemRowStatus = "none" | "accept" | "cancel";
@@ -50,7 +50,7 @@ export function ItemRow({
         isSelected
           ? "border-[var(--color-primary)] bg-[var(--color-primary-weak)]"
           : "border-[var(--color-border)] bg-[var(--color-bg)]",
-        selectable && "cursor-pointer",
+        (selectable || onClick) && "cursor-pointer",
         className,
       )}
       onClick={handleRowClick}
@@ -112,6 +112,13 @@ export function ItemRow({
         <X
           className="size-6 shrink-0 text-[var(--color-danger)]"
           aria-label="거절됨"
+        />
+      )}
+
+      {!selectable && status === "none" && onClick && (
+        <ChevronRight
+          className="size-4 shrink-0 text-[var(--color-text-muted)]"
+          aria-hidden
         />
       )}
     </div>
