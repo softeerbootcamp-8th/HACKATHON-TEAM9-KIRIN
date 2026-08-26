@@ -120,11 +120,14 @@ export type ProductMoreMenuProps = {
   onEndSelling: (product: ProductSummaryResponse) => void;
   onRequestDelete: (product: ProductSummaryResponse) => void;
   /**
-   * 메뉴 바깥을 눌러 메뉴가 닫힐 때(항목 선택으로 닫힐 때는 호출되지 않는다)
-   * 호출된다. 카드를 감싼 <Link>가 "메뉴를 닫으려던 그 클릭"까지 상세 화면
-   * 이동으로 잘못 처리하지 않게 하는 데 쓴다.
+   * 메뉴가 열리고 닫힐 때마다 호출된다. 카드를 감싼 <Link>가 "메뉴가 열려
+   * 있던 채로 시작된 클릭"까지 상세 화면 이동으로 잘못 처리하지 않게 하는
+   * 데 쓴다. Radix의 onPointerDownOutside(바깥 클릭 감지)는 메뉴가 뜬 뒤
+   * 다음 매크로태스크에 리스너를 등록해서, 빠르게 "더보기 → 다른 곳"을
+   * 연달아 누르면 감지 자체가 안 되는 경합이 있었다 — 그 타이밍에 기대지
+   * 않도록 열림 상태 자체를 그대로 부모에 알려주는 방식으로 바꿨다.
    */
-  onPointerDownOutside?: () => void;
+  onOpenChange?: (open: boolean) => void;
 };
 
 /**
@@ -140,10 +143,10 @@ export function ProductMoreMenu({
   onRequestCancelReservation,
   onEndSelling,
   onRequestDelete,
-  onPointerDownOutside,
+  onOpenChange,
 }: ProductMoreMenuProps) {
   return (
-    <DropdownMenu>
+    <DropdownMenu onOpenChange={onOpenChange}>
       <DropdownMenuTrigger asChild>
         <button
           type="button"
@@ -168,7 +171,6 @@ export function ProductMoreMenu({
           // 같이 실행돼 상세 화면으로 튕겨나가면서, 메뉴 항목의 동작이 무시된 것처럼 보인다.
           event.stopPropagation();
         }}
-        onPointerDownOutside={() => onPointerDownOutside?.()}
       >
         <DropdownMenuItem onClick={() => onEdit(product)}>
           상품 수정
@@ -212,8 +214,10 @@ function MyListPage() {
 
   // 더보기 드롭다운이 열려 있을 때 카드의 다른 부분(더보기 버튼도 메뉴 항목도
   // 아닌 곳)을 눌러 메뉴를 닫으면, 그 클릭이 카드를 감싼 <Link>의 클릭으로도
-  // 이어져 상세 화면으로 들어가버린다. 드롭다운이 닫히는 시점(주로 바깥
-  // pointerdown)에 이 값을 true로 세워두고, 카드의 클릭 한 번만 무시해 막는다.
+  // 이어져 상세 화면으로 들어가버린다. 지금 열려 있는 더보기 메뉴가 있는지를
+  // 직접 추적해서, 그 상태로 시작된 클릭 한 번만 카드 쪽에서 무시한다.
+  // (Radix의 바깥 클릭 감지 자체는 타이밍에 따라 못 잡을 때가 있어 기대지 않는다.)
+  const isMoreMenuOpenRef = useRef(false);
   const suppressCardClickRef = useRef(false);
 
   // 08 모달 · 사물함 잠금 해제 — 물건 넣기 직후 안내(단일 버튼).
@@ -389,6 +393,12 @@ function MyListPage() {
                 key={product.productId}
                 to="/seller/products/$productId"
                 params={{ productId: String(product.productId) }}
+                onPointerDownCapture={() => {
+                  // 이 클릭이 "더보기 메뉴가 열려 있던 채로" 시작됐는지를 여기서
+                  // 확정한다. pointerdown은 click보다 먼저, 그리고 Radix의 상태
+                  // 변경보다도 먼저 이 캡처 단계에 도달하기 때문에 항상 정확하다.
+                  suppressCardClickRef.current = isMoreMenuOpenRef.current;
+                }}
                 onClick={(event) => {
                   if (suppressCardClickRef.current) {
                     suppressCardClickRef.current = false;
@@ -412,14 +422,8 @@ function MyListPage() {
                         onRequestCancelReservation={setCancelTarget}
                         onEndSelling={handleEndSelling}
                         onRequestDelete={setDeleteTarget}
-                        onPointerDownOutside={() => {
-                          suppressCardClickRef.current = true;
-                          // 클릭이 뒤따르지 않는 경우(예: 다른 요소로 포커스만
-                          // 옮겨간 경우)를 대비해 곧바로 원복한다. 실제로 뒤따르는
-                          // 클릭은 이 타이머보다 먼저 도착해 정상적으로 막힌다.
-                          setTimeout(() => {
-                            suppressCardClickRef.current = false;
-                          }, 0);
+                        onOpenChange={(open) => {
+                          isMoreMenuOpenRef.current = open;
                         }}
                       />
                     ) : undefined
