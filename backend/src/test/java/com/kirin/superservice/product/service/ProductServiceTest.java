@@ -240,6 +240,25 @@ class ProductServiceTest {
     }
 
     @Test
+    void 즉시판매로_예약하면_투입_절차_없이_바로_판매중이_된다() {
+        // given
+        Product product = 물품(1L, ProductStatus.PREPARING);
+        Locker locker = new Locker(1L, LockStatus.LOCKED, UsageStatus.AVAILABLE);
+        given(productRepository.findByIdForUpdate(1L)).willReturn(Optional.of(product));
+        given(lockerService.getLockerForUpdate(1L)).willReturn(locker);
+
+        // when
+        Product result = productService.reserveLocker(1L, new ReserveLockerRequest(1L, true), 판매자_ID);
+
+        // then
+        assertThat(result.getStatus()).isEqualTo(ProductStatus.SELLING);
+        assertThat(result.getSellingStartedAt()).isEqualTo(LocalDateTime.of(2026, 8, 25, 12, 0));
+        assertThat(result.getSellingExpiresAt()).isEqualTo(LocalDateTime.of(2026, 9, 1, 12, 0));
+        assertThat(locker.getUsageStatus()).isEqualTo(UsageStatus.OCCUPIED);
+        assertThat(locker.getLockStatus()).isEqualTo(LockStatus.LOCKED);
+    }
+
+    @Test
     void 판매중인_물품의_정보를_수정하면_바뀐_값이_반영된다() {
         // given
         Product product = 물품(1L, ProductStatus.SELLING);

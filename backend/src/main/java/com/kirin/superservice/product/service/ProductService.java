@@ -103,7 +103,10 @@ public class ProductService {
         return product;
     }
 
-    /** 물품 1건을 지정해 사용 가능한 물품보관함을 4시간 동안 예약한다. */
+    /**
+     * 물품 1건을 지정해 사용 가능한 물품보관함을 4시간 동안 예약한다. 즉시판매(데모용, "바로 팔기")
+     * 요청이면 물품 투입 절차 없이 예약과 동시에 판매중으로 전환한다.
+     */
     @Transactional
     public Product reserveLocker(Long productId, ReserveLockerRequest request, Long sellerMemberId) {
         Product product = getProductForUpdate(productId);
@@ -121,6 +124,12 @@ public class ProductService {
         product.reserveLocker(locker.getId(), reservedAt, reservedAt.plusHours(RESERVATION_HOURS));
         locker.reserve();
         locker.changeLockStatus(LockStatus.LOCKED);
+        if (request.sellImmediately()) {
+            product.completeDeposit(reservedAt, reservedAt.plusDays(SELLING_DAYS));
+            locker.occupy();
+            log.info("데모용 즉시판매로 예약과 동시에 판매 시작 - productId={}, lockerId={}",
+                    product.getId(), locker.getId());
+        }
         log.info("물품보관함 예약 완료 - productId={}, lockerId={}, sellerName={}",
                 product.getId(), locker.getId(), product.getSellerName());
         return product;

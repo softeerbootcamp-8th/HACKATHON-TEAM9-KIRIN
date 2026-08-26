@@ -723,6 +723,12 @@ components:
         lockerId:
           type: integer
           format: int64
+        sellImmediately:
+          type: boolean
+          description: >-
+            true면 "바로 팔기"로 예약과 동시에 판매중으로 전환한다(데모용). 생략하면 false로
+            처리되며 "자리 예약"과 동일하게 예약중 상태로만 남는다.
+          default: false
 
     ProductResponse:
       type: object
