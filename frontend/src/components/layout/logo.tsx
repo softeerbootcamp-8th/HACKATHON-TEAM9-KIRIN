@@ -49,7 +49,7 @@ export function Logo({ className }: { className?: string }) {
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
           <DropdownMenuLabel className="text-sm text-[var(--color-text-sub)]">
-            안녕하세요 {member.nickname}님
+            안녕하세요, {member.nickname}님
           </DropdownMenuLabel>
         </DropdownMenuContent>
       </DropdownMenu>
