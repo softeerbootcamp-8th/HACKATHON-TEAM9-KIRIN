@@ -9,7 +9,7 @@ import { ItemRow } from "@/components/domain/item-row";
 import { RegisterProductChip } from "@/components/domain/register-product-chip";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
-import { formatPrice } from "@/lib/format";
+import { formatOccupancyPeriod, formatPrice } from "@/lib/format";
 import {
   useGetMyProducts,
   useReserveLocker,
@@ -31,6 +31,10 @@ export const Route = createFileRoute("/seller/lockers/$number/reserve")({
   component: ReservePage,
 });
 
+// 사물함이 전부 동일 규격이라 기본값으로 둔다 — src/routes/index.tsx의
+// DEFAULT_MAX_OCCUPANCY_DAYS와 동일한 값(백엔드 SELLING_DAYS).
+const MAX_OCCUPANCY_DAYS = 7;
+
 /**
  * 사물함 예약 · 상품 선택 (Figma "05 사물함 예약 · 상품 선택").
  * "자리 예약"은 사물함을 열지 않고 홈의 예약중(본인) 바텀시트로 바로 이동하고,
@@ -47,6 +51,8 @@ function ReservePage() {
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [sellDialogOpen, setSellDialogOpen] = useState(false);
   const [conflictDialogOpen, setConflictDialogOpen] = useState(false);
+  // 점유 기한 안내("8/25(월) 15:10 - 8/31(일) 15:10")를 계산하는 기준 시각.
+  const [depositedAt, setDepositedAt] = useState<Date | null>(null);
 
   const { data: myProductsData, isLoading } = useGetMyProducts({
     status: "PREPARING",
@@ -97,6 +103,7 @@ function ReservePage() {
             {
               onSuccess: () => {
                 invalidateLockerData();
+                setDepositedAt(new Date());
                 setSellDialogOpen(true);
               },
               onError: () => toast.error("사물함을 여는 데 실패했어요."),
@@ -200,11 +207,15 @@ function ReservePage() {
           <ul className="flex flex-col gap-2 text-[13px] text-[var(--color-text-muted)]">
             <li>· 상품을 넣은 뒤 문을 닫으면 자동으로 잠겨요.</li>
             <li>
-              · 점유 기간은 최대 7일이에요.
-              <br />
-              <span className="font-bold text-[var(--color-text-sub)]">
-                오늘부터 7일 후 자동 만료
-              </span>
+              · 점유 기간은 최대 {MAX_OCCUPANCY_DAYS}일이에요.
+              {depositedAt && (
+                <>
+                  <br />
+                  <span className="font-bold text-[var(--color-text-sub)]">
+                    {formatOccupancyPeriod(depositedAt, MAX_OCCUPANCY_DAYS)}
+                  </span>
+                </>
+              )}
             </li>
             <li>
               · 기간이 끝나기 전까지 판매되지 않으면 상품을 회수해 주세요.
