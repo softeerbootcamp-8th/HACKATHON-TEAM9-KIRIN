@@ -58,11 +58,12 @@ public class MemberService {
         Member guest = Member.builder()
                 .loginId("guest_" + token)
                 .password(passwordEncoder.encode(UUID.randomUUID().toString()))
-                .nickname("게스트-" + token.substring(0, 8))
+                .nickname("게스트")
                 .memberType(MemberType.GUEST)
                 .build();
 
         Member savedGuest = memberRepository.save(guest);
+        savedGuest.assignGuestNickname();
         log.info("게스트 회원 생성 완료 - memberId={}", savedGuest.getId());
         return savedGuest;
     }

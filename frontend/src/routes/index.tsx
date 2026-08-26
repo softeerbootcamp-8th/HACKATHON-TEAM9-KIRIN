@@ -169,19 +169,26 @@ function HomePage() {
     });
   }, [lockersData, myProductsData, now]);
 
-  // "자리 예약" 직후 돌아온 경우 — 쿼리 파라미터로 받은 진열함이 진열함 목록에
-  // 반영되면(예약중·내 것) 그 바텀시트를 자동으로 띄운다. sheet state 를 별도
-  // effect 로 동기화하지 않고 렌더링 중에 파생시킨다.
+  // "자리 예약" 직후, 또는 QR로 빈 진열함을 스캔한 직후 돌아온 경우 — 쿼리
+  // 파라미터로 받은 진열함이 진열함 목록에 반영되면(예약중·내 것, 또는 비어있음)
+  // 그 바텀시트를 자동으로 띄운다. sheet state 를 별도 effect 로 동기화하지
+  // 않고 렌더링 중에 파생시킨다.
   const autoOpenLocker =
     search.openLocker != null
       ? lockers.find(
           (item) =>
-            item.number === search.openLocker && item.status === "reserved",
+            item.number === search.openLocker &&
+            (item.status === "reserved" || item.status === "empty"),
         )
       : undefined;
   const effectiveSheet: SheetState | null =
     sheet ??
-    (autoOpenLocker ? { type: "reserved", locker: autoOpenLocker } : null);
+    (autoOpenLocker
+      ? {
+          type: autoOpenLocker.status === "empty" ? "empty" : "reserved",
+          locker: autoOpenLocker,
+        }
+      : null);
 
   const selectedProductId =
     effectiveSheet?.type === "reserved" || effectiveSheet?.type === "selling"
