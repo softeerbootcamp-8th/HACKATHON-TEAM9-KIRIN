@@ -47,34 +47,34 @@
 erDiagram
     MEMBER ||--o{ PRODUCT : "판매자로 등록"
     MEMBER ||--o{ TRANSACTION : "구매자로 결제"
-    LOCKER ||--o| PRODUCT : "현재 보관 중인 상품"
+    LOCKER ||--o{ PRODUCT : "지금까지 보관한 상품(이력)"
     PRODUCT ||--o| TRANSACTION : "거래 대상"
+    PRODUCT ||--o{ PRODUCT_IMAGE : "사진"
 
     MEMBER {
         Long id PK
-        String loginId
+        String loginId UK
         String password
         String nickname
-        MemberType memberType
+        MemberType memberType "REGISTERED(가입 회원) / GUEST(게스트)"
         LocalDateTime createdAt
     }
 
     LOCKER {
-        Long id PK
-        LockStatus lockStatus "LOCKED / UNLOCKED"
-        UsageStatus usageStatus "AVAILABLE / RESERVED / OCCUPIED"
+        Long id PK "실제 사물함 번호를 그대로 사용, 자동 증가 아님"
+        LockStatus lockStatus "LOCKED(잠김) / UNLOCKED(열림)"
+        UsageStatus usageStatus "AVAILABLE(비어있음) / RESERVED(예약됨) / OCCUPIED(보관중)"
     }
 
     PRODUCT {
         Long id PK
-        Long lockerId FK
+        Long lockerId FK "예약 시 채워짐, nullable(아직 미예약이면 null)"
         Long sellerMemberId FK
         String name
         Long price
         String description
-        String imageUrl
-        String sellerName
-        ProductStatus status "PREPARING/RESERVED/SELLING/SOLD/EXPIRED"
+        String sellerName "등록 시점 판매자 닉네임 스냅샷"
+        ProductStatus status "PREPARING(등록됨)/RESERVED(예약됨)/SELLING(판매중)/SOLD(판매완료)/EXPIRED(판매만료)"
         LocalDateTime createdAt
         LocalDateTime reservedAt
         LocalDateTime reservationExpiresAt
@@ -82,27 +82,41 @@ erDiagram
         LocalDateTime sellingStartedAt
         LocalDateTime sellingExpiresAt
         LocalDateTime recoveryStartedAt
+        LocalDateTime soldAt
+    }
+
+    PRODUCT_IMAGE {
+        Long productId PK,FK "product_image 테이블, 별도 엔티티 아닌 값 타입 컬렉션"
+        int imageOrder PK "등록 순서(productId와 합쳐 복합키)"
+        String imageUrl
     }
 
     TRANSACTION {
         Long id PK
         Long productId FK
-        Long lockerId "결제 시점 스냅샷"
+        Long lockerId "결제 시점 스냅샷, FK 제약 아님"
         Long buyerMemberId FK
-        String buyerName
+        String buyerName "결제 시점 구매자 닉네임 스냅샷"
         Long price
-        String paymentKey UK
-        String orderId
-        String approvedAt
-        TransactionStatus status "PAID / DONE"
+        String paymentKey UK "토스 paymentKey 원본"
+        String orderId "토스 orderId 원본"
+        String approvedAt "토스 approvedAt 원본"
+        TransactionStatus status "PAID(결제완료) / DONE(수령완료)"
         LocalDateTime createdAt
     }
 ```
 
-- `Product.lockerId`는 판매자가 사물함을 예약하는 순간 채워지고, 회수가 끝나면 다시
-  비워진다(사물함 1개가 여러 상품을 순환해 담당).
+- 모든 FK 표시는 실제 DB 외래키 제약이 아니라 애플리케이션에서만 참조하는 `Long` 값이다
+  (`@ManyToOne` 미사용, 마이그레이션 도구 미도입).
+- `Product.lockerId`는 판매자가 사물함을 예약하는 순간 채워진다. 판매기간이 만료돼
+  판매자가 회수를 완료하면(`completeRecovery`) 다시 비워지지만, 구매자가 사서 수령까지
+  끝난(`completePickup`) 물품은 상태만 SOLD로 남고 lockerId는 지워지지 않는다. 그래서
+  같은 사물함에 여러 Product가 이력으로 쌓이며, 지금 실제로 그 사물함에 있는 상품인지는
+  `Product`가 아니라 `Locker.usageStatus`로 따로 확인해야 한다.
 - `Transaction.lockerId`는 사물함이 나중에 다른 상품으로 재사용돼도 그 거래가 어느
   사물함에서 이뤄졌는지 이력을 보존하기 위한 스냅샷 값이다.
+- `Product.imageUrls`는 별도 엔티티가 아니라 `@ElementCollection`으로 매핑된
+  `product_image` 컬렉션 테이블이다(사진 여러 장을 등록 순서대로 저장).
 
 ## 프로젝트 구조
 
