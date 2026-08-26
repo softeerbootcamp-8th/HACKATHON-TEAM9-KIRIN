@@ -123,8 +123,8 @@ class ProductServiceTest {
         Member 게스트 = 판매자();
         ReflectionTestUtils.setField(게스트, "id", 판매자_ID);
         List<DummyProductLoader.DummyProductData> 더미목록 = List.of(
-                new DummyProductLoader.DummyProductData("에어팟 프로 2세대", 150000L, "설명1", List.of("/api/images/a.png")),
-                new DummyProductLoader.DummyProductData("몽블랑 카드 지갑", 200000L, "설명2", List.of("/api/images/b.png")));
+                new DummyProductLoader.DummyProductData("에어팟 프로 2세대", 150000L, "설명1", "/api/images/a.png"),
+                new DummyProductLoader.DummyProductData("몽블랑 카드 지갑", 200000L, "설명2", "/api/images/b.png"));
         given(dummyProductLoader.getDummyProducts()).willReturn(더미목록);
         given(productRepository.save(any(Product.class))).willAnswer(invocation -> invocation.getArgument(0));
 

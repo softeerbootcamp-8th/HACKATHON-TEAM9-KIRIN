@@ -95,7 +95,7 @@ public class ProductService {
     public void registerDummyProducts(Member seller) {
         dummyProductLoader.getDummyProducts().forEach(dummy -> {
             Product product = productRepository.save(new Product(
-                    dummy.name(), dummy.price(), dummy.description(), dummy.imageUrls(),
+                    dummy.name(), dummy.price(), dummy.description(), List.of(dummy.imageUrl()),
                     seller.getId(), seller.getNickname()));
             log.info("더미 상품 등록 완료 - productId={}, sellerMemberId={}",
                     product.getId(), seller.getId());
