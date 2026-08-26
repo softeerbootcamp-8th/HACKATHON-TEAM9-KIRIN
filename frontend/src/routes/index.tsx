@@ -89,7 +89,7 @@ function InfoBox({
               row.tone === "danger"
                 ? "font-medium text-[var(--color-danger)]"
                 : row.tone === "mine"
-                  ? "font-medium text-[var(--color-mine)]"
+                  ? "font-medium text-[var(--color-primary)]"
                   : "font-medium text-[var(--color-text-sub)]"
             }
           >
@@ -320,7 +320,8 @@ function HomePage() {
           사용중
         </li>
         <li className="flex items-center gap-1">
-          <span className="size-2 rounded-full bg-[var(--color-mine)]" />내 상품
+          <span className="size-2 rounded-full bg-[var(--color-reserved)]" />내
+          상품
         </li>
         <li className="flex items-center gap-1">
           <span className="size-2 rounded-full bg-[var(--color-primary)]" />
