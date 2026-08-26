@@ -87,3 +87,13 @@ export function formatDday(
   const diffDays = Math.ceil(diffMs / (24 * 60 * 60 * 1000));
   return diffDays <= 0 ? "D-Day" : `D-${diffDays}`;
 }
+
+/**
+ * 점유 시작 시각부터 최대 보관일 후 만료 시각까지를
+ * "8/25(월) 15:10 - 8/31(일) 15:10" 형태로 표시한다.
+ * 사물함 잠금 해제 모달의 점유 기한 안내에 쓴다 (Figma "08 모달 · 사물함 잠금 해제").
+ */
+export function formatOccupancyPeriod(startedAt: Date, maxDays: number): string {
+  const expiresAt = new Date(startedAt.getTime() + maxDays * 24 * 60 * 60 * 1000);
+  return `${formatDateTime(startedAt.toISOString())} - ${formatDateTime(expiresAt.toISOString())}`;
+}
