@@ -64,9 +64,12 @@ function ReservePage() {
 
   const isSubmitting = reserveLocker.isPending || changeLockStatus.isPending;
 
+  // 마운트 여부와 상관없이 즉시 API를 다시 호출해 최신 사물함 현황을 캐시에 채워 둔다.
+  // (invalidateQueries는 현재 화면에 마운트된 쿼리만 즉시 재요청하므로, 홈이
+  // 마운트돼 있지 않은 이 화면에서는 stale 표시만 되고 실제 호출은 홈 마운트 시로 미뤄진다.)
   const invalidateLockerData = () => {
-    queryClient.invalidateQueries({ queryKey: ["/lockers"] });
-    queryClient.invalidateQueries({ queryKey: ["/products/me"] });
+    queryClient.refetchQueries({ queryKey: ["/lockers"], type: "all" });
+    queryClient.refetchQueries({ queryKey: ["/products/me"], type: "all" });
   };
 
   // "자리 예약" — 진열함을 열지 않고 예약만 확정한 뒤 홈의 예약중 바텀시트로 이동한다.
