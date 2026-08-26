@@ -48,7 +48,7 @@ export function ItemRow({
       className={cn(
         "relative flex h-[72px] items-center gap-3 rounded-[var(--radius-sm)] border p-3 transition-colors",
         isSelected
-          ? "border-2 border-[var(--color-primary)] bg-[var(--color-bg)]"
+          ? "border-[var(--color-primary)] bg-[var(--color-primary-weak)]"
           : "border-[var(--color-border)] bg-[var(--color-bg)]",
         selectable && "cursor-pointer",
         className,
