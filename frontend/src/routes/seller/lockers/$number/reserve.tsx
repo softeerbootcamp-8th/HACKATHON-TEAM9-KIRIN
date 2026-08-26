@@ -175,7 +175,7 @@ function ReservePage() {
 
       <div className="mt-auto flex gap-4 border-t border-[var(--color-border)] px-4 py-3">
         <Button
-          variant="secondary"
+          variant="outline"
           size="lg"
           className="flex-1"
           disabled={!selectedId || isSubmitting}
