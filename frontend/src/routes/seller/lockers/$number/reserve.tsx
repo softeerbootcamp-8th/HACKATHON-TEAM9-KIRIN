@@ -205,20 +205,28 @@ function ReservePage() {
           </DialogTitle>
 
           <ul className="flex flex-col gap-2 text-[13px] text-[var(--color-text-muted)]">
-            <li>· 상품을 넣은 뒤 문을 닫으면 자동으로 잠겨요.</li>
-            <li>
-              · 점유 기간은 최대 {MAX_OCCUPANCY_DAYS}일이에요.
-              {depositedAt && (
-                <>
-                  <br />
-                  <span className="font-bold text-[var(--color-text-muted)]">
-                    {formatOccupancyPeriod(depositedAt, MAX_OCCUPANCY_DAYS)}
-                  </span>
-                </>
-              )}
+            <li className="flex items-start gap-1.5">
+              <span className="font-bold">·</span>
+              <p className="flex-1">
+                상품을 넣은 뒤 문을 닫으면 자동으로 잠겨요.
+              </p>
             </li>
-            <li>
-              · 기간이 끝나기 전까지 판매되지 않으면 상품을 회수해 주세요.
+            <li className="flex items-start gap-1.5">
+              <span className="font-bold">·</span>
+              <div className="flex-1">
+                <p>점유 기간은 최대 {MAX_OCCUPANCY_DAYS}일이에요.</p>
+                {depositedAt && (
+                  <p className="font-bold">
+                    {formatOccupancyPeriod(depositedAt, MAX_OCCUPANCY_DAYS)}
+                  </p>
+                )}
+              </div>
+            </li>
+            <li className="flex items-start gap-1.5">
+              <span className="font-bold">·</span>
+              <p className="flex-1">
+                기간이 끝나기 전까지 판매되지 않으면 상품을 회수해 주세요.
+              </p>
             </li>
           </ul>
 
