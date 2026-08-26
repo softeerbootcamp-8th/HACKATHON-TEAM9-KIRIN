@@ -321,7 +321,7 @@ function HomePage() {
           상품
         </li>
         <li className="flex items-center gap-1">
-          <span className="size-2 rounded-full bg-[var(--color-primary)]" />
+          <span className="size-2 rounded-full bg-[var(--color-primary-weak)]" />
           비어있음
         </li>
       </ul>
