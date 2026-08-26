@@ -34,25 +34,25 @@ const STATUS_LABEL: Record<LockerStatus, string> = {
 
 const STATUS_STYLE: Record<LockerStatus, string> = {
   empty: "border-[var(--color-primary)] bg-[var(--color-primary-weak)]",
-  reserved: "border-[var(--color-mine)] bg-[var(--color-mine-reserved-bg)]",
-  // 판매중은 예약중과 달리 배경을 통째로 채운다 (Figma "01 홈 · 사물함 현황").
+  // 예약중·판매중은 배경을 통째로 채운다 (Figma "01 홈 · 사물함 현황").
+  reserved: "border-[var(--color-reserved)] bg-[var(--color-reserved)]",
   selling: "border-[var(--color-selling)] bg-[var(--color-selling)]",
-  occupied: "border-[var(--color-border)] bg-[var(--color-disabled-bg)]",
+  occupied: "border-[var(--color-border)] bg-[var(--color-surface-2)]",
 };
 
 const STATUS_LABEL_COLOR: Record<LockerStatus, string> = {
   empty: "text-[var(--color-primary)]",
-  reserved: "text-[var(--color-mine)]",
+  reserved: "text-white",
   selling: "text-white",
-  occupied: "text-[var(--color-text-muted)]",
+  occupied: "text-[var(--color-text-faint)]",
 };
 
-// 판매중 셀은 배경이 통째로 채워져서 칸 번호도 흰 글자로 바꿔야 보인다.
+// 예약중·판매중 셀은 배경이 통째로 채워져서 칸 번호도 흰 글자로 바꿔야 보인다.
 const NUMBER_COLOR: Record<LockerStatus, string> = {
-  empty: "text-[var(--color-text-muted)]",
-  reserved: "text-[var(--color-text-muted)]",
+  empty: "text-[var(--color-text-faint)]",
+  reserved: "text-white",
   selling: "text-white",
-  occupied: "text-[var(--color-text-muted)]",
+  occupied: "text-[var(--color-text-faint)]",
 };
 
 type LockerCellProps = {

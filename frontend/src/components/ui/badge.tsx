@@ -14,15 +14,16 @@ const badgeVariants = cva(
           "bg-[color-mix(in_srgb,var(--color-warning)_18%,transparent)] text-[var(--color-warning)]",
         success:
           "bg-[color-mix(in_srgb,var(--color-success)_18%,transparent)] text-[var(--color-success)]",
-        // 판매중 배지 등 (Figma `Badge/판매중`, DESIGN.md §3.1)
-        danger: "bg-[var(--color-danger-bg)] text-[var(--color-danger)]",
-        // 예약중 진열함 등 (Figma "Locker/reserved")
-        info: "bg-[var(--color-info-bg)] text-[var(--color-info)]",
+        // 판매중 배지 등 — 배경을 통째로 채운다 (Figma `Badge/판매중`, "09 상품 상세")
+        danger: "bg-[var(--color-selling)] text-white",
+        // 예약중 진열함 등 — 배경을 통째로 채운다 (Figma "Badge/예약중")
+        info: "bg-[var(--color-reserved)] text-white",
         // 본인 소유 예약중 배지 (Figma "Badge/예약중", "03 홈 · 바텀시트(예약중·본인)")
-        mine: "bg-[var(--color-mine-reserved-bg)] text-[var(--color-mine)]",
+        mine: "bg-[var(--color-reserved)] text-white",
         // 본인 소유 판매중 배지 — 배경을 통째로 채운다 (Figma "Badge/판매중", "04 홈 · 바텀시트(판매중·본인)")
         mineSelling: "bg-[var(--color-selling)] text-white",
-        muted: "bg-[var(--color-surface-2)] text-[var(--color-text-muted)]",
+        // 판매완료 등 (Figma "07-2 내 리스트 · 거래 완료")
+        muted: "bg-[var(--color-border)] text-[var(--color-text-muted)]",
       },
     },
     defaultVariants: { variant: "neutral" },

@@ -15,8 +15,10 @@ type ProductCardHighlight = {
 const HIGHLIGHT_TONE_COLOR: Record<ProductCardHighlight["tone"], string> = {
   info: "text-[var(--color-info)]",
   danger: "text-[var(--color-danger)]",
-  mine: "text-[var(--color-mine)]",
-  selling: "text-[var(--color-selling)]",
+  // 남은 예약 시간 · 남은 점유 기간 강조 텍스트는 예약/판매 여부와 무관하게
+  // 모두 primary 색을 쓴다 (Figma "03 홈 · 바텀시트(예약중·본인)", "04 홈 · 바텀시트(판매중·본인)")
+  mine: "text-[var(--color-primary)]",
+  selling: "text-[var(--color-primary)]",
 };
 
 type ProductCardProps = {
