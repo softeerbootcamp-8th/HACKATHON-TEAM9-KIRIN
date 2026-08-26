@@ -1,7 +1,7 @@
 import { useRef } from "react";
 import { describe, expect, test, vi } from "vitest";
 import { act, fireEvent, render, screen } from "@testing-library/react";
-import { ProductMoreMenu } from "./my-list";
+import { ProductMoreMenu, sortByStatusOrder } from "./my-list";
 import type { ProductSummaryResponse } from "@/api/generated/model";
 
 // jsdom은 PointerEvent가 없어 MouseEvent로 대신 만든다 — Radix 드롭다운은
@@ -37,6 +37,64 @@ function 더보기_열기() {
     ctrlKey: false,
   });
 }
+
+describe("sortByStatusOrder", () => {
+  test("등록순으로_섞여있어도_예약중_판매중_판매대기_순서로_모은다", () => {
+    // given
+    const products = [
+      상품({ productId: 1, status: "PREPARING" }),
+      상품({ productId: 2, status: "RESERVED" }),
+      상품({ productId: 3, status: "SELLING" }),
+      상품({ productId: 4, status: "RESERVED" }),
+      상품({ productId: 5, status: "PREPARING" }),
+    ];
+
+    // when
+    const result = sortByStatusOrder(products, [
+      "RESERVED",
+      "SELLING",
+      "PREPARING",
+    ]);
+
+    // then
+    expect(result.map((product) => product.productId)).toEqual([
+      2, 4, 3, 1, 5,
+    ]);
+  });
+
+  test("같은_상태_안에서는_원래_순서가_그대로_유지된다", () => {
+    // given
+    const products = [
+      상품({ productId: 10, status: "RESERVED" }),
+      상품({ productId: 11, status: "RESERVED" }),
+      상품({ productId: 12, status: "RESERVED" }),
+    ];
+
+    // when
+    const result = sortByStatusOrder(products, [
+      "RESERVED",
+      "SELLING",
+      "PREPARING",
+    ]);
+
+    // then
+    expect(result.map((product) => product.productId)).toEqual([10, 11, 12]);
+  });
+
+  test("원본_배열은_바뀌지_않는다", () => {
+    // given
+    const products = [
+      상품({ productId: 1, status: "PREPARING" }),
+      상품({ productId: 2, status: "RESERVED" }),
+    ];
+
+    // when
+    sortByStatusOrder(products, ["RESERVED", "SELLING", "PREPARING"]);
+
+    // then
+    expect(products.map((product) => product.productId)).toEqual([1, 2]);
+  });
+});
 
 describe("ProductMoreMenu", () => {
   test("판매대기중_상품에서_상품_수정을_누르면_onEdit이_호출된다", () => {
