@@ -1,5 +1,5 @@
 import { User } from "lucide-react";
-import { createFileRoute, useRouter, Link } from "@tanstack/react-router";
+import { createFileRoute, redirect, useRouter, Link } from "@tanstack/react-router";
 import axios from "axios";
 import { PageContainer } from "@/components/layout/page";
 import { Header } from "@/components/layout/header";
@@ -7,11 +7,40 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { PhotoCarousel } from "@/components/domain/photo-carousel";
 import { formatDateTime, formatPrice } from "@/lib/format";
-import { useGetProductByLocker } from "@/api/generated/lockers/lockers";
+import {
+  useGetProductByLocker,
+  getGetProductByLockerQueryOptions,
+} from "@/api/generated/lockers/lockers";
 import type { ErrorResponse, ProductStatus } from "@/api/generated/model";
+
+function isEmptyLockerError(error: unknown) {
+  return (
+    axios.isAxiosError<ErrorResponse>(error) && error.response?.status === 404
+  );
+}
 
 export const Route = createFileRoute("/buyer/lockers/$number")({
   component: ProductDetailPage,
+  // 빈 진열함이면 홈 화면 + 빈 진열함 바텀시트로 보여줘야 해서, 라우트가 마운트되기
+  // 전에(=상품 상세 화면이 잠깐이라도 그려지기 전에) 여기서 먼저 확인하고 홈으로
+  // 리다이렉트한다. 이렇게 하면 로딩 중 "상품 상세" 페이지가 깜빡이지 않는다.
+  loader: async ({ params, context }) => {
+    const lockerId = Number(params.number);
+    try {
+      await context.queryClient.ensureQueryData(
+        getGetProductByLockerQueryOptions(lockerId),
+      );
+    } catch (error) {
+      if (isEmptyLockerError(error)) {
+        throw redirect({
+          to: "/",
+          search: { openLocker: lockerId },
+          replace: true,
+        });
+      }
+      // 그 외 에러(네트워크 오류 등)는 컴포넌트가 기존 방식대로 처리한다.
+    }
+  },
 });
 
 const STATUS_BADGE: Record<
@@ -24,17 +53,6 @@ const STATUS_BADGE: Record<
   SOLD: { label: "판매완료", variant: "success" },
   EXPIRED: { label: "판매만료", variant: "muted" },
 };
-
-// 사물함이 전부 동일 규격이라 기본값으로 둔다 — src/routes/index.tsx의
-// DEFAULT_LOCKER_SIZE/DEFAULT_MAX_OCCUPANCY_DAYS와 동일한 값.
-const DEFAULT_LOCKER_SIZE = "40 × 100 × 50 cm";
-const DEFAULT_MAX_OCCUPANCY_DAYS = 7;
-
-function isEmptyLockerError(error: unknown) {
-  return (
-    axios.isAxiosError<ErrorResponse>(error) && error.response?.status === 404
-  );
-}
 
 /**
  * 상품 상세 (Figma "09 상품 상세 (QR 스캔 후)").
@@ -56,33 +74,6 @@ function ProductDetailPage() {
         <p className="px-4 pt-10 text-center text-sm text-[var(--color-text-muted)]">
           불러오는 중...
         </p>
-      </PageContainer>
-    );
-  }
-
-  if (isEmptyLockerError(error)) {
-    return (
-      <PageContainer>
-        <Header
-          title={`${lockerId}번 사물함`}
-          onBack={() => router.navigate({ to: "/" })}
-        />
-        <div className="flex flex-col items-center gap-10 px-4 pt-10">
-          <p className="text-center text-sm text-[var(--color-text-muted)]">
-            비어있는 진열함이에요
-            <br />
-            {DEFAULT_LOCKER_SIZE} · 최대 {DEFAULT_MAX_OCCUPANCY_DAYS}일 판매
-            가능
-          </p>
-          <Button asChild fullWidth size="lg">
-            <Link
-              to="/seller/lockers/$number/reserve"
-              params={{ number: String(lockerId) }}
-            >
-              판매하기
-            </Link>
-          </Button>
-        </div>
       </PageContainer>
     );
   }

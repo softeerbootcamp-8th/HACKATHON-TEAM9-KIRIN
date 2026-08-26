@@ -54,4 +54,12 @@ public class Member {
     private void prePersist() {
         this.createdAt = LocalDateTime.now();
     }
+
+    /**
+     * 발급된 회원 ID로 게스트 표시 이름을 "게스트 {ID % 100}" 형태로 확정한다.
+     * ID는 저장 후에만 확정되므로, 저장 직후에 호출해야 한다.
+     */
+    public void assignGuestNickname() {
+        this.nickname = "게스트 " + (this.id % 100);
+    }
 }

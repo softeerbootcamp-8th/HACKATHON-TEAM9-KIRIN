@@ -13,6 +13,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import com.kirin.superservice.global.exception.BusinessException;
 import com.kirin.superservice.global.exception.ErrorCode;
@@ -117,7 +118,11 @@ class MemberServiceTest {
     void 게스트_로그인하면_GUEST_타입의_회원이_생성된다() {
         // given
         given(passwordEncoder.encode(any())).willReturn("encodedRandomPassword");
-        given(memberRepository.save(any(Member.class))).willAnswer(invocation -> invocation.getArgument(0));
+        given(memberRepository.save(any(Member.class))).willAnswer(invocation -> {
+            Member saved = invocation.getArgument(0);
+            ReflectionTestUtils.setField(saved, "id", 142L);
+            return saved;
+        });
 
         // when
         Member guest = memberService.registerGuest();
@@ -125,7 +130,7 @@ class MemberServiceTest {
         // then
         assertThat(guest.getMemberType()).isEqualTo(MemberType.GUEST);
         assertThat(guest.getLoginId()).startsWith("guest_");
-        assertThat(guest.getNickname()).startsWith("게스트-");
+        assertThat(guest.getNickname()).isEqualTo("게스트 42");
     }
 
     @Test

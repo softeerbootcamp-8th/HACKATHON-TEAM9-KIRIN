@@ -105,6 +105,11 @@ export function formatCountdown(
   return `${hours}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
 }
 
+const DAY_MS = 24 * 60 * 60 * 1000;
+// 판매 시작 직후처럼 남은 시간이 "정확히 N일"에 걸친 순간, 클라이언트 시계가
+// 서버보다 몇 초~수십 초 앞서 있어도 하루를 더 올림하지 않도록 여유를 둔다.
+const DDAY_BOUNDARY_BUFFER_MS = 60 * 1000;
+
 /**
  * 만료 시각까지 남은 날짜를 "D-3" / 오늘 만료면 "D-Day" 형태로 표시한다.
  * 진열함 현황 그리드의 판매중 셀에 쓴다 (Figma "01 홈 · 사물함 현황").
@@ -114,7 +119,7 @@ export function formatDday(
   now: Date = new Date(),
 ): string {
   const diffMs = new Date(expiresAtIso).getTime() - now.getTime();
-  const diffDays = Math.ceil(diffMs / (24 * 60 * 60 * 1000));
+  const diffDays = Math.ceil((diffMs - DDAY_BOUNDARY_BUFFER_MS) / DAY_MS);
   return diffDays <= 0 ? "D-Day" : `D-${diffDays}`;
 }
 
