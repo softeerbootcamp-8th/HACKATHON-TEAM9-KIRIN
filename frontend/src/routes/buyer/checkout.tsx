@@ -6,6 +6,7 @@ import {
   type TossPaymentsWidgets,
 } from "@tosspayments/tosspayments-sdk";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 import { PageContainer } from "@/components/layout/page";
 import { Header } from "@/components/layout/header";
 import { ItemRow } from "@/components/domain/item-row";
@@ -38,6 +39,9 @@ function CheckoutPage() {
 
   const [widgets, setWidgets] = useState<TossPaymentsWidgets | null>(null);
   const [isPaying, setIsPaying] = useState(false);
+  // 결제 수단으로 간편결제를 골랐는지 — 토스 위젯에서 결제수단을 고르면
+  // 꺼진다(paymentMethodSelect 이벤트로 감지). 기본값은 간편결제.
+  const [isDemoSelected, setIsDemoSelected] = useState(true);
   const orderIdRef = useRef(`order-${crypto.randomUUID()}`);
   const purchaseProductForDemo = usePurchaseProductForDemo();
 
@@ -51,10 +55,13 @@ function CheckoutPage() {
       const tossPayments = await loadTossPayments(clientKey);
       const instance = tossPayments.widgets({ customerKey: ANONYMOUS });
       await instance.setAmount({ currency: "KRW", value: product.price });
-      await Promise.all([
+      const [paymentMethodWidget] = await Promise.all([
         instance.renderPaymentMethods({ selector: PAYMENT_METHOD_SELECTOR }),
         instance.renderAgreement({ selector: AGREEMENT_SELECTOR }),
       ]);
+      paymentMethodWidget.on("paymentMethodSelect", () => {
+        if (active) setIsDemoSelected(false);
+      });
       if (active) setWidgets(instance);
     })();
 
@@ -93,9 +100,9 @@ function CheckoutPage() {
   };
 
   /**
-   * 데모용 간편결제: 토스 결제위젯을 열지 않고 버튼 한 번으로 바로 결제·거래
-   * 생성까지 끝낸다(`POST /transactions/demo-purchase`). 실제 결제창을 거치지
-   * 않으므로 successUrl 리다이렉트 없이 완료 화면으로 바로 이동한다.
+   * 데모용 간편결제: 토스 결제창을 열지 않고 바로 결제·거래 생성까지 끝낸다
+   * (`POST /transactions/demo-purchase`). 실제 결제창을 거치지 않으므로
+   * successUrl 리다이렉트 없이 완료 화면으로 바로 이동한다.
    */
   const handleDemoPay = () => {
     if (!product || isPaying || purchaseProductForDemo.isPending) return;
@@ -113,6 +120,16 @@ function CheckoutPage() {
         },
       },
     );
+  };
+
+  // 맨 아래 "결제하기" 버튼 — 간편결제를 선택했으면 데모 결제로, 아니면
+  // 토스 위젯에서 고른 결제수단으로 실제 결제창을 연다.
+  const handleSubmitPayment = () => {
+    if (isDemoSelected) {
+      handleDemoPay();
+    } else {
+      void handlePay();
+    }
   };
 
   if (isLoading || !product) {
@@ -160,22 +177,6 @@ function CheckoutPage() {
 
         <section className="flex flex-col gap-2">
           <h2 className="text-[15px] font-bold text-[var(--color-text-sub)]">
-            간편 결제
-          </h2>
-          <Button
-            fullWidth
-            size="lg"
-            disabled={isPaying || purchaseProductForDemo.isPending}
-            onClick={handleDemoPay}
-          >
-            {purchaseProductForDemo.isPending
-              ? "결제 처리 중..."
-              : `${formatPrice(product.price)} 간편결제로 바로 구매`}
-          </Button>
-        </section>
-
-        <section className="flex flex-col gap-2">
-          <h2 className="text-[15px] font-bold text-[var(--color-text-sub)]">
             결제 수단
           </h2>
           <div id="toss-payment-method" />
@@ -185,6 +186,16 @@ function CheckoutPage() {
               결제 수단을 불러오는 중...
             </p>
           )}
+          <Button
+            fullWidth
+            size="lg"
+            variant="outline"
+            className={cn(isDemoSelected && "bg-[var(--color-primary-weak)]")}
+            disabled={isPaying || purchaseProductForDemo.isPending}
+            onClick={() => setIsDemoSelected(true)}
+          >
+            간편결제
+          </Button>
         </section>
 
         <p className="text-xs text-[var(--color-text-muted)]">
@@ -197,10 +208,16 @@ function CheckoutPage() {
         <Button
           fullWidth
           size="lg"
-          disabled={!widgets || isPaying || purchaseProductForDemo.isPending}
-          onClick={handlePay}
+          disabled={
+            (!isDemoSelected && !widgets) ||
+            isPaying ||
+            purchaseProductForDemo.isPending
+          }
+          onClick={handleSubmitPayment}
         >
-          {formatPrice(product.price)} 결제하기
+          {isPaying || purchaseProductForDemo.isPending
+            ? "결제 처리 중..."
+            : `${formatPrice(product.price)} 결제하기`}
         </Button>
       </div>
     </PageContainer>
