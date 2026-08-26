@@ -16,7 +16,7 @@
 
 | 영역 | 스택 |
 | --- | --- |
-| Backend | Java 21, Spring Boot 4.1.1, Spring Web MVC, Spring Data JPA, Spring Validation, Spring Actuator, Lombok, MySQL 8.4, Gradle |
+| Backend | Java 21, Spring Boot 4.1.1, Spring Web MVC, Spring Data JPA, Spring Validation, Spring Actuator, Lombok, MySQL 8.4, Gradle 9.5.1 |
 | Frontend | React 19, TypeScript, Vite, TanStack Router, TanStack Query, Tailwind CSS v4, shadcn/ui(Radix), Orval(OpenAPI 코드 생성), axios, Toss Payments SDK, pnpm |
 | Embedded | ESP32(Arduino/C++) — Wi-Fi HTTP 폴링 기반 사물함 잠금장치 컨트롤러(서보모터 구동) |
 | 결제 | Toss Payments API |
@@ -122,41 +122,25 @@ erDiagram
 
 ```
 .
-├── backend/    # Spring Boot 애플리케이션 (Java 21, Gradle)
-└── frontend/   # 프론트엔드 애플리케이션
-```
-
-## Backend
-
-- Java 21 / Spring Boot 4.1.1 / Gradle 9.5.1
-- Spring Web MVC, Spring Data JPA, Lombok
-
-### 실행
-
-```bash
-cd backend
-./gradlew bootRun
-```
-
-### 테스트
-
-```bash
-cd backend
-./gradlew test
-```
-
-## Frontend
-
-- React 19 / TypeScript / Vite, TanStack Router · Query, Tailwind v4 + shadcn/ui
-- 자세한 규칙은 [`frontend/docs/RULESET.md`](frontend/docs/RULESET.md), 디자인 토큰은
-  [`frontend/DESIGN.md`](frontend/DESIGN.md) 참조
-
-### 실행
-
-```bash
-cd frontend
-pnpm install
-pnpm dev
+├── backend/                       # Spring Boot API (Java 21 · Gradle)
+│   ├── src/main/java/com/kirin/superservice/
+│   │   ├── member/ · auth/         # 회원가입, 게스트 세션, 로그인
+│   │   ├── locker/                 # 사물함 잠금·사용 상태, ESP32 폴링 API
+│   │   ├── product/                # 물품 등록·예약·판매
+│   │   ├── transaction/ · payment/ # 결제 승인, 수령 처리 (Toss Payments)
+│   │   ├── image/ · health/        # 이미지 업로드, 헬스체크
+│   │   └── global/                 # 공통 예외·인증·Slack 알림
+│   ├── src/main/resources/        # application*.yaml, 초기 데이터(data.sql)
+│   ├── src/test/java/             # 도메인별 단위·컨트롤러 테스트
+│   └── deploy/                    # systemd 유닛, 배포 스크립트
+├── frontend/                      # React SPA (Vite)
+│   ├── src/routes/                # 화면 단위 라우트 (TanStack Router 파일 기반)
+│   ├── src/components/{domain,layout,ui}/  # 도메인·레이아웃·shadcn 기반 공용 UI
+│   ├── src/api/generated/         # OpenAPI(Orval) 자동 생성 API 클라이언트
+│   ├── docs/RULESET.md, DESIGN.md # 프론트엔드 규칙, 디자인 토큰
+│   └── deploy/                    # Nginx 설정, 배포 스크립트
+├── docs/images/                   # README에 쓰는 다이어그램 이미지
+└── .github/workflows/             # 백엔드/프론트엔드 CI·CD, PR 가드
 ```
 
 ## Known Issues
