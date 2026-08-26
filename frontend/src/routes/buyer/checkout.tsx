@@ -40,8 +40,8 @@ function CheckoutPage() {
   const [widgets, setWidgets] = useState<TossPaymentsWidgets | null>(null);
   const [isPaying, setIsPaying] = useState(false);
   // 결제 수단으로 간편결제를 골랐는지 — 토스 위젯에서 결제수단을 고르면
-  // 다시 꺼진다(paymentMethodSelect 이벤트로 감지). 기본은 꺼짐(토스 결제).
-  const [isDemoSelected, setIsDemoSelected] = useState(false);
+  // 꺼진다(paymentMethodSelect 이벤트로 감지). 기본값은 간편결제.
+  const [isDemoSelected, setIsDemoSelected] = useState(true);
   const orderIdRef = useRef(`order-${crypto.randomUUID()}`);
   const purchaseProductForDemo = usePurchaseProductForDemo();
 
