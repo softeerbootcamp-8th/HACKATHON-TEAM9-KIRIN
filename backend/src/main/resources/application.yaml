@@ -20,6 +20,16 @@ spring:
       max-file-size: 10MB
       max-request-size: 10MB
 
+# 로그인 화면 없이 부팅 시 조용히 게스트 세션을 발급하는 구조라(SessionProvider),
+# 세션이 끊기면 다음 방문 때 새 게스트로 취급돼 이전 등록 상품 등이 안 보이게 된다.
+# 세션 만료·쿠키 유지 시간을 하루로 늘려 그 사이엔 같은 게스트로 계속 인식되게 한다.
+server:
+  servlet:
+    session:
+      timeout: 1d
+      cookie:
+        max-age: 1d
+
 async:
   slack-notification:
     core-pool-size: ${ASYNC_SLACK_CORE_POOL_SIZE:2}
