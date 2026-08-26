@@ -6,6 +6,7 @@ import jakarta.persistence.ElementCollection;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -41,11 +42,7 @@ public class Product {
     @Column(name = "description", length = 1000)
     private String description;
 
-    /**
-     * 여러 장을 순서대로 저장한다(구매자 상세 화면 캐러셀용). 등록 화면에서
-     * 사진을 여러 장 골라도 예전엔 첫 장만 저장했는데, 이제 전부 저장한다.
-     */
-    @ElementCollection
+    @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "product_image", joinColumns = @JoinColumn(name = "product_id"))
     @OrderColumn(name = "image_order")
     @Column(name = "image_url", length = 500)
