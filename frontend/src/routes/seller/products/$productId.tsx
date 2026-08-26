@@ -24,7 +24,7 @@ const STATUS_BADGE: Record<
 };
 
 /** 지금은 보관 장소가 한 곳뿐이라 고정 문구로 보여준다. */
-const STORAGE_LOCATION = "에테르노 청담 1층 로비";
+const STORAGE_LOCATION = "현대자동차 본사 9조 해커톤 부스";
 
 /**
  * 판매자 본인 상품 상세. 내 리스트, 홈 예약중·판매중 바텀시트에서 상품 하나를
