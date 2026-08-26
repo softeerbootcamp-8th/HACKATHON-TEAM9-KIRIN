@@ -211,7 +211,7 @@ function ReservePage() {
               {depositedAt && (
                 <>
                   <br />
-                  <span className="font-bold text-[var(--color-text-sub)]">
+                  <span className="font-bold text-[var(--color-text-muted)]">
                     {formatOccupancyPeriod(depositedAt, MAX_OCCUPANCY_DAYS)}
                   </span>
                 </>
