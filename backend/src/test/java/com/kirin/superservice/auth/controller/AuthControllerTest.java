@@ -3,6 +3,7 @@ package com.kirin.superservice.auth.controller;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.BDDMockito.then;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,6 +20,7 @@ import com.kirin.superservice.global.slack.SlackErrorNotifier;
 import com.kirin.superservice.member.domain.Member;
 import com.kirin.superservice.member.domain.MemberType;
 import com.kirin.superservice.member.service.MemberService;
+import com.kirin.superservice.product.service.ProductService;
 
 @WebMvcTest(AuthController.class)
 class AuthControllerTest {
@@ -28,6 +30,9 @@ class AuthControllerTest {
 
     @MockitoBean
     private MemberService memberService;
+
+    @MockitoBean
+    private ProductService productService;
 
     @MockitoBean
     private SlackErrorNotifier slackErrorNotifier;
@@ -115,6 +120,7 @@ class AuthControllerTest {
         assertThat(result.getRequest().getSession(false)).isNotNull();
         assertThat(result.getRequest().getSession(false).getAttribute("loginMemberId")).isEqualTo(42L);
         assertThat(result).bodyJson().extractingPath("$.memberType").isEqualTo("GUEST");
+        then(productService).should().registerDummyProducts(guest);
     }
 
     @Test

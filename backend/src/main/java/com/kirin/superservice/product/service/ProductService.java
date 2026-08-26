@@ -39,6 +39,7 @@ public class ProductService {
     private final ProductRepository productRepository;
     private final LockerService lockerService;
     private final MemberService memberService;
+    private final DummyProductLoader dummyProductLoader;
     private final Clock clock;
 
     public Product getProduct(Long productId) {
@@ -87,6 +88,18 @@ public class ProductService {
         log.info("물품 목록 등록 완료 - productId={}, sellerMemberId={}",
                 product.getId(), product.getSellerMemberId());
         return product;
+    }
+
+    /** 게스트 회원 가입 직후, 데모로 둘러볼 수 있도록 해당 회원 소유의 더미 상품을 등록한다. */
+    @Transactional
+    public void registerDummyProducts(Member seller) {
+        dummyProductLoader.getDummyProducts().forEach(dummy -> {
+            Product product = productRepository.save(new Product(
+                    dummy.name(), dummy.price(), dummy.description(), List.of(dummy.imageUrl()),
+                    seller.getId(), seller.getNickname()));
+            log.info("더미 상품 등록 완료 - productId={}, sellerMemberId={}",
+                    product.getId(), seller.getId());
+        });
     }
 
     /** 판매자가 등록한 물품 정보를 수정한다. 판매 완료(SOLD)된 물품은 거래 기록이라 수정할 수 없다. */
