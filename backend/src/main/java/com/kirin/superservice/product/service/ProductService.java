@@ -45,6 +45,11 @@ public class ProductService {
                 .orElseThrow(() -> new ProductNotFoundException(productId));
     }
 
+    /** 판매자가 지금까지 완료한 판매 건수. 상품 상세 화면의 신뢰 지표로 쓴다. */
+    public long countCompletedSales(Long sellerMemberId) {
+        return productRepository.countBySellerMemberIdAndStatus(sellerMemberId, ProductStatus.SOLD);
+    }
+
     public List<Product> findAllProductsByStatus(ProductStatus status) {
         return productRepository.findAllByStatusOrderByCreatedAtDescIdDesc(status);
     }

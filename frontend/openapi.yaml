@@ -715,6 +715,11 @@ components:
           type: string
           format: date-time
           nullable: true
+        sellerCompletedSalesCount:
+          type: integer
+          format: int64
+          nullable: true
+          description: 판매자가 지금까지 완료한 판매 건수. 상품 상세 화면에서만 채워진다.
 
     ProductSummaryResponse:
       type: object

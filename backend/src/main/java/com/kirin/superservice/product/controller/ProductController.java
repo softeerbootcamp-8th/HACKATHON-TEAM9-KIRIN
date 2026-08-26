@@ -98,7 +98,8 @@ public class ProductController {
     @GetMapping("/{productId}")
     public ProductResponse getProduct(@PathVariable Long productId) {
         Product product = productService.getProduct(productId);
-        return ProductResponse.fromEntity(product);
+        long completedSalesCount = productService.countCompletedSales(product.getSellerMemberId());
+        return ProductResponse.fromEntity(product, completedSalesCount);
     }
 
 }

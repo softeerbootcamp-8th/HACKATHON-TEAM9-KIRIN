@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { createFileRoute, useRouter } from "@tanstack/react-router";
+import { createFileRoute, useRouter, Link } from "@tanstack/react-router";
 import { cn } from "@/lib/utils";
 import { PageContainer } from "@/components/layout/page";
 import { Header } from "@/components/layout/header";
@@ -98,18 +98,23 @@ function MyListPage() {
             </p>
           ) : (
             items.map((product) => (
-              <ProductCard
+              <Link
                 key={product.productId}
-                name={product.name}
-                price={product.price}
-                meta={
-                  product.lockerId != null
-                    ? `${product.lockerId}번 사물함`
-                    : "사물함 미지정"
-                }
-                badge={STATUS_BADGE[product.status]}
-                thumbnailUrl={product.imageUrl ?? undefined}
-              />
+                to="/seller/products/$productId"
+                params={{ productId: String(product.productId) }}
+              >
+                <ProductCard
+                  name={product.name}
+                  price={product.price}
+                  meta={
+                    product.lockerId != null
+                      ? `${product.lockerId}번 사물함`
+                      : "사물함 미지정"
+                  }
+                  badge={STATUS_BADGE[product.status]}
+                  thumbnailUrl={product.imageUrl ?? undefined}
+                />
+              </Link>
             ))
           )}
         </div>
