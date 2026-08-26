@@ -291,6 +291,22 @@ public class ProductService {
         return product;
     }
 
+    /**
+     * 등록만 하고 아직 사물함을 예약하지 않은(PREPARING) 물품을 완전히 지운다. 사물함을
+     * 예약한 뒤부터는 예약 취소·회수 등 되돌리는 흐름이 따로 있어 삭제를 허용하지 않는다.
+     */
+    @Transactional
+    public void deleteProduct(Long productId, Long sellerMemberId) {
+        Product product = getProductForUpdate(productId);
+        validateSeller(product, sellerMemberId);
+        if (!product.isPreparing()) {
+            throw new InvalidProductStatusException(productId, product.getStatus());
+        }
+
+        productRepository.delete(product);
+        log.info("물품 삭제 완료 - productId={}, sellerMemberId={}", productId, sellerMemberId);
+    }
+
     /** 물품보관함을 지금 사용 중인 물품의 판매자인지 확인한다. 사물함 잠금 상태를 직접 조작할 때 사용한다. */
     public void validateLockerSeller(Long lockerId, Long sellerMemberId) {
         Product product = productRepository.findFirstByLockerIdOrderByCreatedAtDescIdDesc(lockerId)

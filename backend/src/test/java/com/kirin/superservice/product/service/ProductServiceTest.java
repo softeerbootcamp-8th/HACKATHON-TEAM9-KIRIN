@@ -4,6 +4,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.BDDMockito.then;
+import static org.mockito.Mockito.never;
 
 import com.kirin.superservice.locker.domain.Locker;
 import com.kirin.superservice.locker.domain.LockStatus;
@@ -644,6 +646,43 @@ class ProductServiceTest {
         // then
         assertThat(locker.getLockStatus()).isEqualTo(LockStatus.LOCKED);
         assertThat(locker.getUsageStatus()).isEqualTo(UsageStatus.AVAILABLE);
+    }
+
+    @Test
+    void 판매대기중인_물품을_삭제하면_저장소에서_지워진다() {
+        // given
+        Product product = 물품(1L, ProductStatus.PREPARING);
+        given(productRepository.findByIdForUpdate(1L)).willReturn(Optional.of(product));
+
+        // when
+        productService.deleteProduct(1L, 판매자_ID);
+
+        // then
+        then(productRepository).should().delete(product);
+    }
+
+    @Test
+    void 판매대기중이_아닌_물품을_삭제하려하면_예외가_발생한다() {
+        // given
+        Product product = 예약된물품();
+        given(productRepository.findByIdForUpdate(1L)).willReturn(Optional.of(product));
+
+        // when & then
+        assertThatThrownBy(() -> productService.deleteProduct(1L, 판매자_ID))
+                .isInstanceOf(InvalidProductStatusException.class);
+        then(productRepository).should(never()).delete(any(Product.class));
+    }
+
+    @Test
+    void 다른_회원이_물품을_삭제하려하면_예외가_발생한다() {
+        // given
+        Product product = 물품(1L, ProductStatus.PREPARING);
+        given(productRepository.findByIdForUpdate(1L)).willReturn(Optional.of(product));
+
+        // when & then
+        assertThatThrownBy(() -> productService.deleteProduct(1L, 다른_회원_ID))
+                .isInstanceOf(SellerMismatchException.class);
+        then(productRepository).should(never()).delete(any(Product.class));
     }
 
     private Product 예약된물품() {

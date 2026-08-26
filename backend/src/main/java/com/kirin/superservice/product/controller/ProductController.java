@@ -11,6 +11,8 @@ import com.kirin.superservice.product.dto.response.ProductResponse;
 import com.kirin.superservice.product.service.ProductService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -111,6 +113,14 @@ public class ProductController {
             @RequestBody @Valid UpdateProductRequest request) {
         Product product = productService.updateProduct(productId, request, memberId);
         return ProductResponse.fromEntity(product);
+    }
+
+    @DeleteMapping("/{productId}")
+    public ResponseEntity<Void> deleteProduct(
+            @LoginMember Long memberId,
+            @PathVariable Long productId) {
+        productService.deleteProduct(productId, memberId);
+        return ResponseEntity.noContent().build();
     }
 
 }

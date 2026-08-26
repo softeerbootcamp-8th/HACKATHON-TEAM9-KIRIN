@@ -1,4 +1,4 @@
-import { MoreVertical } from "lucide-react";
+import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 
@@ -31,7 +31,11 @@ type ProductCardProps = {
   /** 남은 예약 시간·남은 점유 기간 등 강조 캡션 (Figma "07 내 리스트 · 판매 중") */
   highlight?: ProductCardHighlight;
   thumbnailUrl?: string;
-  onMoreClick?: () => void;
+  /**
+   * 우측 상단 더보기(점 세개) 자리에 끼워 넣을 요소. 상태별로 드롭다운 메뉴 구성이
+   * 달라져야 해서(Figma "07 내 리스트 · 판매 중") 버튼 자체를 호출부가 조립해 넘긴다.
+   */
+  moreMenu?: ReactNode;
   className?: string;
 };
 
@@ -43,7 +47,7 @@ export function ProductCard({
   meta,
   highlight,
   thumbnailUrl,
-  onMoreClick,
+  moreMenu,
   className,
 }: ProductCardProps) {
   return (
@@ -91,14 +95,7 @@ export function ProductCard({
         )}
       </div>
 
-      <button
-        type="button"
-        onClick={onMoreClick}
-        aria-label="더보기"
-        className="shrink-0 text-[var(--color-text-muted)]"
-      >
-        <MoreVertical className="size-6" />
-      </button>
+      {moreMenu}
     </div>
   );
 }
