@@ -66,9 +66,11 @@ function CheckoutCompletePage() {
         </div>
 
         <div className="flex w-full flex-col gap-2.5 rounded-[var(--radius-sm)] border border-[var(--color-border)] bg-[var(--color-surface-2)] p-3.5 text-left text-[13px]">
-          <div className="flex items-center justify-between">
-            <span className="text-[var(--color-text-muted)]">주문번호</span>
-            <span className="font-medium text-[var(--color-text-sub)]">
+          <div className="flex items-start justify-between gap-2">
+            <span className="shrink-0 text-[var(--color-text-muted)]">
+              주문번호
+            </span>
+            <span className="min-w-0 flex-1 text-right font-medium break-all text-[var(--color-text-sub)]">
               {transaction.orderId}
             </span>
           </div>
