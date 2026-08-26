@@ -113,6 +113,21 @@ const TABS = [
   statuses: ProductStatus[];
 }[];
 
+/**
+ * 상품 목록을 탭에 정의된 상태 순서(예약중 > 판매중 > 판매대기)대로 모아서
+ * 반환한다. 안정 정렬이라 같은 상태 안에서는 원래 순서(최신 등록순)가 유지된다.
+ */
+export function sortByStatusOrder<T extends { status: ProductStatus }>(
+  products: T[],
+  statusOrder: readonly ProductStatus[],
+): T[] {
+  return products
+    .slice()
+    .sort(
+      (a, b) => statusOrder.indexOf(a.status) - statusOrder.indexOf(b.status),
+    );
+}
+
 export type ProductMoreMenuProps = {
   product: ProductSummaryResponse;
   onEdit: (product: ProductSummaryResponse) => void;
@@ -231,8 +246,10 @@ function MyListPage() {
   const allProducts = data?.products ?? [];
 
   const tab = TABS.find((item) => item.key === activeTab) ?? TABS[0];
-  const items = allProducts.filter((product) =>
-    (tab.statuses as readonly ProductStatus[]).includes(product.status),
+  const statusOrder = tab.statuses as readonly ProductStatus[];
+  const items = sortByStatusOrder(
+    allProducts.filter((product) => statusOrder.includes(product.status)),
+    statusOrder,
   );
 
   const changeLockStatus = useChangeLockStatus();
