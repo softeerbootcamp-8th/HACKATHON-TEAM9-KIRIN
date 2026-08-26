@@ -12,17 +12,23 @@ import com.kirin.superservice.payment.dto.request.PaymentConfirmRequest;
 import com.kirin.superservice.payment.dto.response.PaymentConfirmResponse;
 import com.kirin.superservice.payment.exception.PaymentConfirmFailedException;
 import com.kirin.superservice.payment.service.PaymentService;
+import com.kirin.superservice.product.domain.Product;
 import com.kirin.superservice.product.domain.ProductStatus;
 import com.kirin.superservice.product.exception.ProductNotSellingException;
+import com.kirin.superservice.product.service.ProductService;
 import com.kirin.superservice.transaction.domain.Transaction;
 import com.kirin.superservice.transaction.domain.TransactionStatus;
 import com.kirin.superservice.transaction.dto.request.PurchaseProductRequest;
 import com.kirin.superservice.transaction.exception.PurchaseCompletionFailedException;
+import java.time.Clock;
+import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
@@ -33,6 +39,12 @@ class PurchaseServiceTest {
 
     @Mock
     TransactionService transactionService;
+
+    @Mock
+    ProductService productService;
+
+    @Spy
+    Clock clock = Clock.fixed(Instant.parse("2026-08-25T03:00:00Z"), ZoneId.of("Asia/Seoul"));
 
     @InjectMocks
     PurchaseService purchaseService;
@@ -51,6 +63,11 @@ class PurchaseServiceTest {
     private Transaction 거래() {
         return new Transaction(1L, 1L, 1L, 구매자_ID, "지훈", 300000L, "payment_key_1", "order_1",
                 "2026-08-25T12:00:00+09:00", TransactionStatus.PAID, LocalDateTime.now());
+    }
+
+    private Product 판매중_상품() {
+        return new Product(1L, 1L, "아이패드", 300000L, "상태 좋음", null, 2L, "원기",
+                ProductStatus.SELLING, LocalDateTime.now());
     }
 
     @Test
@@ -102,6 +119,47 @@ class PurchaseServiceTest {
 
         // when & then
         assertThatThrownBy(() -> purchaseService.purchaseProduct(구매요청(), 구매자_ID))
+                .isInstanceOf(PurchaseCompletionFailedException.class);
+    }
+
+    @Test
+    void 데모용_간편결제는_토스_승인_없이_물품_가격으로_거래가_저장된다() {
+        // given
+        given(productService.getProduct(1L)).willReturn(판매중_상품());
+        given(transactionService.completePurchase(any(PurchaseProductRequest.class),
+                any(PaymentConfirmResponse.class), any(Long.class))).willReturn(거래());
+
+        // when
+        Transaction result = purchaseService.purchaseProductForDemo(1L, 구매자_ID);
+
+        // then
+        assertThat(result.getStatus()).isEqualTo(TransactionStatus.PAID);
+        then(paymentService).should(never()).confirmPayment(any(PaymentConfirmRequest.class));
+    }
+
+    @Test
+    void 데모용_간편결제도_판매중이_아닌_물품이면_시도하지_않는다() {
+        // given
+        given(productService.getProduct(1L)).willReturn(판매중_상품());
+        willThrow(new ProductNotSellingException(1L, ProductStatus.SOLD))
+                .given(transactionService).validatePurchasable(1L, 300000L);
+
+        // when & then
+        assertThatThrownBy(() -> purchaseService.purchaseProductForDemo(1L, 구매자_ID))
+                .isInstanceOf(ProductNotSellingException.class);
+        then(transactionService).should(never())
+                .completePurchase(any(PurchaseProductRequest.class), any(PaymentConfirmResponse.class), any(Long.class));
+    }
+
+    @Test
+    void 데모용_간편결제도_거래_저장에_실패하면_구매처리실패_예외가_발생한다() {
+        // given
+        given(productService.getProduct(1L)).willReturn(판매중_상품());
+        given(transactionService.completePurchase(any(PurchaseProductRequest.class),
+                any(PaymentConfirmResponse.class), any(Long.class))).willThrow(new IllegalStateException("DB 오류"));
+
+        // when & then
+        assertThatThrownBy(() -> purchaseService.purchaseProductForDemo(1L, 구매자_ID))
                 .isInstanceOf(PurchaseCompletionFailedException.class);
     }
 }

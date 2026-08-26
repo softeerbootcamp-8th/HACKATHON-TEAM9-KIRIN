@@ -12,6 +12,7 @@ import { ItemRow } from "@/components/domain/item-row";
 import { Button } from "@/components/ui/button";
 import { formatPrice } from "@/lib/format";
 import { useGetProduct } from "@/api/generated/products/products";
+import { usePurchaseProductForDemo } from "@/api/generated/transactions/transactions";
 
 type CheckoutSearch = { productId: number };
 
@@ -38,6 +39,7 @@ function CheckoutPage() {
   const [widgets, setWidgets] = useState<TossPaymentsWidgets | null>(null);
   const [isPaying, setIsPaying] = useState(false);
   const orderIdRef = useRef(`order-${crypto.randomUUID()}`);
+  const purchaseProductForDemo = usePurchaseProductForDemo();
 
   const clientKey = import.meta.env.VITE_TOSS_CLIENT_KEY;
 
@@ -90,6 +92,29 @@ function CheckoutPage() {
     }
   };
 
+  /**
+   * 데모용 간편결제: 토스 결제위젯을 열지 않고 버튼 한 번으로 바로 결제·거래
+   * 생성까지 끝낸다(`POST /transactions/demo-purchase`). 실제 결제창을 거치지
+   * 않으므로 successUrl 리다이렉트 없이 완료 화면으로 바로 이동한다.
+   */
+  const handleDemoPay = () => {
+    if (!product || isPaying || purchaseProductForDemo.isPending) return;
+    purchaseProductForDemo.mutate(
+      { data: { productId: product.productId } },
+      {
+        onSuccess: (transaction) => {
+          router.navigate({
+            to: "/buyer/checkout-complete",
+            search: { transactionId: transaction.transactionId },
+          });
+        },
+        onError: () => {
+          toast.error("간편결제에 실패했어요.");
+        },
+      },
+    );
+  };
+
   if (isLoading || !product) {
     return (
       <PageContainer>
@@ -135,6 +160,23 @@ function CheckoutPage() {
 
         <section className="flex flex-col gap-2">
           <h2 className="text-[15px] font-bold text-[var(--color-text-sub)]">
+            간편 결제
+          </h2>
+          <Button
+            fullWidth
+            size="lg"
+            variant="secondary"
+            disabled={isPaying || purchaseProductForDemo.isPending}
+            onClick={handleDemoPay}
+          >
+            {purchaseProductForDemo.isPending
+              ? "결제 처리 중..."
+              : `${formatPrice(product.price)} 간편결제로 바로 구매`}
+          </Button>
+        </section>
+
+        <section className="flex flex-col gap-2">
+          <h2 className="text-[15px] font-bold text-[var(--color-text-sub)]">
             결제 수단
           </h2>
           <div id="toss-payment-method" />
@@ -156,7 +198,7 @@ function CheckoutPage() {
         <Button
           fullWidth
           size="lg"
-          disabled={!widgets || isPaying}
+          disabled={!widgets || isPaying || purchaseProductForDemo.isPending}
           onClick={handlePay}
         >
           {formatPrice(product.price)} 결제하기
