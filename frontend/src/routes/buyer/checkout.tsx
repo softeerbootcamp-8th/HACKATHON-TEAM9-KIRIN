@@ -179,16 +179,18 @@ function CheckoutPage() {
           <h2 className="text-[15px] font-bold text-[var(--color-text-sub)]">
             결제 수단
           </h2>
-          <Button
-            fullWidth
-            size="lg"
-            variant="outline"
-            className={cn(isDemoSelected && "bg-[var(--color-primary-weak)]")}
-            disabled={isPaying || purchaseProductForDemo.isPending}
-            onClick={() => setIsDemoSelected(true)}
-          >
-            간편결제
-          </Button>
+          <div className="px-2">
+            <Button
+              fullWidth
+              size="lg"
+              variant="outline"
+              className={cn(isDemoSelected && "bg-[var(--color-primary-weak)]")}
+              disabled={isPaying || purchaseProductForDemo.isPending}
+              onClick={() => setIsDemoSelected(true)}
+            >
+              간편결제
+            </Button>
+          </div>
           <div id="toss-payment-method" />
           <div id="toss-agreement" />
           {!widgets && (
@@ -204,7 +206,7 @@ function CheckoutPage() {
         </p>
       </div>
 
-      <div className="mt-auto flex flex-col border-t border-[var(--color-border)] px-4 py-3">
+      <div className="sticky bottom-0 z-10 mt-auto flex flex-col border-t border-[var(--color-border)] bg-[var(--color-bg)] px-4 py-3">
         <Button
           fullWidth
           size="lg"
