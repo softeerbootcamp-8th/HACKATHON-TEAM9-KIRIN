@@ -37,6 +37,7 @@ import {
   useGetMyProducts,
   useGetProduct,
   getGetMyProductsQueryKey,
+  getGetProductQueryKey,
   useCancelLockerReservation,
   useStartDeposit,
   useStartRecovery,
@@ -198,9 +199,14 @@ function HomePage() {
     query: { enabled: selectedProductId != null },
   });
 
-  const invalidateLockerData = () => {
+  const invalidateLockerData = (productId?: number) => {
     queryClient.invalidateQueries({ queryKey: getGetLockersQueryKey() });
     queryClient.invalidateQueries({ queryKey: getGetMyProductsQueryKey({}) });
+    if (productId != null) {
+      queryClient.invalidateQueries({
+        queryKey: getGetProductQueryKey(productId),
+      });
+    }
   };
 
   const changeLockStatus = useChangeLockStatus();
@@ -242,7 +248,7 @@ function HomePage() {
       {
         onSuccess: () => {
           toast.success("예약이 취소됐어요.");
-          invalidateLockerData();
+          invalidateLockerData(locker.productId!);
           closeSheet();
         },
         onError: () => toast.error("예약 취소에 실패했어요."),
@@ -260,7 +266,7 @@ function HomePage() {
             { productId: locker.productId! },
             {
               onSuccess: (product) => {
-                invalidateLockerData();
+                invalidateLockerData(locker.productId!);
                 closeSheet();
                 setOpenedLocker(locker);
                 setOpenedLockerDepositedAt(
@@ -289,7 +295,7 @@ function HomePage() {
             {
               onSuccess: () => {
                 toast.success("판매가 종료됐어요.");
-                invalidateLockerData();
+                invalidateLockerData(locker.productId!);
                 closeSheet();
               },
               onError: () => toast.error("판매 종료 처리에 실패했어요."),
