@@ -14,6 +14,11 @@
 #   SPRING_DATASOURCE_USERNAME
 #   SPRING_DATASOURCE_PASSWORD
 #
+# Optional environment variables (Slack 에러 알림 — 비어 있으면 기존처럼 비활성):
+#   SLACK_ENABLED
+#   SLACK_BOT_TOKEN
+#   SLACK_CHANNEL
+#
 # NOTE: the app's own controllers already declare their "/api" prefix in
 # code (e.g. @RequestMapping("/api/lockers")), so we deliberately do NOT set
 # server.servlet.context-path here (that would double it up to /api/api/...).
@@ -72,6 +77,9 @@ SPRING_DATASOURCE_URL=${SPRING_DATASOURCE_URL}
 SPRING_DATASOURCE_USERNAME=${SPRING_DATASOURCE_USERNAME}
 SPRING_DATASOURCE_PASSWORD=${SPRING_DATASOURCE_PASSWORD}
 TOSS_SECRET_KEY=${TOSS_SECRET_KEY:-}
+SLACK_ENABLED=${SLACK_ENABLED:-false}
+SLACK_BOT_TOKEN=${SLACK_BOT_TOKEN:-}
+SLACK_CHANNEL=${SLACK_CHANNEL:-}
 MANAGEMENT_ENDPOINTS_WEB_BASE_PATH=/api/actuator
 EOF
 mv "$TMP_ENV_FILE" "$ENV_FILE"
