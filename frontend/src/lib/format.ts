@@ -59,7 +59,7 @@ export function formatRemainingDetailed(
 
 /**
  * 만료 시각까지 남은 시간을 "1:23:45"(시:분:초) 형태로 표시한다.
- * 사물함 현황 그리드의 예약중 셀처럼 좁은 공간에 쓴다 (Figma "01 홈 · 사물함 현황").
+ * 진열함 현황 그리드의 예약중 셀처럼 좁은 공간에 쓴다 (Figma "01 홈 · 사물함 현황").
  */
 export function formatCountdown(
   expiresAtIso: string,
@@ -77,7 +77,7 @@ export function formatCountdown(
 
 /**
  * 만료 시각까지 남은 날짜를 "D-3" / 오늘 만료면 "D-Day" 형태로 표시한다.
- * 사물함 현황 그리드의 판매중 셀에 쓴다 (Figma "01 홈 · 사물함 현황").
+ * 진열함 현황 그리드의 판매중 셀에 쓴다 (Figma "01 홈 · 사물함 현황").
  */
 export function formatDday(
   expiresAtIso: string,
@@ -91,9 +91,14 @@ export function formatDday(
 /**
  * 점유 시작 시각부터 최대 보관일 후 만료 시각까지를
  * "8/25(월) 15:10 - 8/31(일) 15:10" 형태로 표시한다.
- * 사물함 잠금 해제 모달의 점유 기한 안내에 쓴다 (Figma "08 모달 · 사물함 잠금 해제").
+ * 진열함 잠금 해제 모달의 점유 기한 안내에 쓴다 (Figma "08 모달 · 사물함 잠금 해제").
  */
-export function formatOccupancyPeriod(startedAt: Date, maxDays: number): string {
-  const expiresAt = new Date(startedAt.getTime() + maxDays * 24 * 60 * 60 * 1000);
+export function formatOccupancyPeriod(
+  startedAt: Date,
+  maxDays: number,
+): string {
+  const expiresAt = new Date(
+    startedAt.getTime() + maxDays * 24 * 60 * 60 * 1000,
+  );
   return `${formatDateTime(startedAt.toISOString())} - ${formatDateTime(expiresAt.toISOString())}`;
 }

@@ -1,7 +1,7 @@
 import { cn } from "@/lib/utils";
 
 /**
- * 사물함 표시 상태 (Figma "01 홈 · 사물함 현황").
+ * 진열함 표시 상태 (Figma "01 홈 · 사물함 현황").
  * 실제 사용상태(usageStatus) + 본인 소유 여부(isMine)를 화면 표시용으로 합친 것.
  *
  * | 실제 상태 | 조건 | 표시 |
@@ -15,9 +15,9 @@ import { cn } from "@/lib/utils";
 export type LockerStatus = "empty" | "reserved" | "selling" | "occupied";
 
 /**
- * 13~16번은 다른 사물함보다 큰 규격이라 그리드에서도 더 크게 표시한다
+ * 13~16번은 다른 진열함보다 큰 규격이라 그리드에서도 더 크게 표시한다
  * (Figma "01 홈 · 사물함 현황" GridRow 4 — 높이 173px, 나머지 행은 108px).
- * 백엔드엔 아직 사물함 규격 필드가 없어 번호로 판별한다.
+ * 백엔드엔 아직 진열함 규격 필드가 없어 번호로 판별한다.
  */
 const LARGE_LOCKER_NUMBERS = new Set([13, 14, 15, 16]);
 
@@ -65,9 +65,9 @@ type LockerCellProps = {
 };
 
 /**
- * 사물함 현황 그리드 셀 (Figma "01 홈 · 사물함 현황" 참고 — 별도 컴포넌트로
+ * 진열함 현황 그리드 셀 (Figma "01 홈 · 사물함 현황" 참고 — 별도 컴포넌트로
  * 분리되어 있지 않아 실제 화면에서 역으로 추출했다. DESIGN.md §5.1 · §6).
- * 상태는 색만이 아니라 라벨 텍스트로도 함께 드러낸다. 본인 소유 사물함은
+ * 상태는 색만이 아니라 라벨 텍스트로도 함께 드러낸다. 본인 소유 진열함은
  * 라벨 아래에 남은 예약 시간(reserved) 또는 남은 판매 일수(selling)를 덧붙인다.
  */
 export function LockerCell({

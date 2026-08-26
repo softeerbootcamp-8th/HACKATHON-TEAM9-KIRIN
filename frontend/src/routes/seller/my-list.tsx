@@ -23,7 +23,10 @@ export const Route = createFileRoute("/seller/my-list")({
 
 const STATUS_BADGE: Record<
   ProductStatus,
-  { label: string; variant: "info" | "danger" | "muted" | "mine" | "mineSelling" }
+  {
+    label: string;
+    variant: "info" | "danger" | "muted" | "mine" | "mineSelling";
+  }
 > = {
   RESERVED: { label: "예약중", variant: "mine" },
   SELLING: { label: "판매중", variant: "mineSelling" },
@@ -32,22 +35,22 @@ const STATUS_BADGE: Record<
   EXPIRED: { label: "판매만료", variant: "muted" },
 };
 
-/** 사물함/보조 정보 한 줄 — 상태별로 보여줄 내용이 다르다 (Figma "07"/"07-2"). */
+/** 진열함/보조 정보 한 줄 — 상태별로 보여줄 내용이 다르다 (Figma "07"/"07-2"). */
 function getMeta(product: ProductSummaryResponse): string {
   if (product.status === "SOLD" && product.soldAt) {
     return `${formatShortDate(product.soldAt)} 거래 완료`;
   }
   if (product.lockerId == null) {
-    return "사물함 미지정";
+    return "진열함 미지정";
   }
   if (
     product.status === "SELLING" &&
     product.sellingStartedAt &&
     product.sellingExpiresAt
   ) {
-    return `${product.lockerId}번 사물함 (${formatDateTime(product.sellingStartedAt)} - ${formatDateTime(product.sellingExpiresAt)})`;
+    return `${product.lockerId}번 진열함 (${formatDateTime(product.sellingStartedAt)} - ${formatDateTime(product.sellingExpiresAt)})`;
   }
-  return `${product.lockerId}번 사물함`;
+  return `${product.lockerId}번 진열함`;
 }
 
 /** 남은 예약 시간(예약중)/남은 판매 기간(판매중) 강조 캡션 (Figma "07"). */

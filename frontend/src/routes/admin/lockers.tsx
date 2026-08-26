@@ -6,11 +6,7 @@ import { PageContainer } from "@/components/layout/page";
 import { Header } from "@/components/layout/header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import {
   useGetLockers,
   getGetLockersQueryKey,
@@ -23,11 +19,11 @@ export const Route = createFileRoute("/admin/lockers")({
   component: AdminLockersPage,
 });
 
-/** 지금 데모에 실제로 연결된 사물함만 관리자가 건드릴 수 있게 6·7번으로 한정한다. */
+/** 지금 데모에 실제로 연결된 진열함만 관리자가 건드릴 수 있게 6·7번으로 한정한다. */
 const MANAGED_LOCKER_IDS = new Set([6, 7]);
 
 /**
- * 관리자 전용 사물함 관리 페이지. 로그인 가드는 두지 않는다 — 백엔드
+ * 관리자 전용 진열함 관리 페이지. 로그인 가드는 두지 않는다 — 백엔드
  * `/api/lockers/**` 자체가 데모 편의를 위해 인증 없이 열려 있다.
  */
 function AdminLockersPage() {
@@ -53,7 +49,9 @@ function AdminLockersPage() {
       { lockerId, data: { lockStatus: next } },
       {
         onSuccess: () => {
-          toast.success(`${lockerId}번 사물함을 ${next === LockStatus.LOCKED ? "잠갔어요" : "열었어요"}.`);
+          toast.success(
+            `${lockerId}번 진열함을 ${next === LockStatus.LOCKED ? "잠갔어요" : "열었어요"}.`,
+          );
           invalidate();
         },
         onError: () => toast.error("잠금 상태 변경에 실패했어요."),
@@ -67,7 +65,7 @@ function AdminLockersPage() {
       { lockerId: resetTarget },
       {
         onSuccess: () => {
-          toast.success(`${resetTarget}번 사물함을 초기화했어요.`);
+          toast.success(`${resetTarget}번 진열함을 초기화했어요.`);
           invalidate();
           setResetTarget(null);
         },
@@ -78,7 +76,10 @@ function AdminLockersPage() {
 
   return (
     <PageContainer>
-      <Header title="관리자 · 사물함 관리" onBack={() => router.navigate({ to: "/" })} />
+      <Header
+        title="관리자 · 진열함 관리"
+        onBack={() => router.navigate({ to: "/" })}
+      />
 
       <div className="flex flex-col gap-2 px-4 pt-4 pb-8">
         {isLoading ? (
@@ -93,10 +94,16 @@ function AdminLockersPage() {
             >
               <div className="flex flex-col gap-1.5">
                 <span className="text-sm font-semibold text-[var(--color-text)]">
-                  {locker.lockerId}번 사물함
+                  {locker.lockerId}번 진열함
                 </span>
                 <div className="flex items-center gap-1.5">
-                  <Badge variant={locker.lockStatus === LockStatus.LOCKED ? "neutral" : "warning"}>
+                  <Badge
+                    variant={
+                      locker.lockStatus === LockStatus.LOCKED
+                        ? "neutral"
+                        : "warning"
+                    }
+                  >
                     {locker.lockStatus === LockStatus.LOCKED ? "잠김" : "열림"}
                   </Badge>
                   <Badge
@@ -122,9 +129,13 @@ function AdminLockersPage() {
                   variant="secondary"
                   size="sm"
                   disabled={changeLockStatus.isPending}
-                  onClick={() => handleToggleLock(locker.lockerId, locker.lockStatus)}
+                  onClick={() =>
+                    handleToggleLock(locker.lockerId, locker.lockStatus)
+                  }
                 >
-                  {locker.lockStatus === LockStatus.LOCKED ? "잠금해제" : "잠금"}
+                  {locker.lockStatus === LockStatus.LOCKED
+                    ? "잠금해제"
+                    : "잠금"}
                 </Button>
                 <Button
                   variant="destructive"
@@ -140,13 +151,16 @@ function AdminLockersPage() {
         )}
       </div>
 
-      <Dialog open={resetTarget !== null} onOpenChange={(open) => !open && setResetTarget(null)}>
+      <Dialog
+        open={resetTarget !== null}
+        onOpenChange={(open) => !open && setResetTarget(null)}
+      >
         <DialogContent className="max-w-[313px] gap-3.5 rounded-[16px] p-5">
           <DialogTitle className="text-center text-[17px]">
-            {resetTarget}번 사물함을 초기화할까요?
+            {resetTarget}번 진열함을 초기화할까요?
           </DialogTitle>
           <p className="text-center text-[13px] text-[var(--color-text-muted)]">
-            안에 물품이 있으면 회수 완료 상태로 되돌리고, 사물함은 잠김 +
+            안에 물품이 있으면 회수 완료 상태로 되돌리고, 진열함은 잠김 +
             비어있음 상태가 돼요. 되돌릴 수 없어요.
           </p>
           <div className="flex gap-2 pt-2">

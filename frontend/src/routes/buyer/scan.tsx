@@ -26,11 +26,11 @@ const SCAN_FRAME_CORNERS = [
  * 카메라 프리뷰는 실제 연동 전이라 어두운 배경 + 스캔 프레임만 그린다. 이 화면은
  * 라이트 테마 토큰을 쓰지 않는 유일한 예외(카메라 뷰 특성상 항상 어둡다).
  *
- * 모달을 닫으면 스캔 프레임을 눌러 사물함 번호(QR에 담긴 값)로 상품 상세
+ * 모달을 닫으면 스캔 프레임을 눌러 진열함 번호(QR에 담긴 값)로 상품 상세
  * (`/buyer/lockers/$number`)로 이동하는 흐름을 데모로 붙였다(실제 QR 디코딩은
  * 아직 없어 16번으로 고정).
  *
- * "예약중인 사물함을 스캔했을 때" 모달은 Figma 프레임을 그대로 옮기며 기본으로
+ * "예약중인 진열함을 스캔했을 때" 모달은 Figma 프레임을 그대로 옮기며 기본으로
  * 열려 있었는데, 실제 예약 여부를 확인하는 로직이 없어 진입할 때마다 무조건
  * 떠 있었다. 실제 예약 여부 조회는 아직 연동 전이라, 지금은 기본으로 닫아 둔다.
  */
@@ -56,7 +56,7 @@ function ScanPage() {
             QR 코드를 스캔해 주세요
           </h1>
           <p className="text-[13px] text-white/70">
-            사물함 앞면의 QR 코드를 사각형 안에 맞춰 주세요
+            진열함 앞면의 QR 코드를 사각형 안에 맞춰 주세요
           </p>
         </div>
 
@@ -80,16 +80,16 @@ function ScanPage() {
           <span className="absolute top-1/2 left-[10px] right-[10px] h-0.5 -translate-y-1/2 bg-[var(--color-primary)]" />
         </button>
 
-        <p className="text-[13px] text-white/60">16번 사물함</p>
+        <p className="text-[13px] text-white/60">16번 진열함</p>
       </div>
 
       <Dialog open={showReservedModal} onOpenChange={setShowReservedModal}>
         <DialogContent className="max-w-[313px] gap-3.5 rounded-[16px] p-5">
           <DialogTitle className="text-center text-[17px]">
-            이미 예약된 사물함이에요
+            이미 예약된 진열함이에요
           </DialogTitle>
           <ul className="flex flex-col gap-2 text-[13px] text-[var(--color-text-muted)]">
-            <li>· 다른 사용자가 16번 사물함을 예약했어요.</li>
+            <li>· 다른 사용자가 16번 진열함을 예약했어요.</li>
             <li>· 판매 등록이 끝나면 상품 정보를 확인할 수 있어요.</li>
             <li>· 예약 후 3시간 안에 등록되지 않으면 자동으로 취소돼요.</li>
           </ul>

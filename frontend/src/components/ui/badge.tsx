@@ -16,7 +16,7 @@ const badgeVariants = cva(
           "bg-[color-mix(in_srgb,var(--color-success)_18%,transparent)] text-[var(--color-success)]",
         // 판매중 배지 등 (Figma `Badge/판매중`, DESIGN.md §3.1)
         danger: "bg-[var(--color-danger-bg)] text-[var(--color-danger)]",
-        // 예약중 사물함 등 (Figma "Locker/reserved")
+        // 예약중 진열함 등 (Figma "Locker/reserved")
         info: "bg-[var(--color-info-bg)] text-[var(--color-info)]",
         // 본인 소유 예약중 배지 (Figma "Badge/예약중", "03 홈 · 바텀시트(예약중·본인)")
         mine: "bg-[var(--color-mine-reserved-bg)] text-[var(--color-mine)]",

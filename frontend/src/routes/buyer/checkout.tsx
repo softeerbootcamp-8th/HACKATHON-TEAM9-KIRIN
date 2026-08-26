@@ -68,11 +68,13 @@ function CheckoutPage() {
     if (!widgets || !product || isPaying) return;
     setIsPaying(true);
     try {
-      // 결제 성공/실패 화면에서 "상품으로 돌아가기"가 사물함 번호 기반
+      // 결제 성공/실패 화면에서 "상품으로 돌아가기"가 진열함 번호 기반
       // 상품 상세(`/buyer/lockers/$number`)로 이동해야 해서 lockerId도 같이 넘긴다.
       const returnParams = new URLSearchParams({
         productId: String(product.productId),
-        ...(product.lockerId != null ? { lockerId: String(product.lockerId) } : {}),
+        ...(product.lockerId != null
+          ? { lockerId: String(product.lockerId) }
+          : {}),
       });
       await widgets.requestPayment({
         orderId: orderIdRef.current,
@@ -124,8 +126,8 @@ function CheckoutPage() {
             place={formatPrice(product.price)}
             address={
               product.lockerId != null
-                ? `${product.lockerId}번 사물함`
-                : "사물함 미배치"
+                ? `${product.lockerId}번 진열함`
+                : "진열함 미배치"
             }
             thumbnailUrl={product.imageUrls[0]}
           />
@@ -145,7 +147,7 @@ function CheckoutPage() {
         </section>
 
         <p className="text-xs text-[var(--color-text-muted)]">
-          결제 후에는 사물함이 즉시 열리며, 단순 변심에 의한 취소가 불가해요.
+          결제 후에는 진열함이 즉시 열리며, 단순 변심에 의한 취소가 불가해요.
           주문 내용을 확인했으며 결제에 동의합니다.
         </p>
       </div>

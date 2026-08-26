@@ -44,8 +44,8 @@ import {
 import type { ProductResponse } from "@/api/generated/model";
 
 /**
- * "05 사물함 예약 · 상품 선택" 에서 "자리 예약"을 누르면 사물함 번호를 쿼리
- * 파라미터로 들고 홈으로 돌아온다 — 홈은 사물함 목록을 불러온 뒤 해당 사물함의
+ * "05 진열함 예약 · 상품 선택" 에서 "자리 예약"을 누르면 진열함 번호를 쿼리
+ * 파라미터로 들고 홈으로 돌아온다 — 홈은 진열함 목록을 불러온 뒤 해당 진열함의
  * 예약중 바텀시트를 바로 띄운다.
  */
 type HomeSearch = {
@@ -64,7 +64,7 @@ type HomeLocker = LockerGridItem & {
   productId?: number;
 };
 
-// 사물함이 전부 동일 규격이라 기본값으로 둔다 — 백엔드에 규격 필드가 아직 없다.
+// 진열함이 전부 동일 규격이라 기본값으로 둔다 — 백엔드에 규격 필드가 아직 없다.
 const DEFAULT_LOCKER_SIZE = "40 × 100 × 50 cm";
 const DEFAULT_MAX_OCCUPANCY_DAYS = 7;
 
@@ -102,12 +102,12 @@ function InfoBox({
 }
 
 /**
- * 홈 · 사물함 현황 (Figma "01 홈 · 사물함 현황" + "02/03/04 바텀시트" +
+ * 홈 · 진열함 현황 (Figma "01 홈 · 사물함 현황" + "02/03/04 바텀시트" +
  * "08-1 예약중입니다"). 로그인 게이트는 두지 않는다 — SessionProvider가
  * 부팅 시 게스트 세션을 조용히 만들어 둔다.
  *
  * `GET /lockers`가 소유 여부(isMine)와 남은 예약 시간/판매 일수를 이미 담아
- * 주므로 그리드 표시는 그 응답만으로 만든다. 본인 소유 사물함을 눌러 바텀
+ * 주므로 그리드 표시는 그 응답만으로 만든다. 본인 소유 진열함을 눌러 바텀
  * 시트를 열 때만 `GET /products/me`로 productId를 찾고, 이어서
  * `GET /products/{id}`로 이름·가격 등 상세 정보를 채운다.
  */
@@ -172,7 +172,7 @@ function HomePage() {
     });
   }, [lockersData, myProductsData, now]);
 
-  // "자리 예약" 직후 돌아온 경우 — 쿼리 파라미터로 받은 사물함이 사물함 목록에
+  // "자리 예약" 직후 돌아온 경우 — 쿼리 파라미터로 받은 진열함이 진열함 목록에
   // 반영되면(예약중·내 것) 그 바텀시트를 자동으로 띄운다. sheet state 를 별도
   // effect 로 동기화하지 않고 렌더링 중에 파생시킨다.
   const autoOpenLocker =
@@ -226,7 +226,7 @@ function HomePage() {
         setSheet({ type: "selling", locker });
         return;
       case "occupied":
-        // 타인이 예약/판매 중인 사물함 — 어느 쪽인지는 구분하지 않고 안내만 띄운다.
+        // 타인이 예약/판매 중인 진열함 — 어느 쪽인지는 구분하지 않고 안내만 띄운다.
         setInfoModalLocker(locker);
     }
   };
@@ -269,7 +269,7 @@ function HomePage() {
             },
           );
         },
-        onError: () => toast.error("사물함을 여는 데 실패했어요."),
+        onError: () => toast.error("진열함을 여는 데 실패했어요."),
       },
     );
   };
@@ -292,7 +292,7 @@ function HomePage() {
             },
           );
         },
-        onError: () => toast.error("사물함을 여는 데 실패했어요."),
+        onError: () => toast.error("진열함을 여는 데 실패했어요."),
       },
     );
   };
@@ -303,7 +303,7 @@ function HomePage() {
 
       <div className="flex items-center justify-between px-4 pt-2">
         <h1 className="text-xl font-bold text-[var(--color-text)]">
-          사물함 현황
+          진열함 현황
         </h1>
         <Link
           to="/seller/my-list"
@@ -349,12 +349,12 @@ function HomePage() {
             <>
               <BottomSheetHeader>
                 <BottomSheetTitle>
-                  {effectiveSheet.locker.number}번 사물함
+                  {effectiveSheet.locker.number}번 진열함
                 </BottomSheetTitle>
               </BottomSheetHeader>
               <BottomSheetBody className="flex flex-col items-center gap-10 pt-10 pb-4">
                 <p className="text-center text-sm text-[var(--color-text-muted)]">
-                  비어있는 사물함이에요
+                  비어있는 진열함이에요
                   <br />
                   {DEFAULT_LOCKER_SIZE} · 최대 {DEFAULT_MAX_OCCUPANCY_DAYS}일
                   점유 가능
@@ -407,10 +407,10 @@ function HomePage() {
       >
         <DialogContent className="max-w-[313px] gap-3.5 rounded-[16px] p-5">
           <DialogTitle className="text-center text-[17px]">
-            사용 중인 사물함이에요
+            사용 중인 진열함이에요
           </DialogTitle>
           <ul className="flex flex-col gap-2 text-[13px] text-[var(--color-text-muted)]">
-            <li>· 다른 사용자가 예약 또는 판매 중인 사물함이에요.</li>
+            <li>· 다른 사용자가 예약 또는 판매 중인 진열함이에요.</li>
             <li>· 이용이 끝나면 다시 예약할 수 있어요.</li>
           </ul>
           <Button fullWidth size="lg" onClick={() => setInfoModalLocker(null)}>
