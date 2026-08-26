@@ -179,7 +179,7 @@ function CheckoutPage() {
           <h2 className="text-[15px] font-bold text-[var(--color-text-sub)]">
             결제 수단
           </h2>
-          <div className="px-2">
+          <div className="px-4">
             <Button
               fullWidth
               size="lg"
