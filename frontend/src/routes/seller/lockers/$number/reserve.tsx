@@ -17,7 +17,7 @@ import {
 import { useChangeLockStatus } from "@/api/generated/lockers/lockers";
 import type { ErrorResponse } from "@/api/generated/model";
 
-/** 예약 시도 사이에 다른 판매자가 먼저 같은 사물함을 예약한 경우 백엔드가 내려주는 코드. */
+/** 예약 시도 사이에 다른 판매자가 먼저 같은 진열함을 예약한 경우 백엔드가 내려주는 코드. */
 const LOCKER_NOT_AVAILABLE = "LOCKER_NOT_AVAILABLE";
 
 function isLockerAlreadyReserved(error: unknown) {
@@ -31,14 +31,14 @@ export const Route = createFileRoute("/seller/lockers/$number/reserve")({
   component: ReservePage,
 });
 
-// 사물함이 전부 동일 규격이라 기본값으로 둔다 — src/routes/index.tsx의
+// 진열함이 전부 동일 규격이라 기본값으로 둔다 — src/routes/index.tsx의
 // DEFAULT_MAX_OCCUPANCY_DAYS와 동일한 값(백엔드 SELLING_DAYS).
 const MAX_OCCUPANCY_DAYS = 7;
 
 /**
- * 사물함 예약 · 상품 선택 (Figma "05 사물함 예약 · 상품 선택").
- * "자리 예약"은 사물함을 열지 않고 홈의 예약중(본인) 바텀시트로 바로 이동하고,
- * "바로 팔기"는 예약과 동시에 사물함을 열어 "08 모달 · 사물함 잠금 해제" 를
+ * 진열함 예약 · 상품 선택 (Figma "05 사물함 예약 · 상품 선택").
+ * "자리 예약"은 진열함을 열지 않고 홈의 예약중(본인) 바텀시트로 바로 이동하고,
+ * "바로 팔기"는 예약과 동시에 진열함을 열어 "08 모달 · 사물함 잠금 해제" 를
  * 띄운 뒤 확인하면 홈으로 돌아간다.
  */
 function ReservePage() {
@@ -47,7 +47,7 @@ function ReservePage() {
   const router = useRouter();
   const queryClient = useQueryClient();
 
-  // 사물함 한 칸에는 상품을 하나만 넣을 수 있어 단일 선택으로 동작한다.
+  // 진열함 한 칸에는 상품을 하나만 넣을 수 있어 단일 선택으로 동작한다.
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [sellDialogOpen, setSellDialogOpen] = useState(false);
   const [conflictDialogOpen, setConflictDialogOpen] = useState(false);
@@ -69,7 +69,7 @@ function ReservePage() {
     queryClient.invalidateQueries({ queryKey: ["/products/me"] });
   };
 
-  // "자리 예약" — 사물함을 열지 않고 예약만 확정한 뒤 홈의 예약중 바텀시트로 이동한다.
+  // "자리 예약" — 진열함을 열지 않고 예약만 확정한 뒤 홈의 예약중 바텀시트로 이동한다.
   const handleReserveSpot = () => {
     if (!selectedId) return;
     reserveLocker.mutate(
@@ -85,13 +85,13 @@ function ReservePage() {
             setConflictDialogOpen(true);
             return;
           }
-          toast.error("사물함 예약에 실패했어요.");
+          toast.error("진열함 예약에 실패했어요.");
         },
       },
     );
   };
 
-  // "바로 팔기" — 예약과 동시에 사물함을 열어 즉시 판매 준비를 시작한다.
+  // "바로 팔기" — 예약과 동시에 진열함을 열어 즉시 판매 준비를 시작한다.
   const handleSellNow = () => {
     if (!selectedId) return;
     reserveLocker.mutate(
@@ -106,7 +106,7 @@ function ReservePage() {
                 setDepositedAt(new Date());
                 setSellDialogOpen(true);
               },
-              onError: () => toast.error("사물함을 여는 데 실패했어요."),
+              onError: () => toast.error("진열함을 여는 데 실패했어요."),
             },
           );
         },
@@ -116,7 +116,7 @@ function ReservePage() {
             setConflictDialogOpen(true);
             return;
           }
-          toast.error("사물함 예약에 실패했어요.");
+          toast.error("진열함 예약에 실패했어요.");
         },
       },
     );
@@ -125,7 +125,7 @@ function ReservePage() {
   return (
     <PageContainer>
       <Header
-        title={`${number}번 사물함 예약`}
+        title={`${number}번 진열함 예약`}
         onBack={() => router.history.back()}
       />
 

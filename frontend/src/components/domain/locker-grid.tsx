@@ -14,7 +14,7 @@ type LockerGridProps = {
   className?: string;
 };
 
-/** 사물함 4열 그리드 (Figma "01 홈 · 사물함 현황", DESIGN.md §7) */
+/** 진열함 4열 그리드 (Figma "01 홈 · 사물함 현황", DESIGN.md §7) */
 export function LockerGrid({ lockers, onSelect, className }: LockerGridProps) {
   return (
     <div className={cn("grid grid-cols-4 gap-2.5", className)}>

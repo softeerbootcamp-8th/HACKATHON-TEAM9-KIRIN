@@ -26,9 +26,9 @@ const STATUS_BADGE: Record<
 
 /**
  * 상품 상세 (Figma "09 상품 상세 (QR 스캔 후)").
- * 사물함에 붙은 QR을 스캔해 들어오는 화면이라 상품 id가 아니라 사물함 번호로
- * 접근한다 — `GET /lockers/{lockerId}/product`로 그 사물함에 지금 있는 상품을 조회한다.
- * 헤더 타이틀도 상품명이 아니라 사물함 번호를 보여준다.
+ * 진열함에 붙은 QR을 스캔해 들어오는 화면이라 상품 id가 아니라 진열함 번호로
+ * 접근한다 — `GET /lockers/{lockerId}/product`로 그 진열함에 지금 있는 상품을 조회한다.
+ * 헤더 타이틀도 상품명이 아니라 진열함 번호를 보여준다.
  */
 function ProductDetailPage() {
   const router = useRouter();
@@ -53,7 +53,10 @@ function ProductDetailPage() {
 
   return (
     <PageContainer>
-      <Header title={`${lockerId}번 사물함`} onBack={() => router.history.back()} />
+      <Header
+        title={`${lockerId}번 진열함`}
+        onBack={() => router.history.back()}
+      />
 
       <PhotoCarousel imageUrls={product.imageUrls} alt={product.name} />
 
@@ -94,7 +97,7 @@ function ProductDetailPage() {
 
         <div className="flex w-full flex-col gap-2.5 rounded-[var(--radius-sm)] border border-[var(--color-border)] bg-[var(--color-surface-2)] p-3.5 text-[13px]">
           <div className="flex items-center justify-between">
-            <span className="text-[var(--color-text-muted)]">사물함</span>
+            <span className="text-[var(--color-text-muted)]">진열함</span>
             <span className="font-medium text-[var(--color-text-sub)]">
               {lockerId}번
             </span>
@@ -121,7 +124,10 @@ function ProductDetailPage() {
         </div>
         {isPurchasable ? (
           <Button asChild size="lg" className="flex-1">
-            <Link to="/buyer/checkout" search={{ productId: product.productId }}>
+            <Link
+              to="/buyer/checkout"
+              search={{ productId: product.productId }}
+            >
               구매하기
             </Link>
           </Button>

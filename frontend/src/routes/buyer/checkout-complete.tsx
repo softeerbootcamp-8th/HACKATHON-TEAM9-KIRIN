@@ -19,7 +19,7 @@ export const Route = createFileRoute("/buyer/checkout-complete")({
 });
 
 /**
- * 결제 완료 · 사물함 열림 (Figma "11 결제 완료 · 사물함 열림").
+ * 결제 완료 · 진열함 열림 (Figma "11 결제 완료 · 사물함 열림").
  * 뒤로가기가 없는 종료 화면 — "수령 완료"를 누르면 홈으로 돌아간다.
  */
 function CheckoutCompletePage() {
@@ -58,8 +58,8 @@ function CheckoutCompletePage() {
           </h1>
           <p className="text-sm text-[var(--color-text-muted)]">
             {transaction.lockerId != null
-              ? `${transaction.lockerId}번 사물함이 열렸어요.`
-              : "사물함이 열렸어요."}
+              ? `${transaction.lockerId}번 진열함이 열렸어요.`
+              : "진열함이 열렸어요."}
             <br />
             상품을 꺼내고 문을 닫으면 자동으로 잠겨요.
           </p>
