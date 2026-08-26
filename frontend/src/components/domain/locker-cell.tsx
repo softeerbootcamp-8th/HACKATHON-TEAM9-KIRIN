@@ -14,6 +14,17 @@ import { cn } from "@/lib/utils";
  */
 export type LockerStatus = "empty" | "reserved" | "selling" | "occupied";
 
+/**
+ * 13~16번은 다른 사물함보다 큰 규격이라 그리드에서도 더 크게 표시한다
+ * (Figma "01 홈 · 사물함 현황" GridRow 4 — 높이 173px, 나머지 행은 108px).
+ * 백엔드엔 아직 사물함 규격 필드가 없어 번호로 판별한다.
+ */
+const LARGE_LOCKER_NUMBERS = new Set([13, 14, 15, 16]);
+
+export function isLargeLocker(number: number): boolean {
+  return LARGE_LOCKER_NUMBERS.has(number);
+}
+
 const STATUS_LABEL: Record<LockerStatus, string> = {
   empty: "비어있음",
   reserved: "예약중",
@@ -62,7 +73,8 @@ export function LockerCell({
       type="button"
       onClick={onClick}
       className={cn(
-        "flex h-[108px] w-full flex-col rounded-[var(--radius-sm)] border p-1.5 text-xs font-medium",
+        "flex w-full flex-col rounded-[var(--radius-sm)] border p-1.5 text-xs font-medium",
+        isLargeLocker(number) ? "h-[173px]" : "h-[108px]",
         STATUS_STYLE[status],
         className,
       )}
