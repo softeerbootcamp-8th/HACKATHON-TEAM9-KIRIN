@@ -510,7 +510,7 @@ class ProductServiceTest {
     }
 
     @Test
-    void 만료된_물품의_회수를_시작하면_사물함이_열린다() {
+    void 만료된_물품의_회수를_시작하면_사물함이_열리고_판매대기_상태로_돌아간다() {
         // given
         Product product = 만료된물품();
         Locker locker = new Locker(1L, LockStatus.LOCKED, UsageStatus.OCCUPIED);
@@ -521,8 +521,10 @@ class ProductServiceTest {
         Product result = productService.startRecovery(1L, 판매자_ID);
 
         // then
-        assertThat(result.getRecoveryStartedAt()).isEqualTo(LocalDateTime.of(2026, 8, 25, 12, 0));
+        assertThat(result.getStatus()).isEqualTo(ProductStatus.PREPARING);
+        assertThat(result.getLockerId()).isNull();
         assertThat(locker.getLockStatus()).isEqualTo(LockStatus.UNLOCKED);
+        assertThat(locker.getUsageStatus()).isEqualTo(UsageStatus.AVAILABLE);
     }
 
     @Test
