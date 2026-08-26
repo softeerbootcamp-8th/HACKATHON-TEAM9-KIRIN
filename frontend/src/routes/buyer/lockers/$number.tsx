@@ -1,5 +1,6 @@
 import { User } from "lucide-react";
 import { createFileRoute, useRouter, Link } from "@tanstack/react-router";
+import axios from "axios";
 import { PageContainer } from "@/components/layout/page";
 import { Header } from "@/components/layout/header";
 import { Badge } from "@/components/ui/badge";
@@ -7,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { PhotoCarousel } from "@/components/domain/photo-carousel";
 import { formatDateTime, formatPrice } from "@/lib/format";
 import { useGetProductByLocker } from "@/api/generated/lockers/lockers";
-import type { ProductStatus } from "@/api/generated/model";
+import type { ErrorResponse, ProductStatus } from "@/api/generated/model";
 
 export const Route = createFileRoute("/buyer/lockers/$number")({
   component: ProductDetailPage,
@@ -24,6 +25,17 @@ const STATUS_BADGE: Record<
   EXPIRED: { label: "판매만료", variant: "muted" },
 };
 
+// 사물함이 전부 동일 규격이라 기본값으로 둔다 — src/routes/index.tsx의
+// DEFAULT_LOCKER_SIZE/DEFAULT_MAX_OCCUPANCY_DAYS와 동일한 값.
+const DEFAULT_LOCKER_SIZE = "40 × 100 × 50 cm";
+const DEFAULT_MAX_OCCUPANCY_DAYS = 7;
+
+function isEmptyLockerError(error: unknown) {
+  return (
+    axios.isAxiosError<ErrorResponse>(error) && error.response?.status === 404
+  );
+}
+
 /**
  * 상품 상세 (Figma "09 상품 상세 (QR 스캔 후)").
  * 사물함에 붙은 QR을 스캔해 들어오는 화면이라 상품 id가 아니라 사물함 번호로
@@ -35,14 +47,52 @@ function ProductDetailPage() {
   const { number } = Route.useParams();
   const lockerId = Number(number);
 
-  const { data: product, isLoading } = useGetProductByLocker(lockerId);
+  const { data: product, isLoading, error } = useGetProductByLocker(lockerId);
 
-  if (isLoading || !product) {
+  if (isLoading) {
     return (
       <PageContainer>
         <Header title="상품 상세" onBack={() => router.history.back()} />
         <p className="px-4 pt-10 text-center text-sm text-[var(--color-text-muted)]">
           불러오는 중...
+        </p>
+      </PageContainer>
+    );
+  }
+
+  if (isEmptyLockerError(error)) {
+    return (
+      <PageContainer>
+        <Header
+          title={`${lockerId}번 사물함`}
+          onBack={() => router.history.back()}
+        />
+        <div className="flex flex-col items-center gap-10 px-4 pt-10">
+          <p className="text-center text-sm text-[var(--color-text-muted)]">
+            비어있는 진열함이에요
+            <br />
+            {DEFAULT_LOCKER_SIZE} · 최대 {DEFAULT_MAX_OCCUPANCY_DAYS}일 판매
+            가능
+          </p>
+          <Button asChild fullWidth size="lg">
+            <Link
+              to="/seller/lockers/$number/reserve"
+              params={{ number: String(lockerId) }}
+            >
+              판매하기
+            </Link>
+          </Button>
+        </div>
+      </PageContainer>
+    );
+  }
+
+  if (error || !product) {
+    return (
+      <PageContainer>
+        <Header title="상품 상세" onBack={() => router.history.back()} />
+        <p className="px-4 pt-10 text-center text-sm text-[var(--color-text-muted)]">
+          정보를 불러오지 못했어요.
         </p>
       </PageContainer>
     );
