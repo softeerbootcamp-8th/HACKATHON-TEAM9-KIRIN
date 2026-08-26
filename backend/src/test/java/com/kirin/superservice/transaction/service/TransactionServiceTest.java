@@ -185,7 +185,7 @@ class TransactionServiceTest {
     }
 
     @Test
-    void 수령을_확인하면_거래가_완료되고_보관함이_잠기며_사용가능해진다() {
+    void 수령을_확인하면_거래가_완료되고_잠금상태는_그대로_사용가능해진다() {
         // given
         Locker locker = new Locker(1L, LockStatus.UNLOCKED, UsageStatus.OCCUPIED);
         given(transactionRepository.findById(1L)).willReturn(Optional.of(거래(TransactionStatus.PAID)));
@@ -196,7 +196,7 @@ class TransactionServiceTest {
 
         // then
         assertThat(result.getStatus()).isEqualTo(TransactionStatus.DONE);
-        assertThat(locker.getLockStatus()).isEqualTo(LockStatus.LOCKED);
+        assertThat(locker.getLockStatus()).isEqualTo(LockStatus.UNLOCKED);
         assertThat(locker.getUsageStatus()).isEqualTo(UsageStatus.AVAILABLE);
     }
 
@@ -225,7 +225,7 @@ class TransactionServiceTest {
     @Test
     void 데모_잠금으로_결제완료된_거래는_구매자_확인_없이_바로_수령완료된다() {
         // given
-        Locker locker = new Locker(1L, LockStatus.UNLOCKED, UsageStatus.OCCUPIED);
+        Locker locker = new Locker(1L, LockStatus.LOCKED, UsageStatus.OCCUPIED);
         given(transactionRepository.findByLockerIdAndStatus(1L, TransactionStatus.PAID))
                 .willReturn(Optional.of(거래(TransactionStatus.PAID)));
         given(lockerService.getLockerForUpdate(1L)).willReturn(locker);

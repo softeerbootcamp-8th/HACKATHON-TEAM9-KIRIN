@@ -97,7 +97,8 @@ public class TransactionService {
     }
 
     /**
-     * 구매자가 물건을 꺼낸 뒤 호출한다. 보관함을 잠그고 다시 비어 있는 상태로 되돌린다.
+     * 구매자가 물건을 꺼낸 뒤 호출한다. 보관함을 다시 비어 있는 상태로 되돌린다. 문 잠금 여부는
+     * ESP32가 보고하는 실제 물리적 이벤트로만 반영하므로 여기서는 잠금 상태를 건드리지 않는다.
      * 버튼을 두 번 눌러도 문제가 없도록 이미 수령완료면 그대로 둔다.
      */
     @Transactional
@@ -109,7 +110,6 @@ public class TransactionService {
         transaction.completePickup();
 
         Locker locker = lockerService.getLocker(transaction.getLockerId());
-        locker.changeLockStatus(LockStatus.LOCKED);
         locker.release();
         log.info("물품 수령 완료 - transactionId={}, lockerId={}", transactionId, transaction.getLockerId());
         return transaction;
@@ -117,7 +117,8 @@ public class TransactionService {
 
     /**
      * 데모용: 사물함 잠금 버튼만으로 수령 완료를 흉내 낸다. 구매자 본인 확인 없이,
-     * 그 사물함에 결제완료(PAID) 상태인 거래가 있으면 바로 수령완료 처리한다.
+     * 그 사물함에 결제완료(PAID) 상태인 거래가 있으면 바로 수령완료 처리한다. 잠금 상태는
+     * 이미 {@code LockerController}에서 반영했으므로 여기서 다시 바꾸지 않는다.
      */
     @Transactional
     public void completePickupForDemo(Long lockerId) {
@@ -125,7 +126,6 @@ public class TransactionService {
                 .ifPresent(transaction -> {
                     transaction.completePickup();
                     Locker locker = lockerService.getLockerForUpdate(lockerId);
-                    locker.changeLockStatus(LockStatus.LOCKED);
                     locker.release();
                     log.info("데모용 사물함 잠금으로 수령 완료 - transactionId={}, lockerId={}",
                             transaction.getId(), lockerId);
