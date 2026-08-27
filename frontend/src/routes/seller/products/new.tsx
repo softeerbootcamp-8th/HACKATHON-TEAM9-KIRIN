@@ -31,6 +31,7 @@ export const Route = createFileRoute("/seller/products/new")({
 
 const MAX_PHOTOS = 10;
 const NAME_MAX_LENGTH = 32;
+const DESCRIPTION_MIN_LENGTH = 10;
 const DESCRIPTION_MAX_LENGTH = 500;
 const MIN_PRICE = 1_000;
 const MAX_PRICE = 1_000_000_000;
@@ -118,7 +119,10 @@ function NewProductPage() {
     updateProduct.isPending;
 
   const canSubmit =
-    photos.length > 0 && name.trim().length > 0 && price.trim().length > 0;
+    photos.length > 0 &&
+    name.trim().length > 0 &&
+    description.trim().length >= DESCRIPTION_MIN_LENGTH &&
+    price.trim().length > 0;
 
   useEffect(() => {
     photosRef.current = photos;
@@ -206,7 +210,7 @@ function NewProductPage() {
       const data = {
         name: name.trim(),
         price: Number(price),
-        description: description.trim() || undefined,
+        description: description.trim(),
         imageUrls,
       };
 
@@ -305,7 +309,9 @@ function NewProductPage() {
 
         <div className="flex flex-col gap-2">
           <div className="flex items-center justify-between">
-            <Label htmlFor="product-name">상품명</Label>
+            <Label htmlFor="product-name">
+              상품명 <span className="text-[var(--color-danger)]">*</span>
+            </Label>
             <span className="text-xs text-[var(--color-text-muted)]">
               {name.length}/{NAME_MAX_LENGTH}
             </span>
@@ -321,7 +327,9 @@ function NewProductPage() {
 
         <div className="flex flex-col gap-2">
           <div className="flex items-center justify-between">
-            <Label htmlFor="product-description">상품 설명</Label>
+            <Label htmlFor="product-description">
+              상품 설명 <span className="text-[var(--color-danger)]">*</span>
+            </Label>
             <span className="text-xs text-[var(--color-text-muted)]">
               {description.length}/{DESCRIPTION_MAX_LENGTH}
             </span>
@@ -334,6 +342,12 @@ function NewProductPage() {
             value={description}
             onChange={(event) => setDescription(event.target.value)}
           />
+          {description.length > 0 &&
+            description.trim().length < DESCRIPTION_MIN_LENGTH && (
+              <p className="text-xs text-[var(--color-danger)]">
+                상품 설명은 최소 {DESCRIPTION_MIN_LENGTH}자 이상 적어주세요.
+              </p>
+            )}
         </div>
 
         <div className="flex flex-col gap-2">

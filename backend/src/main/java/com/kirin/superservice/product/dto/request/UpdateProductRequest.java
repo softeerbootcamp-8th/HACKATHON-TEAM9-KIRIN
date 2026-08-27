@@ -10,7 +10,7 @@ import java.util.List;
 public record UpdateProductRequest(
         @NotBlank @Size(max = 100) String name,
         @NotNull @Min(1_000) @Max(1_000_000_000) Long price,
-        @Size(max = 1000) String description,
+        @NotBlank @Size(min = 10, max = 1000) String description,
         @Size(max = 10) List<String> imageUrls
 ) {
 }
