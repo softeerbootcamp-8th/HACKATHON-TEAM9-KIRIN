@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import type { ChangeEvent } from "react";
 import { createFileRoute, useRouter } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
@@ -80,6 +81,22 @@ function extractErrorMessage(error: unknown, fallback: string) {
   return fallback;
 }
 
+function formatPriceInput(value: string) {
+  return value.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+}
+
+function getPriceCaretPosition(value: string, digitCount: number) {
+  if (digitCount <= 0) return 0;
+
+  let digitsSeen = 0;
+  for (let index = 0; index < value.length; index += 1) {
+    if (/\d/.test(value.charAt(index))) digitsSeen += 1;
+    if (digitsSeen === digitCount) return index + 1;
+  }
+
+  return value.length;
+}
+
 /**
  * 상품 등록 · 수정 (Figma "06 상품 등록"). 등록 시엔 고른 사진을 전부
  * `POST /images`로 순서대로 업로드해 URL 배열을 만든 뒤, `POST /products`의
@@ -108,6 +125,7 @@ function NewProductPage() {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [price, setPrice] = useState("");
+  const priceInputRef = useRef<HTMLInputElement>(null);
   const [isConvertingPhotos, setIsConvertingPhotos] = useState(false);
 
   const uploadImage = useUploadImage();
@@ -182,6 +200,27 @@ function NewProductPage() {
       const target = prev.find((photo) => photo.id === id);
       if (target?.file) URL.revokeObjectURL(target.url);
       return prev.filter((photo) => photo.id !== id);
+    });
+  };
+
+  const handlePriceChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const { value, selectionStart } = event.target;
+    const digitCountBeforeCursor = value
+      .slice(0, selectionStart ?? value.length)
+      .replace(/[^0-9]/g, "").length;
+    const numericPrice = value.replace(/[^0-9]/g, "");
+    const formattedPrice = formatPriceInput(numericPrice);
+
+    setPrice(numericPrice);
+    requestAnimationFrame(() => {
+      const input = priceInputRef.current;
+      if (!input) return;
+
+      const caretPosition = getPriceCaretPosition(
+        formattedPrice,
+        digitCountBeforeCursor,
+      );
+      input.setSelectionRange(caretPosition, caretPosition);
     });
   };
 
@@ -354,15 +393,14 @@ function NewProductPage() {
           <Label htmlFor="product-price">판매 가격</Label>
           <div className="flex items-center rounded-[var(--radius-sm)] border border-[var(--color-border)] bg-[var(--color-bg)] p-3.5">
             <input
+              ref={priceInputRef}
               id="product-price"
               type="text"
               inputMode="numeric"
               pattern="[0-9]*"
               placeholder="0"
-              value={price}
-              onChange={(event) =>
-                setPrice(event.target.value.replace(/[^0-9]/g, ""))
-              }
+              value={formatPriceInput(price)}
+              onChange={handlePriceChange}
               className="w-full min-w-0 bg-transparent text-sm text-foreground outline-none placeholder:text-[var(--color-text-placeholder)]"
             />
             <span className="text-sm font-medium text-[var(--color-text-muted)]">
