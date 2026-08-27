@@ -5,6 +5,7 @@ import {
   loadTossPayments,
   type TossPaymentsWidgets,
 } from "@tosspayments/tosspayments-sdk";
+import { Check } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { PageContainer } from "@/components/layout/page";
@@ -42,6 +43,9 @@ function CheckoutPage() {
   // 결제 수단으로 간편결제를 골랐는지 — 토스 위젯에서 결제수단을 고르면
   // 꺼진다(paymentMethodSelect 이벤트로 감지). 기본값은 간편결제.
   const [isDemoSelected, setIsDemoSelected] = useState(true);
+  // 약관 동의 체크박스 — 기본값은 동의 안 함이다. 동의하지 않은 채로는
+  // 결제(데모 결제 포함)가 진행되지 않도록 아래 "결제하기" 버튼을 막는다.
+  const [isAgreed, setIsAgreed] = useState(false);
   const orderIdRef = useRef(`order-${crypto.randomUUID()}`);
   const purchaseProductForDemo = usePurchaseProductForDemo();
 
@@ -74,7 +78,7 @@ function CheckoutPage() {
   }, [product?.productId, clientKey]);
 
   const handlePay = async () => {
-    if (!widgets || !product || isPaying) return;
+    if (!widgets || !product || !isAgreed || isPaying) return;
     setIsPaying(true);
     try {
       // 결제 성공/실패 화면에서 "상품으로 돌아가기"가 진열함 번호 기반
@@ -93,6 +97,13 @@ function CheckoutPage() {
       });
     } catch (error) {
       if (error instanceof Error && error.name === "UserCancelError") return;
+      if (
+        error instanceof Error &&
+        error.name === "NeedAgreementWithRequiredTermsError"
+      ) {
+        toast.error("필수 약관에 모두 동의해야 결제할 수 있어요.");
+        return;
+      }
       toast.error("결제창을 여는 데 실패했어요.");
     } finally {
       setIsPaying(false);
@@ -105,7 +116,8 @@ function CheckoutPage() {
    * successUrl 리다이렉트 없이 완료 화면으로 바로 이동한다.
    */
   const handleDemoPay = () => {
-    if (!product || isPaying || purchaseProductForDemo.isPending) return;
+    if (!product || !isAgreed || isPaying || purchaseProductForDemo.isPending)
+      return;
     purchaseProductForDemo.mutate(
       { data: { productId: product.productId } },
       {
@@ -200,10 +212,27 @@ function CheckoutPage() {
           )}
         </section>
 
-        <p className="text-xs text-[var(--color-text-muted)]">
+        <label className="flex cursor-pointer items-start gap-2 text-xs text-[var(--color-text-muted)]">
+          <input
+            type="checkbox"
+            className="sr-only"
+            checked={isAgreed}
+            onChange={(event) => setIsAgreed(event.target.checked)}
+          />
+          <span
+            aria-hidden
+            className={cn(
+              "mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-[3px] border",
+              isAgreed
+                ? "border-[var(--color-primary)] bg-[var(--color-primary)] text-[var(--color-bg)]"
+                : "border-[var(--color-border)] bg-[var(--color-bg)]",
+            )}
+          >
+            {isAgreed && <Check className="h-3 w-3" strokeWidth={3} />}
+          </span>
           결제 후에는 진열함이 즉시 열리며, 단순 변심에 의한 취소가 불가해요.
           주문 내용을 확인했으며 결제에 동의합니다.
-        </p>
+        </label>
       </div>
 
       <div className="sticky bottom-0 z-10 mt-auto flex flex-col border-t border-[var(--color-border)] bg-[var(--color-bg)] px-4 py-3">
@@ -211,6 +240,7 @@ function CheckoutPage() {
           fullWidth
           size="lg"
           disabled={
+            !isAgreed ||
             (!isDemoSelected && !widgets) ||
             isPaying ||
             purchaseProductForDemo.isPending
