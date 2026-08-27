@@ -345,7 +345,7 @@ function NewProductPage() {
               inputMode="numeric"
               pattern="[0-9]*"
               placeholder="0"
-              value={price}
+              value={price ? Number(price).toLocaleString("ko-KR") : ""}
               onChange={(event) =>
                 setPrice(event.target.value.replace(/[^0-9]/g, ""))
               }
