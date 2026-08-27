@@ -670,7 +670,7 @@ components:
 
     RegisterProductRequest:
       type: object
-      required: [name, price]
+      required: [name, price, description]
       properties:
         name:
           type: string
@@ -682,8 +682,8 @@ components:
           maximum: 1000000000
         description:
           type: string
+          minLength: 10
           maxLength: 1000
-          nullable: true
         imageUrls:
           type: array
           maxItems: 10
@@ -694,7 +694,7 @@ components:
 
     UpdateProductRequest:
       type: object
-      required: [name, price]
+      required: [name, price, description]
       properties:
         name:
           type: string
@@ -706,8 +706,8 @@ components:
           maximum: 1000000000
         description:
           type: string
+          minLength: 10
           maxLength: 1000
-          nullable: true
         imageUrls:
           type: array
           maxItems: 10

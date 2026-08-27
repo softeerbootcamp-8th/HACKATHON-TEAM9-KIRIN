@@ -44,7 +44,7 @@ class ProductControllerTest {
             {
               "name": "아이패드",
               "price": 300000,
-              "description": "상태 좋음"
+              "description": "상태 좋고 사용감 거의 없어요"
             }
             """;
 
@@ -87,6 +87,7 @@ class ProductControllerTest {
                 {
                   "name": "아이패드",
                   "price": 300000,
+                  "description": "상태 좋고 사용감 거의 없어요",
                   "imageUrls": ["/images/1.jpg", "/images/2.jpg"]
                 }
                 """;
@@ -125,6 +126,45 @@ class ProductControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .sessionAttr(SessionConst.LOGIN_MEMBER_ID, 1L)
                         .content(이름_없는_요청))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("INVALID_REQUEST"));
+    }
+
+    @Test
+    void 상품_설명이_없으면_400을_반환한다() throws Exception {
+        // given
+        String 설명_없는_요청 = """
+                {
+                  "name": "아이패드",
+                  "price": 300000
+                }
+                """;
+
+        // when & then
+        mockMvc.perform(post("/api/products")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .sessionAttr(SessionConst.LOGIN_MEMBER_ID, 1L)
+                        .content(설명_없는_요청))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("INVALID_REQUEST"));
+    }
+
+    @Test
+    void 상품_설명이_10자_미만이면_400을_반환한다() throws Exception {
+        // given
+        String 짧은_설명_요청 = """
+                {
+                  "name": "아이패드",
+                  "price": 300000,
+                  "description": "상태 좋음"
+                }
+                """;
+
+        // when & then
+        mockMvc.perform(post("/api/products")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .sessionAttr(SessionConst.LOGIN_MEMBER_ID, 1L)
+                        .content(짧은_설명_요청))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("INVALID_REQUEST"));
     }
@@ -198,7 +238,7 @@ class ProductControllerTest {
     @Test
     void 유효한_정보로_수정하면_200과_수정된_물품정보를_반환한다() throws Exception {
         // given
-        Product 수정된_물품 = new Product(1L, null, "수정된 이름", 500000L, "수정된 설명",
+        Product 수정된_물품 = new Product(1L, null, "수정된 이름", 500000L, "수정된 설명 충분히 길게",
                 null, 1L, "원기", ProductStatus.PREPARING, LocalDateTime.now());
         given(productService.updateProduct(any(Long.class), any(UpdateProductRequest.class), any(Long.class)))
                 .willReturn(수정된_물품);
@@ -206,7 +246,7 @@ class ProductControllerTest {
                 {
                   "name": "수정된 이름",
                   "price": 500000,
-                  "description": "수정된 설명"
+                  "description": "수정된 설명 충분히 길게"
                 }
                 """;
 
@@ -218,7 +258,7 @@ class ProductControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.name").value("수정된 이름"))
                 .andExpect(jsonPath("$.price").value(500000))
-                .andExpect(jsonPath("$.description").value("수정된 설명"));
+                .andExpect(jsonPath("$.description").value("수정된 설명 충분히 길게"));
     }
 
     @Test
@@ -229,7 +269,8 @@ class ProductControllerTest {
         String 수정_요청 = """
                 {
                   "name": "수정된 이름",
-                  "price": 500000
+                  "price": 500000,
+                  "description": "수정된 설명 충분히 길게"
                 }
                 """;
 
